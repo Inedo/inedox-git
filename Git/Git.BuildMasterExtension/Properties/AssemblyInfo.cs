@@ -1,0 +1,18 @@
+﻿using System;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Inedo.BuildMaster.Extensibility;
+
+[assembly: AssemblyTitle("Git")]
+[assembly: AssemblyDescription("Source control operations for Git.")]
+
+[assembly: ComVisible(false)]
+[assembly: AssemblyCompany("Inedo, LLC")]
+[assembly: AssemblyProduct("BuildMaster")]
+[assembly: AssemblyCopyright("Copyright © 2008 - 2016")]
+[assembly: AssemblyVersion("0.0.0.0")]
+[assembly: AssemblyFileVersion("0.0")]
+[assembly: CLSCompliant(false)]
+[assembly: RequiredBuildMasterVersion("5.6.0")]
+
+[assembly: ScriptNamespace("Git")]

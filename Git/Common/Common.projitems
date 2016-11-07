@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>e7439368-9a13-487f-934f-78c67f9cee2f</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Inedo.Extensions</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\CommandLine\GitArgumentsBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\CommandLine\GitCommandLineClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\CommandLine\ProcessResults.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\GitClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\GitUpdateOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\GitCloneOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\GitRepositoryInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\FileArchiver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\LibGitSharpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\WorkspacePath.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentials.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\TagOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GetSourceOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GitOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VariableFunctions\DefaultGitExePathVariableFunction.cs" />
+  </ItemGroup>
+</Project>
