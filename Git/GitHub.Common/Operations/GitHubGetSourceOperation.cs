@@ -9,9 +9,11 @@ using System.Threading.Tasks;
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
+using Inedo.BuildMaster.Extensibility.Operations;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
+using Inedo.Otter.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -68,6 +70,16 @@ GitHub-GetSource(
                 throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
 
             return (string)repo["clone_url"];
+        }
+
+        protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
+        {
+            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
+
+            return new ExtendedRichDescription(
+               new RichDescription("Get GitHub Source"),
+               new RichDescription("from ", new Hilite(source), " to ", new Hilite(config[nameof(this.DiskPath)]))
+            );
         }
     }
 }

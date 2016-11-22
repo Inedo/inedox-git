@@ -18,6 +18,9 @@ namespace Inedo.Extensions.Clients
 
         public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
         {
+            if (!string.IsNullOrEmpty(userName) && password == null)
+                throw new InvalidOperationException("If a username is specified, a password must be specified in the operation or in the resource credential.");
+
             this.apiBaseUrl = AH.CoalesceString(apiBaseUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
             this.UserName = userName;
             this.Password = password;

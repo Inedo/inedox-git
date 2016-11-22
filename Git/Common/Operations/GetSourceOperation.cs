@@ -79,7 +79,7 @@ namespace Inedo.Extensions.Operations
                 }
             ).ConfigureAwait(false);
 
-            await client.ArchiveAsync(this.DiskPath).ConfigureAwait(false);
+            await client.ArchiveAsync(context.ResolvePath(this.DiskPath)).ConfigureAwait(false);
 
             this.LogInformation("Get source complete.");
         }
@@ -91,9 +91,11 @@ namespace Inedo.Extensions.Operations
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
+            string source = AH.CoalesceString(config[nameof(this.RepositoryUrl)], config[nameof(this.CredentialName)]);
+
             return new ExtendedRichDescription(
                new RichDescription("Get Git Source"),
-               new RichDescription("from ", new Hilite(config[nameof(this.RepositoryUrl)]), " to ", new Hilite(config[nameof(this.DiskPath)]))
+               new RichDescription("from ", new Hilite(source), " to ", new Hilite(config[nameof(this.DiskPath)]))
             );
         }
     }

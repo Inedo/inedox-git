@@ -30,10 +30,12 @@ namespace Inedo.Extensions.Credentials
 
         [Persistent]
         [DisplayName("Organization name")]
+        [PlaceholderText("e.g. apache")]
         public string OrganizationName { get; set; }
 
         [Persistent]
         [DisplayName("Repository")]
+        [PlaceholderText("e.g. log4net")]
         public string RepositoryName { get; set; }
         
         [Persistent]
