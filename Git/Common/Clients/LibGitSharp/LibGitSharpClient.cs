@@ -120,6 +120,15 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
             using (var repository = new Repository(this.repository.LocalRepositoryPath))
             {
+                if (!string.IsNullOrEmpty(options.Branch))
+                {
+                    var branch = this.GetOrCreateLocalBranch(repository, options.Branch);
+                    if (branch != null)
+                        repository.Checkout(branch);
+                    else
+                        this.log.LogError("Branch not found in repository.");
+                }
+
                 this.log.LogDebug("Fetching commits from origin...");
                 repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler });
             }
@@ -137,6 +146,34 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
 
             return Complete;
+        }
+
+        private Branch GetOrCreateLocalBranch(Repository repo, string localBranchName)
+        {
+            this.log.LogDebug($"Finding local branch '{localBranchName}'...");
+            var existing = repo.Branches[localBranchName];
+            if (existing != null)
+            {
+                this.log.LogDebug($"Using local branch '{existing.CanonicalName}'...");
+                return existing;
+            }
+
+            string trackedBranchName = "origin/" + localBranchName;
+            this.log.LogDebug($"Local branch not found, finding tracked branch '{trackedBranchName}'...");
+
+            var trackedBranch = repo.Branches[trackedBranchName];
+            if (trackedBranch == null)
+            {
+                this.log.LogError("Tracked branch not found.");
+                return null;
+            }
+
+            var localBranch = repo.CreateBranch(localBranchName, trackedBranch.Tip);
+
+            this.log.LogDebug($"Updating local branch to track remote branch '{trackedBranch.CanonicalName}'...");
+            repo.Branches.Update(localBranch, b => b.TrackedBranch = trackedBranch.CanonicalName);
+
+            return localBranch;
         }
 
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)

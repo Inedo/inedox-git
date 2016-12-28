@@ -65,6 +65,7 @@ namespace Inedo.Extensions.Operations
                 await client.CloneAsync(
                     new GitCloneOptions
                     {
+                        Branch = this.Branch,
                         RecurseSubmodules = this.RecurseSubmodules
                     }
                 ).ConfigureAwait(false);
