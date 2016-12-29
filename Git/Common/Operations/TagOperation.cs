@@ -54,6 +54,7 @@ namespace Inedo.Extensions.Operations
                 await client.CloneAsync(
                     new GitCloneOptions
                     {
+                        Branch = this.Branch,
                         RecurseSubmodules = this.RecurseSubmodules
                     }
                 ).ConfigureAwait(false);
@@ -68,7 +69,7 @@ namespace Inedo.Extensions.Operations
                 }
             ).ConfigureAwait(false);
 
-            await client.TagAsync(this.Tag);
+            await client.TagAsync(this.Tag).ConfigureAwait(false);
 
             this.LogInformation("Tag complete.");
         }

@@ -80,7 +80,7 @@ namespace Inedo.Extensions.Operations
             }
             else
             {
-                this.LogDebug("No executable path specified, using build-in git library...");
+                this.LogDebug("No executable path specified, using built-in Git library...");
                 return new LibGitSharpClient(
                     new GitRepositoryInfo(workspacePath, repositoryUrl, this.UserName, this.Password),
                     this

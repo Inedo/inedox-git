@@ -5,6 +5,7 @@ using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Operations;
+using Inedo.Agents;
 
 #if BuildMaster
 using Inedo.BuildMaster;
@@ -58,7 +59,16 @@ namespace Inedo.Extensions.Operations
             string tagDesc = string.IsNullOrEmpty(this.Tag) ? "" : $" tagged '{this.Tag}'";
             this.LogInformation($"Getting source from '{repositoryUrl}'{branchDesc}{tagDesc}...");
 
-            var client = this.CreateClient(context, repositoryUrl, WorkspacePath.Resolve(context, repositoryUrl, this.WorkspaceDiskPath));
+            var workspacePath = WorkspacePath.Resolve(context, repositoryUrl, this.WorkspaceDiskPath);
+
+            if (this.CleanWorkspace)
+            {
+                this.LogDebug("Clearing workspace...");
+                var fileOps = context.Agent.GetService<IFileOperationsExecuter>();
+                await fileOps.ClearDirectoryAsync(workspacePath.FullPath).ConfigureAwait(false);
+            }
+
+            var client = this.CreateClient(context, repositoryUrl, workspacePath);
             bool valid = await client.IsRepositoryValidAsync().ConfigureAwait(false);
             if (!valid)
             {
