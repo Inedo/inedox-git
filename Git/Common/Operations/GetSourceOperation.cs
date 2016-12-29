@@ -63,7 +63,7 @@ namespace Inedo.Extensions.Operations
 
             if (this.CleanWorkspace)
             {
-                this.LogDebug("Clearing workspace...");
+                this.LogDebug($"Clearing workspace path '{workspacePath.FullPath}'...");
                 var fileOps = context.Agent.GetService<IFileOperationsExecuter>();
                 await fileOps.ClearDirectoryAsync(workspacePath.FullPath).ConfigureAwait(false);
             }
