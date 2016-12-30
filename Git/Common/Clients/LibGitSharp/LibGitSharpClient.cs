@@ -131,8 +131,8 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
                 this.log.LogDebug("Fetching commits from origin...");
                 repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler });
-                this.log.LogDebug("Resetting the index and working tree to HEAD...");
-                repository.Reset(ResetMode.Hard);
+                this.log.LogDebug("Resetting the index and working tree to FETCH_HEAD...");
+                repository.Reset(ResetMode.Hard, "FETCH_HEAD");
             }
 
             return Complete;
