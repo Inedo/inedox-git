@@ -1,14 +1,12 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using Inedo.Extensions.Credentials;
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Agents;
-using Inedo.Extensions.Clients.LibGitSharp;
-using Inedo.IO;
 using Inedo.Diagnostics;
+using Inedo.Extensions.Clients.LibGitSharp.Remote;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
@@ -81,7 +79,11 @@ namespace Inedo.Extensions.Operations
             else
             {
                 this.LogDebug("No executable path specified, using built-in Git library...");
-                return new LibGitSharpClient(
+                return new RemoteLibGitSharpClient(
+                    context.Agent.TryGetService<IRemoteJobExecuter>(),
+                    context.WorkingDirectory,
+                    context.Simulation,
+                    context.CancellationToken,
                     new GitRepositoryInfo(workspacePath, repositoryUrl, this.UserName, this.Password),
                     this
                 );

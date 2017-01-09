@@ -8,6 +8,7 @@ using Inedo.Agents;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Extensions.Clients.LibGitSharp;
+using Inedo.Extensions.Clients.LibGitSharp.Remote;
 using Inedo.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -23,6 +24,7 @@ namespace Tests
         private string rootDir;
         private IFileOperationsExecuter fileOps;
         private IRemoteProcessExecuter processExecuter;
+        private IRemoteJobExecuter jobExecuter;
 
         private string userName;
         private SecureString password;
@@ -50,6 +52,7 @@ namespace Tests
             this.fileOps = fileOps;
 
             this.processExecuter = new TestRemoteProcessExecuter();
+            this.jobExecuter = new TestRemoteJobExecuter();
         }
 
         [TestMethod]
@@ -74,6 +77,30 @@ namespace Tests
         public void LibGitSharp_Branches()
         {
             this.Branches("work-libgit", ClientType.LibGitSharp);
+        }
+
+        [TestMethod]
+        public void RemoteLibGitSharp_Clone()
+        {
+            this.Clone("clone-remote-libgit", ClientType.RemoteLibGitSharp);
+        }
+
+        [TestMethod]
+        public void RemoteLibGitSharp_Archive()
+        {
+            this.Archive("clone-remote-libgit", "archive-libgit", ClientType.RemoteLibGitSharp);
+        }
+
+        [TestMethod]
+        public void RemoteLibGitSharp_Tag()
+        {
+            this.Tag("clone-remote-libgit", ClientType.RemoteLibGitSharp);
+        }
+
+        [TestMethod]
+        public void RemoteLibGitSharp_Branches()
+        {
+            this.Branches("work-remote-libgit", ClientType.RemoteLibGitSharp);
         }
 
         [TestMethod]
@@ -148,7 +175,7 @@ namespace Tests
 
         private void Branches(string workingDirectory, ClientType type)
         {
-            string fullWorkingDirectory = PathEx.Combine(this.rootDir, "rubbish-libgit");
+            string fullWorkingDirectory = PathEx.Combine(this.rootDir, workingDirectory);
             var client = this.CreateClient(type, fullWorkingDirectory);
 
             var branches = client.EnumerateRemoteBranchesAsync().GetAwaiter().GetResult().ToList();
@@ -163,10 +190,12 @@ namespace Tests
 
             if (type == ClientType.CommandLine)
                 return new GitCommandLineClient(gitExePath, this.processExecuter, this.fileOps, repo, TestLogger.Instance, CancellationToken.None);
-            else
+            else if (type == ClientType.LibGitSharp)
                 return new LibGitSharpClient(repo, TestLogger.Instance);
+            else
+                return new RemoteLibGitSharpClient(this.jobExecuter, workingDirectory, false, CancellationToken.None, repo, TestLogger.Instance);
         }
 
-        private enum ClientType { CommandLine, LibGitSharp }
+        private enum ClientType { CommandLine, LibGitSharp, RemoteLibGitSharp }
     }
 }

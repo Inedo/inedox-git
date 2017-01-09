@@ -57,6 +57,19 @@ namespace Inedo.Extensions.Clients
                     Marshal.ZeroFreeGlobalAllocUnicode(str);
             }
         }
+
+        public static SecureString ToSecureString(this string s)
+        {
+            if (s == null)
+                return null;
+
+            var secure = new SecureString();
+            foreach (var c in s)
+                secure.AppendChar(c);
+
+            secure.MakeReadOnly();
+            return secure;
+        }
     }
 #endif
 }

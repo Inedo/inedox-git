@@ -18,6 +18,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitRepositoryInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\FileArchiver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\LibGitSharpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpJob.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\ClientCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\WorkspacePath.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentials.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\TagOperation.cs" />

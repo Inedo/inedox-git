@@ -78,6 +78,7 @@
     <Compile Include="TestFileOperationsExecuter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestLogger.cs" />
+    <Compile Include="TestRemoteJobExecuter.cs" />
     <Compile Include="TestRemoteProcessExecuter.cs" />
   </ItemGroup>
   <ItemGroup>

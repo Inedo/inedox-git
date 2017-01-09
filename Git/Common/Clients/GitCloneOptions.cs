@@ -1,5 +1,8 @@
-﻿namespace Inedo.Extensions.Clients
+﻿using System;
+
+namespace Inedo.Extensions.Clients
 {
+    [Serializable]
     public sealed class GitCloneOptions
     {
         public GitCloneOptions()

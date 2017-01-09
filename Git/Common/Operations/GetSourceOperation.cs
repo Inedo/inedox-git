@@ -106,7 +106,7 @@ namespace Inedo.Extensions.Operations
 
             return new ExtendedRichDescription(
                new RichDescription("Get Git Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new Hilite(config[nameof(this.DiskPath)]))
+               new RichDescription("from ", new Hilite(source), " to ", new DirectoryHilite(config[nameof(this.DiskPath)]))
             );
         }
     }
