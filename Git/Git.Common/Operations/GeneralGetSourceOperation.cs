@@ -16,6 +16,7 @@ namespace Inedo.Extensions.Operations
     [Description("Gets the source code from a general Git repository.")]
     [Tag("source-control")]
     [ScriptAlias("Git-GetSource")]
+    [ScriptNamespace("Git")]
     [Example(@"
 # pulls source from a remote repository and archives/exports the contents to a target directory
 Git-GetSource(

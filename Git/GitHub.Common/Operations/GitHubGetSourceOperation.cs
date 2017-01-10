@@ -22,6 +22,7 @@ namespace Inedo.Extensions.Operations
     [Description("Gets the source code from a GitHub repository.")]
     [Tag("source-control")]
     [ScriptAlias("GitHub-GetSource")]
+    [ScriptNamespace("GitHub")]
     [Example(@"
 # pulls source from a remote repository and archives/exports the contents to a target directory
 GitHub-GetSource(

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Inedo.Otter.Extensibility;
 
 [assembly: AssemblyTitle("GitHub")]
 [assembly: AssemblyDescription("Source control and issue tracking integration for GitHub.")]
@@ -13,5 +12,3 @@ using Inedo.Otter.Extensibility;
 [assembly: AssemblyVersion("0.0.0.0")]
 [assembly: AssemblyFileVersion("0.0")]
 [assembly: CLSCompliant(false)]
-
-[assembly: ScriptNamespace("GitHub")]

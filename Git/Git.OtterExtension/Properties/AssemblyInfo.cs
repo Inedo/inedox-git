@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Inedo.Otter.Extensibility;
 
 [assembly: AssemblyTitle("Git")]
 [assembly: AssemblyDescription("Source control operations for Git.")]
@@ -13,5 +12,3 @@ using Inedo.Otter.Extensibility;
 [assembly: AssemblyVersion("0.0.0.0")]
 [assembly: AssemblyFileVersion("0.0")]
 [assembly: CLSCompliant(false)]
-
-[assembly: ScriptNamespace("Git")]

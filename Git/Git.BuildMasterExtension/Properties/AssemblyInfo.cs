@@ -14,5 +14,3 @@ using Inedo.BuildMaster.Extensibility;
 [assembly: AssemblyFileVersion("0.0")]
 [assembly: CLSCompliant(false)]
 [assembly: RequiredBuildMasterVersion("5.6.0")]
-
-[assembly: ScriptNamespace("Git")]

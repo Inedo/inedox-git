@@ -13,6 +13,7 @@ namespace Inedo.Extensions.Operations
     [Description("Tags the source code in a general Git repository.")]
     [Tag("source-control")]
     [ScriptAlias("Git-Tag")]
+    [ScriptNamespace("Git")]
     [Example(@"
 # tags the current source tree with the current release name and package number
 Git-GetSource(
