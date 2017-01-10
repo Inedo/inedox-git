@@ -38,38 +38,11 @@ namespace Inedo.Extensions.Clients
     }
 
 #if Otter
+    // remove this when BuildMaster SDK is updated to v5.7, and replace all SecureString extension methods with their AH equivalents
     internal static class SecureStringExtensions
     {
-        public static string ToUnsecureString(this SecureString thisValue)
-        {
-            if (thisValue == null)
-                throw new ArgumentNullException(nameof(thisValue));
-
-            var str = IntPtr.Zero;
-            try
-            {
-                str = Marshal.SecureStringToGlobalAllocUnicode(thisValue);
-                return Marshal.PtrToStringUni(str);
-            }
-            finally
-            {
-                if (str != IntPtr.Zero)
-                    Marshal.ZeroFreeGlobalAllocUnicode(str);
-            }
-        }
-
-        public static SecureString ToSecureString(this string s)
-        {
-            if (s == null)
-                return null;
-
-            var secure = new SecureString();
-            foreach (var c in s)
-                secure.AppendChar(c);
-
-            secure.MakeReadOnly();
-            return secure;
-        }
+        public static string ToUnsecureString(this SecureString thisValue) => AH.Unprotect(thisValue);
+        public static SecureString ToSecureString(this string s) => AH.CreateSecureString(s);
     }
 #endif
 }

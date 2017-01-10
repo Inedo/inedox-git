@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
+﻿using System.ComponentModel;
 using Inedo.Documentation;
 
 #if BuildMaster
@@ -18,9 +15,7 @@ namespace Inedo.Extensions.VariableFunctions
     [ScriptAlias("DefaultGitExePath")]
     [Description("The path to the git executable to use for git operations; if not specified, a built-in library is used")]
     [Tag("git")]
-#if BuildMaster
     [ExtensionConfigurationVariable(Required = false)]
-#endif
     public sealed class DefaultGitExePathVariableFunction : ScalarVariableFunction
     {
 #if BuildMaster

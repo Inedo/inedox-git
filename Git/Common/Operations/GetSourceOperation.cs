@@ -19,6 +19,7 @@ using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
 using Inedo.Otter.Extensions.Credentials;
+using Inedo.Otter.Web.Controls.Plans;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -37,9 +38,7 @@ namespace Inedo.Extensions.Operations
 
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]
-#if BuildMaster
         [FilePathEditor]
-#endif
         [PlaceholderText("$WorkingDirectory")]
         public string DiskPath { get; set; }
 
