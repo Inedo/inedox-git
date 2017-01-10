@@ -8,7 +8,7 @@ using Inedo.Otter.Extensibility;
 
 [assembly: ComVisible(false)]
 [assembly: AssemblyCompany("Inedo, LLC")]
-[assembly: AssemblyProduct("BuildMaster")]
+[assembly: AssemblyProduct("Otter")]
 [assembly: AssemblyCopyright("Copyright © 2008 - 2017")]
 [assembly: AssemblyVersion("0.0.0.0")]
 [assembly: AssemblyFileVersion("0.0")]
