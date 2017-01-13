@@ -53,12 +53,12 @@
       <HintPath>..\packages\LibGit2Sharp.0.22.0\lib\net40\LibGit2Sharp.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Otter.Web.Controls, Version=1.4.7.7, Culture=neutral, PublicKeyToken=4da0d93b7176269b, processorArchitecture=MSIL">
+    <Reference Include="Otter.Web.Controls, Version=1.5.0.2, Culture=neutral, PublicKeyToken=4da0d93b7176269b, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.Otter.SDK.1.5.0\lib\net45\Otter.Web.Controls.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
       <Private>False</Private>
     </Reference>
-    <Reference Include="OtterCore, Version=1.4.7.7, Culture=neutral, PublicKeyToken=4da0d93b7176269b, processorArchitecture=MSIL">
+    <Reference Include="OtterCore, Version=1.5.0.2, Culture=neutral, PublicKeyToken=4da0d93b7176269b, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.Otter.SDK.1.5.0\lib\net45\OtterCore.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
       <Private>False</Private>
