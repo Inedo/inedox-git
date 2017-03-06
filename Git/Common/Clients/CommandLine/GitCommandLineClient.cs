@@ -47,9 +47,18 @@ namespace Inedo.Extensions.Clients.CommandLine
 
         public override async Task CloneAsync(GitCloneOptions options)
         {
-            var args = new GitArgumentsBuilder();
+            var args = new GitArgumentsBuilder("clone");
 
-            args.Append("clone");
+            if (options.Branch != null)
+            {
+                args.Append("-b");
+                args.AppendQuoted(options.Branch);
+            }
+            if (options.RecurseSubmodules)
+            {
+                args.Append("--recursive");
+            }
+
             args.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
             args.AppendQuoted(this.repository.LocalRepositoryPath);
 
@@ -59,20 +68,26 @@ namespace Inedo.Extensions.Clients.CommandLine
         public override async Task UpdateAsync(GitUpdateOptions options)
         {
             /* 
-             *  git fetch origin <branch> | Get all changesets for the specified branch but does not apply them
-             *  git reset --hard <ref>    | Resets to the HEAD revision and removes commits that haven't been pushed
-             *  git clean -dfq            | Remove all non-Git versioned files and directories from the repository directory
+             *  git remote set-url origin <url>         | Make sure we're talking to the correct remote repository
+             *  git fetch origin                        | Update the local cache of the remote repository
+             *  git reset --hard <ref>                  | Resets to the HEAD revision and removes commits that haven't been pushed
+             *  git clean -dfq                          | Remove all non-Git versioned files and directories from the repository working directory
+             *  git submodule update --init --recursive | Updates submodules to the version referenced by the HEAD revision
              */
 
-            var args = new GitArgumentsBuilder("fetch");
-            args.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
-            args.Append("--quiet");
-            args.Append(options.Branch);
+            var remoteArgs = new GitArgumentsBuilder("remote set-url origin");
+            remoteArgs.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
+            await this.ExecuteCommandLineAsync(remoteArgs, this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
-            await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
+            await this.ExecuteCommandLineAsync(new GitArgumentsBuilder("fetch origin"), this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
             var resetArgs = new GitArgumentsBuilder("reset --hard");
-            resetArgs.Append(AH.CoalesceString(options.Tag, "FETCH_HEAD"));
+            if (options.Tag != null)
+                resetArgs.AppendQuoted("origin/" + options.Tag);
+            else if (options.Branch != null)
+                resetArgs.AppendQuoted("origin/" + options.Branch);
+            else
+                resetArgs.Append("FETCH_HEAD");
 
             await this.ExecuteCommandLineAsync(
                 resetArgs,
@@ -83,6 +98,14 @@ namespace Inedo.Extensions.Clients.CommandLine
                 new GitArgumentsBuilder("clean -dfq"),
                 this.repository.LocalRepositoryPath
               ).ConfigureAwait(false);
+
+            if (options.RecurseSubmodules)
+            {
+                await this.ExecuteCommandLineAsync(
+                    new GitArgumentsBuilder("submodule update --init --recursive"),
+                    this.repository.LocalRepositoryPath
+                  ).ConfigureAwait(false);
+            }
         }
 
         public override async Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()

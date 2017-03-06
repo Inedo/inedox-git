@@ -49,27 +49,14 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         throw new InvalidOperationException("Specified local repository path is invalid.");
                 }
 
-                try
-                {
-                    this.log.LogDebug($"Creating temporary repository at '{this.repository.LocalRepositoryPath}'...");
-                    Repository.Init(this.repository.LocalRepositoryPath);
-                    using (var tempRepo = new Repository(this.repository.LocalRepositoryPath))
-                    {
-                        var refs = tempRepo.Network.ListReferences(this.repository.GetRemoteUrlWithCredentials());
+                var refs = Repository.ListRemoteReferences(this.repository.RemoteRepositoryUrl, this.CredentialsHandler);
 
-                        var trimmedRefs = from r in refs
-                                          where r.CanonicalName.StartsWith("refs/heads/")
-                                          let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
-                                          select trimmed;
+                var trimmedRefs = from r in refs
+                                  where r.CanonicalName.StartsWith("refs/heads/")
+                                  let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
+                                  select trimmed;
 
-                        return Task.FromResult(trimmedRefs);
-                    }
-                }
-                finally
-                {
-                    this.log.LogDebug($"Deleting temporary repository at '{this.repository.LocalRepositoryPath}'...");
-                    DirectoryEx.Delete(this.repository.LocalRepositoryPath);
-                }
+                return Task.FromResult(trimmedRefs);
             }
             else
             {
@@ -120,19 +107,24 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
             using (var repository = new Repository(this.repository.LocalRepositoryPath))
             {
-                if (!string.IsNullOrEmpty(options.Branch))
-                {
-                    var branch = this.GetOrCreateLocalBranch(repository, options.Branch);
-                    if (branch != null)
-                        repository.Checkout(branch);
-                    else
-                        this.log.LogError("Branch not found in repository.");
-                }
-
                 this.log.LogDebug("Fetching commits from origin...");
-                repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler });
-                this.log.LogDebug("Resetting the index and working tree to FETCH_HEAD...");
-                repository.Reset(ResetMode.Hard, "FETCH_HEAD");
+                repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler, Prune = true });
+                var refName = "FETCH_HEAD";
+                if (options.Branch != null)
+                    refName = "origin/" + options.Branch;
+                else if (options.Tag != null)
+                    refName = "origin/" + options.Tag;
+                this.log.LogDebug($"Resetting the index and working tree to {refName}...");
+                repository.Reset(ResetMode.Hard, refName);
+                repository.RemoveUntrackedFiles();
+
+                if (options.RecurseSubmodules)
+                {
+                    foreach (var submodule in repository.Submodules)
+                    {
+                        repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = CredentialsHandler, Init = true });
+                    }
+                }
             }
 
             return Complete;
@@ -148,34 +140,6 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
 
             return Complete;
-        }
-
-        private Branch GetOrCreateLocalBranch(Repository repo, string localBranchName)
-        {
-            this.log.LogDebug($"Finding local branch '{localBranchName}'...");
-            var existing = repo.Branches[localBranchName];
-            if (existing != null)
-            {
-                this.log.LogDebug($"Using local branch '{existing.CanonicalName}'...");
-                return existing;
-            }
-
-            string trackedBranchName = "origin/" + localBranchName;
-            this.log.LogDebug($"Local branch not found, finding tracked branch '{trackedBranchName}'...");
-
-            var trackedBranch = repo.Branches[trackedBranchName];
-            if (trackedBranch == null)
-            {
-                this.log.LogError("Tracked branch not found.");
-                return null;
-            }
-
-            var localBranch = repo.CreateBranch(localBranchName, trackedBranch.Tip);
-
-            this.log.LogDebug($"Updating local branch to track remote branch '{trackedBranch.CanonicalName}'...");
-            repo.Branches.Update(localBranch, b => b.TrackedBranch = trackedBranch.CanonicalName);
-
-            return localBranch;
         }
 
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
