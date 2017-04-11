@@ -111,9 +111,9 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler, Prune = true });
                 var refName = "FETCH_HEAD";
                 if (options.Branch != null)
-                    refName = "origin/" + options.Branch;
+                    refName = options.Branch;
                 else if (options.Tag != null)
-                    refName = "origin/" + options.Tag;
+                    refName = options.Tag;
                 this.log.LogDebug($"Resetting the index and working tree to {refName}...");
                 repository.Reset(ResetMode.Hard, refName);
                 repository.RemoveUntrackedFiles();
