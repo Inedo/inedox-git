@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.IO;
 using LibGit2Sharp;
@@ -11,6 +12,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp
     public sealed class LibGitSharpClient : GitClient
     {
         private static Task Complete => Task.FromResult<object>(null);
+
+        static LibGitSharpClient()
+        {
+            GlobalSettings.RegisterFilter(new LfsFilter("lfs", new[] { new FilterAttributeEntry("lfs") }));
+        }
 
         public LibGitSharpClient(GitRepositoryInfo repository, ILogger log)
             : base(repository, log)
@@ -132,14 +138,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
         public override Task ArchiveAsync(string targetDirectory)
         {
-            this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
-            using (var repository = new Repository(this.repository.LocalRepositoryPath))
-            {
-                this.log.LogDebug($"Archiving HEAD ('{repository.Head.CanonicalName}', commit '{repository.Head.Tip.Sha}') to '{targetDirectory}'....");
-                repository.ObjectDatabase.Archive(repository.Head.Tip, new FileArchiver(targetDirectory));
-            }
-
-            return Complete;
+            return CopyNonGitFilesAsync(new FileArchiver(targetDirectory), this.repository.LocalRepositoryPath, targetDirectory);
         }
 
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)

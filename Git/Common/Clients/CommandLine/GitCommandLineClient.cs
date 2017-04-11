@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
-using Inedo.IO;
 
 namespace Inedo.Extensions.Clients.CommandLine
 {
@@ -138,7 +137,7 @@ namespace Inedo.Extensions.Clients.CommandLine
 
         public override Task ArchiveAsync(string targetDirectory)
         {
-            return this.CopyNonGitFiles(this.repository.LocalRepositoryPath, targetDirectory);
+            return CopyNonGitFilesAsync(this.fileOps, this.repository.LocalRepositoryPath, targetDirectory);
         }
 
         private async Task<ProcessResults> ExecuteCommandLineAsync(GitArgumentsBuilder args, string workingDirectory)
@@ -170,38 +169,6 @@ namespace Inedo.Extensions.Clients.CommandLine
 
                 return new ProcessResults(process.ExitCode ?? -1, outputLines, errorLines);
             }
-        }
-
-        private async Task CopyNonGitFiles(string sourceDirectory, string targetDirectory)
-        {
-            if (!await this.fileOps.DirectoryExistsAsync(sourceDirectory).ConfigureAwait(false))
-                return;
-            
-            char separator = this.fileOps.DirectorySeparator;
-
-            var infos = await this.fileOps.GetFileSystemInfosAsync(sourceDirectory, new MaskingContext(new[] { "**" }, new[] { "**" + separator + ".git**" })).ConfigureAwait(false);
-
-            var directoriesToCreate = infos.OfType<SlimDirectoryInfo>().Select(d => CombinePaths(targetDirectory, d.FullName.Substring(sourceDirectory.Length), separator)).ToArray();
-            var relativeFileNames = infos.OfType<SlimFileInfo>().Select(f => f.FullName.Substring(sourceDirectory.Length).TrimStart(separator)).ToArray();
-
-            await this.fileOps.CreateDirectoryAsync(targetDirectory).ConfigureAwait(false);
-
-            foreach (string folder in directoriesToCreate)
-                await this.fileOps.CreateDirectoryAsync(folder).ConfigureAwait(false);
-            
-            await this.fileOps.FileCopyBatchAsync(
-                sourceDirectory,
-                relativeFileNames,
-                targetDirectory,
-                relativeFileNames,
-                true,
-                true
-            ).ConfigureAwait(false);
-        }
-
-        private static string CombinePaths(string p1, string p2, char separator)
-        {
-            return p1.TrimEnd(separator) + separator + p2.TrimStart(separator);
         }
     }
 }

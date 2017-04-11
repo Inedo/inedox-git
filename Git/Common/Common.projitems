@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitCloneOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitRepositoryInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\FileArchiver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\LfsFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\LibGitSharpClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpContext.cs" />
