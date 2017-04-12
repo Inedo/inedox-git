@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
+using Inedo.ExecutionEngine.Executer;
 
 namespace Inedo.Extensions.Clients.CommandLine
 {
@@ -38,7 +39,8 @@ namespace Inedo.Extensions.Clients.CommandLine
         {
             var result = await this.ExecuteCommandLineAsync(
                 new GitArgumentsBuilder("log -n 1"),
-                this.repository.LocalRepositoryPath
+                this.repository.LocalRepositoryPath,
+                false
               ).ConfigureAwait(false);
 
             return result.ExitCode == 0 && result.Error.Count == 0;
@@ -112,7 +114,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             var args = new GitArgumentsBuilder("ls-remote --refs --heads");
             args.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
 
-            var result = await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
+            var result = await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath, false).ConfigureAwait(false);
 
             var branches = from o in result.Output
                            let value = BranchParsingRegex.Match(o).Groups["branch"].Value
@@ -140,7 +142,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             return CopyNonGitFilesAsync(this.fileOps, this.repository.LocalRepositoryPath, targetDirectory);
         }
 
-        private async Task<ProcessResults> ExecuteCommandLineAsync(GitArgumentsBuilder args, string workingDirectory)
+        private async Task<ProcessResults> ExecuteCommandLineAsync(GitArgumentsBuilder args, string workingDirectory, bool throwOnFailure = true)
         {
             var startInfo = new RemoteProcessStartInfo
             {
@@ -167,6 +169,10 @@ namespace Inedo.Extensions.Clients.CommandLine
 
                 await process.WaitAsync(this.cancellationToken).ConfigureAwait(false);
 
+                if (throwOnFailure && process.ExitCode != 0)
+                {
+                    throw new ExecutionFailureException($"git returned error code {process.ExitCode}\n{string.Join("\n", errorLines)}");
+                }
                 return new ProcessResults(process.ExitCode ?? -1, outputLines, errorLines);
             }
         }
