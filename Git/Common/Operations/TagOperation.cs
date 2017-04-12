@@ -43,6 +43,11 @@ namespace Inedo.Extensions.Operations
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             string repositoryUrl = this.GetRepositoryUrl();
+            if (string.IsNullOrEmpty(repositoryUrl))
+            {
+                this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");
+                return;
+            }
 
             string branchDesc = string.IsNullOrEmpty(this.Branch) ? "" : $" on '{this.Branch}' branch";
             this.LogInformation($"Tag '{repositoryUrl}'{branchDesc} as '{this.Tag}'...");
