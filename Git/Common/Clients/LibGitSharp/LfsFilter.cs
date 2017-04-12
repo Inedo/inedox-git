@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Inedo.ExecutionEngine.Executer;
 
 namespace Inedo.Extensions.Clients.LibGitSharp
 {
@@ -25,14 +26,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
         private async Task CleanOrSmudgeAsync(string path, string root, Stream input, Stream output, string mode)
         {
-            using (var process = Process.Start(new ProcessStartInfo("git-lfs", $"{mode} -- {path}")
-            {
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                WorkingDirectory = root
-            }))
+            using (var process = CreateProcess("git-lfs", $"{mode} -- {path}", root))
             {
                 var inputCopy = input.CopyToAsync(process.StandardInput.BaseStream);
                 var outputCopy = process.StandardOutput.BaseStream.CopyToAsync(output);
@@ -49,12 +43,33 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
                 if (process.ExitCode == 9009)
                 {
-                    throw new InvalidOperationException("git-lfs is not installed on the current server, but it is required by this repository. See https://git-lfs.github.com/ for installation instructions.");
+                    throw new ExecutionFailureException("git-lfs is not installed on the current server, but it is required by this repository. See https://git-lfs.github.com/ for installation instructions.");
                 }
                 else if (process.ExitCode != 0)
                 {
-                    throw new InvalidOperationException($"git-lfs exited with code {process.ExitCode}\nMessages: {errorText}");
+                    throw new ExecutionFailureException($"git-lfs exited with code {process.ExitCode}\nMessages: {errorText}");
                 }
+            }
+        }
+
+        private static Process CreateProcess(string fileName, string args, string workingDirectory)
+        {
+            try
+            {
+                return Process.Start(
+                    new ProcessStartInfo(fileName, args)
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardInput = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        WorkingDirectory = workingDirectory
+                    }
+                );
+            }
+            catch
+            {
+                throw new ExecutionFailureException("git-lfs is not installed on the current server, but it is required by this repository. See https://git-lfs.github.com/ for installation instructions.");
             }
         }
     }
