@@ -86,7 +86,7 @@ namespace Inedo.Extensions.Operations
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
-               new RichDescription("Tag Source"),
+               new RichDescription("Tag Git Source"),
                new RichDescription("in ", new Hilite(config[nameof(this.RepositoryUrl)]), " with ", new Hilite(config[nameof(this.Tag)]))
             );
         }
