@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security;
 
 namespace Inedo.Extensions.Clients.CommandLine
 {
@@ -42,7 +39,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             public override string ToString()
             {
                 if (this.quoted)
-                    return '"' + this.arg.Replace("\"", @"\""") + '"';
+                    return '"' + Escape(this.arg) + '"';
                 else
                     return this.arg;
             }
@@ -52,9 +49,17 @@ namespace Inedo.Extensions.Clients.CommandLine
                 if (this.sensitive)
                     return "(hidden)";
                 else if (this.quoted)
-                    return '"' + this.arg.Replace("\"", @"\""") + '"';
+                    return '"' + Escape(this.arg) + '"';
                 else
                     return this.arg;
+            }
+
+            private static string Escape(string s)
+            {
+                var value = s.Replace("\"", @"\""");
+                if (value.EndsWith("\\"))
+                    value += "\\";
+                return value;
             }
         }
     }
