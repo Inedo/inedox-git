@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Security;
 
 namespace Inedo.Extensions.Clients
@@ -13,7 +12,7 @@ namespace Inedo.Extensions.Clients
             if (string.IsNullOrEmpty(remoteRepositoryUrl))
                 throw new ArgumentNullException(nameof(remoteRepositoryUrl));
 
-            this.LocalRepositoryPath = localRepositoryPath.FullPath;
+            this.LocalRepositoryPath = localRepositoryPath.FullPath.EndsWith("\\") ? localRepositoryPath.FullPath : (localRepositoryPath + "\\");
             this.RemoteRepositoryUrl = remoteRepositoryUrl;
             this.UserName = userName;
             this.Password = password;
