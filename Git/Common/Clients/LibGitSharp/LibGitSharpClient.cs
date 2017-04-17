@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.IO;
 using LibGit2Sharp;
 
@@ -31,16 +32,24 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
                 this.log.LogDebug($"Cloning '{this.repository.RemoteRepositoryUrl}' into '{this.repository.LocalRepositoryPath}'...");
                 this.log.LogDebug("Clone options: " + options);
-                Repository.Clone(
-                    this.repository.RemoteRepositoryUrl,
-                    this.repository.LocalRepositoryPath,
-                    new CloneOptions
-                    {
-                        BranchName = options.Branch,
-                        CredentialsProvider = this.CredentialsHandler,
-                        RecurseSubmodules = options.RecurseSubmodules
-                    }
-                );
+                try
+                {
+                    Repository.Clone(
+                        this.repository.RemoteRepositoryUrl,
+                        this.repository.LocalRepositoryPath,
+                        new CloneOptions
+                        {
+                            BranchName = options.Branch,
+                            CredentialsProvider = this.CredentialsHandler,
+                            RecurseSubmodules = options.RecurseSubmodules
+                        }
+                    );
+                }
+                catch (Exception ex)
+                {
+                    // gitsharp exceptions are not always serializable
+                    throw new ExecutionFailureException("Clone failed: " + ex.Message);
+                }
 
                 return Complete;
             }
@@ -70,12 +79,12 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
                     var refs = Repository.ListRemoteReferences(this.repository.RemoteRepositoryUrl, this.CredentialsHandler);
 
-                    var trimmedRefs = from r in refs
-                                      where r.CanonicalName.StartsWith("refs/heads/")
-                                      let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
-                                      select trimmed;
+                    var trimmedRefs = (from r in refs
+                                       where r.CanonicalName.StartsWith("refs/heads/")
+                                       let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
+                                       select trimmed).ToList();
 
-                    return Task.FromResult(trimmedRefs);
+                    return Task.FromResult(trimmedRefs.AsEnumerable());
                 }
                 else
                 {
@@ -86,14 +95,19 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         this.log.LogDebug($"Using remote: origin, '{origin.Name}'.");
                         var refs = repository.Network.ListReferences(origin);
 
-                        var trimmedRefs = from r in refs
-                                          where r.CanonicalName.StartsWith("refs/heads/")
-                                          let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
-                                          select trimmed;
+                        var trimmedRefs = (from r in refs
+                                           where r.CanonicalName.StartsWith("refs/heads/")
+                                           let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
+                                           select trimmed).ToList();
 
-                        return Task.FromResult(trimmedRefs);
+                        return Task.FromResult(trimmedRefs.AsEnumerable());
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException(ex.Message);
             }
             finally
             {
@@ -138,6 +152,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
                 return Complete;
             }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException("Tag failed: " + ex.Message);
+            }
             finally
             {
                 this.EndOperation();
@@ -172,6 +191,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 }
 
                 return Complete;
+            }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException("Update failed: " + ex.Message);
             }
             finally
             {
