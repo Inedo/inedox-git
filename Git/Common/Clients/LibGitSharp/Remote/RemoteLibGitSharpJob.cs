@@ -23,7 +23,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                 new WorkspacePath(this.Context.LocalRepositoryPath),
                 this.Context.RemoteRepositoryUrl,
                 this.Context.UserName,
-                this.Context.Password != null ? this.Context.Password.ToSecureString() : null
+                this.Context.Password?.ToSecureString()
             );
 
             var client = new LibGitSharpClient(repo, this);
@@ -45,12 +45,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                     return await client.IsRepositoryValidAsync().ConfigureAwait(false);
 
                 case ClientCommand.Tag:
-                    await client.TagAsync(this.Context.Tag);
+                    await client.TagAsync(this.Context.Tag, this.Context.Commit, this.Context.TagMessage);
                     return null;
 
                 case ClientCommand.Update:
-                    await client.UpdateAsync(this.Context.UpdateOptions);
-                    return null;
+                    return await client.UpdateAsync(this.Context.UpdateOptions).ConfigureAwait(false);
 
                 default:
                     throw new InvalidOperationException("Invalid remote LibGitSharp job type: " + this.Command);

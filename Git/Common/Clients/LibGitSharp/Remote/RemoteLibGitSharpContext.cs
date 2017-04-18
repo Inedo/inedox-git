@@ -20,6 +20,8 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         public string TargetDirectory { get; set; }
         public GitCloneOptions CloneOptions { get; set; }
         public string Tag { get; set; }
+        public string Commit { get; set; }
+        public string TagMessage { get; set; }
         public GitUpdateOptions UpdateOptions { get; set; }
     }
 }

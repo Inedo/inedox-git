@@ -131,15 +131,30 @@ namespace Inedo.Extensions.Clients.CommandLine
             return branches;
         }
 
-        public override async Task TagAsync(string tag)
+        public override async Task TagAsync(string tag, string commit, string message)
         {
             var args = new GitArgumentsBuilder("tag -f");
-            args.Append(tag);
+            if (!string.IsNullOrEmpty(message))
+            {
+                args.Append("-a");
+                args.AppendQuoted(tag);
+                args.Append("-m");
+                args.AppendQuoted(message);
+            }
+            else
+            {
+                args.AppendQuoted(tag);
+            }
+
+            if (!string.IsNullOrEmpty(commit))
+                args.AppendQuoted(commit);
+
             await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
-            var pushArgs = new GitArgumentsBuilder("push");
+            var pushArgs = new GitArgumentsBuilder("push origin");
             pushArgs.Append("origin");
-            pushArgs.Append("--tags --quiet");
+            pushArgs.AppendQuoted(tag);
+            pushArgs.Append("--quiet");
 
             await this.ExecuteCommandLineAsync(pushArgs, this.repository.LocalRepositoryPath).ConfigureAwait(false);
         }

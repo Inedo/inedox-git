@@ -129,7 +129,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
         }
 
-        public override Task TagAsync(string tag)
+        public override Task TagAsync(string tag, string commit, string message)
         {
             try
             {
@@ -138,8 +138,36 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
                 using (var repository = new Repository(this.repository.LocalRepositoryPath))
                 {
-                    this.log.LogDebug($"Creating tag '{tag}'...");
-                    var createdTag = repository.ApplyTag(tag);
+                    Tag createdTag;
+                    if (string.IsNullOrEmpty(message))
+                    {
+                        // lightweight tag
+                        if (string.IsNullOrEmpty(commit))
+                        {
+                            this.log.LogDebug($"Creating lightweight tag \"{tag}\"...");
+                            createdTag = repository.ApplyTag(tag);
+                        }
+                        else
+                        {
+                            this.log.LogDebug($"Creating lightweight tag \"{tag}\" for commit {commit}...");
+                            createdTag = repository.ApplyTag(tag, commit);
+                        }
+                    }
+                    else
+                    {
+                        // annotated tag
+                        if (string.IsNullOrEmpty(commit))
+                        {
+                            this.log.LogDebug($"Creating annotated tag \"{tag}\" with message \"{message}\"...");
+                            createdTag = repository.ApplyTag(tag, repository.Config.BuildSignature(DateTimeOffset.Now), message);
+                        }
+                        else
+                        {
+                            this.log.LogDebug($"Creating annotated tag \"{tag}\" for commit {commit} with message \"{message}\"...");
+                            createdTag = repository.ApplyTag(tag, commit, repository.Config.BuildSignature(DateTimeOffset.Now), message);
+                            
+                        }
+                    }
 
                     this.log.LogDebug($"Pushing '{createdTag.CanonicalName}' to remote 'origin'...");
 

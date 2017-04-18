@@ -15,13 +15,8 @@ namespace Inedo.Extensions.Clients
 
         protected GitClient(GitRepositoryInfo repository, ILogger log)
         {
-            if (repository == null)
-                throw new ArgumentNullException(nameof(repository));
-            if (log == null)
-                throw new ArgumentNullException(nameof(log));
-
-            this.repository = repository;
-            this.log = log;
+            this.log = log ?? throw new ArgumentNullException(nameof(log));
+            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         public abstract Task<bool> IsRepositoryValidAsync();
@@ -29,7 +24,7 @@ namespace Inedo.Extensions.Clients
         public abstract Task<string> UpdateAsync(GitUpdateOptions options);
         public abstract Task ArchiveAsync(string targetDirectory);
         public abstract Task<IEnumerable<string>> EnumerateRemoteBranchesAsync();
-        public abstract Task TagAsync(string tag);
+        public abstract Task TagAsync(string tag, string commit, string message);
 
         protected static async Task CopyNonGitFilesAsync(IFileOperationsExecuter fileOps, string sourceDirectory, string targetDirectory)
         {
@@ -58,9 +53,6 @@ namespace Inedo.Extensions.Clients
             ).ConfigureAwait(false);
         }
 
-        private static string CombinePaths(string p1, string p2, char separator)
-        {
-            return p1.TrimEnd(separator) + separator + p2.TrimStart(separator);
-        }
+        private static string CombinePaths(string p1, string p2, char separator) => p1.TrimEnd(separator) + separator + p2.TrimStart(separator);
     }
 }

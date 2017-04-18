@@ -23,13 +23,8 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         public RemoteLibGitSharpClient(IRemoteJobExecuter jobExecuter, string workingDirectory, bool simulation, CancellationToken cancellationToken, GitRepositoryInfo repository, ILogger log) 
             : base(repository, log)
         {
-            if (jobExecuter == null)
-                throw new NotSupportedException("A hosted agent must be used with the built-in LibGitSharp git client.");
-            if (workingDirectory == null)
-                throw new ArgumentNullException(nameof(WorkspacePath));
-
-            this.jobExecuter = jobExecuter;
-            this.workingDirectory = workingDirectory;
+            this.jobExecuter = jobExecuter ?? throw new NotSupportedException("A hosted agent must be used with the built-in LibGitSharp git client.");
+            this.workingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
             this.simulation = simulation;
             this.cancellationToken = cancellationToken;
         }
@@ -70,11 +65,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             return (bool)result;
         }
 
-        public override Task TagAsync(string tag)
+        public override Task TagAsync(string tag, string commit, string message)
         {
             return this.ExecuteRemoteAsync(
                 ClientCommand.Tag,
-                new RemoteLibGitSharpContext { Tag = tag }
+                new RemoteLibGitSharpContext { Tag = tag, Commit = commit, TagMessage = message }
             );
         }
 

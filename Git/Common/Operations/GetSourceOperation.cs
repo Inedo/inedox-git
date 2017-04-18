@@ -51,6 +51,7 @@ namespace Inedo.Extensions.Operations
         public string Tag { get; set; }
 
         [Output]
+        [Category("Advanced")]
         [ScriptAlias("CommitHash")]
         [DisplayName("Commit hash")]
         [Description("The full SHA1 hash of the fetched commit will be stored in this variable.")]

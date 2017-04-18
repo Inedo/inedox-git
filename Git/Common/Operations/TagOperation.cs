@@ -4,7 +4,6 @@ using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.Operations;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
@@ -35,10 +34,22 @@ namespace Inedo.Extensions.Operations
         [DisplayName("Tag name")]
         public string Tag { get; set; }
 
+        [ScriptAlias("Message")]
+        [DisplayName("Tag message")]
+        [PlaceholderText("none (lightweight tag)")]
+        [Description("When this is not specified, a lightweight tag is created.")]
+        public string TagMessage { get; set; }
+
         [ScriptAlias("Branch")]
         [DisplayName("Branch name")]
         [PlaceholderText("default")]
-        public string Branch { get; set; }        
+        public string Branch { get; set; }
+
+        [Category("Advanced")]
+        [ScriptAlias("CommitHash")]
+        [DisplayName("Commit hash")]
+        [Description("The tag will refer to this commit if specified; otherwise it will refer to the current head.")]
+        public string CommitHash { get; set; }
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
@@ -73,7 +84,7 @@ namespace Inedo.Extensions.Operations
                 }
             ).ConfigureAwait(false);
 
-            await client.TagAsync(this.Tag).ConfigureAwait(false);
+            await client.TagAsync(this.Tag, this.CommitHash, this.TagMessage).ConfigureAwait(false);
 
             this.LogInformation("Tag complete.");
         }
