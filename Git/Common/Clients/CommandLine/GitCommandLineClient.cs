@@ -152,7 +152,6 @@ namespace Inedo.Extensions.Clients.CommandLine
             await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
             var pushArgs = new GitArgumentsBuilder("push origin");
-            pushArgs.Append("origin");
             pushArgs.AppendQuoted(tag);
             pushArgs.Append("--quiet");
 
