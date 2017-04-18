@@ -66,7 +66,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
         }
 
-        public override async Task UpdateAsync(GitUpdateOptions options)
+        public override async Task<string> UpdateAsync(GitUpdateOptions options)
         {
             /* 
              *  git remote set-url origin <url>         | Make sure we're talking to the correct remote repository
@@ -107,6 +107,13 @@ namespace Inedo.Extensions.Clients.CommandLine
                     this.repository.LocalRepositoryPath
                   ).ConfigureAwait(false);
             }
+
+            var results = await this.ExecuteCommandLineAsync(
+                new GitArgumentsBuilder("log -n 1 --format=%H"),
+                this.repository.LocalRepositoryPath
+            ).ConfigureAwait(false);
+
+            return string.Join(" ", results.Output).Trim();
         }
 
         public override async Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()

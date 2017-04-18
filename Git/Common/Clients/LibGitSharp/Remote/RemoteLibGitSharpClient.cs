@@ -34,20 +34,20 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             this.cancellationToken = cancellationToken;
         }
 
-        public async override Task ArchiveAsync(string targetDirectory)
+        public override Task ArchiveAsync(string targetDirectory)
         {
-            await this.ExecuteRemoteAsync(
-                ClientCommand.Archive, 
+            return this.ExecuteRemoteAsync(
+                ClientCommand.Archive,
                 new RemoteLibGitSharpContext { TargetDirectory = targetDirectory }
-            ).ConfigureAwait(false);
+            );
         }
 
-        public async override Task CloneAsync(GitCloneOptions options)
+        public override Task CloneAsync(GitCloneOptions options)
         {
-            await this.ExecuteRemoteAsync(
-                ClientCommand.Clone, 
+            return this.ExecuteRemoteAsync(
+                ClientCommand.Clone,
                 new RemoteLibGitSharpContext { CloneOptions = options }
-            ).ConfigureAwait(false);
+            );
         }
 
         public async override Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()
@@ -70,17 +70,17 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             return (bool)result;
         }
 
-        public async override Task TagAsync(string tag)
+        public override Task TagAsync(string tag)
         {
-            await this.ExecuteRemoteAsync(
+            return this.ExecuteRemoteAsync(
                 ClientCommand.Tag,
                 new RemoteLibGitSharpContext { Tag = tag }
-            ).ConfigureAwait(false);
+            );
         }
 
-        public async override Task UpdateAsync(GitUpdateOptions options)
+        public async override Task<string> UpdateAsync(GitUpdateOptions options)
         {
-            await this.ExecuteRemoteAsync(
+            return (string)await this.ExecuteRemoteAsync(
                 ClientCommand.Update,
                 new RemoteLibGitSharpContext { UpdateOptions = options }
             ).ConfigureAwait(false);
@@ -96,7 +96,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             context.Password = this.repository.Password?.ToUnsecureString();
 
             var job = new RemoteLibGitSharpJob();
-            job.MessageLogged += Job_MessageLogged;
+            job.MessageLogged += this.Job_MessageLogged;
             job.Command = command;
             job.Context = context;
 
@@ -104,9 +104,6 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             return result;
         }
 
-        private void Job_MessageLogged(object sender, LogMessageEventArgs e)
-        {
-            this.log.Log(e.Level, e.Message);
-        }
+        private void Job_MessageLogged(object sender, LogMessageEventArgs e) => this.log.Log(e.Level, e.Message);
     }
 }

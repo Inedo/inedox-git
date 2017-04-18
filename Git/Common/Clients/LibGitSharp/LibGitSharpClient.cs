@@ -163,7 +163,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
         }
 
-        public override Task UpdateAsync(GitUpdateOptions options)
+        public override Task<string> UpdateAsync(GitUpdateOptions options)
         {
             try
             {
@@ -171,7 +171,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 using (var repository = new Repository(this.repository.LocalRepositoryPath))
                 {
                     this.log.LogDebug("Fetching commits from origin...");
-                    repository.Fetch("origin", new FetchOptions { CredentialsProvider = CredentialsHandler, Prune = true });
+                    repository.Fetch("origin", new FetchOptions { CredentialsProvider = this.CredentialsHandler, Prune = true });
                     var refName = "FETCH_HEAD";
                     if (options.Branch != null)
                         refName = options.Branch;
@@ -185,12 +185,12 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     {
                         foreach (var submodule in repository.Submodules)
                         {
-                            repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = CredentialsHandler, Init = true });
+                            repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = this.CredentialsHandler, Init = true });
                         }
                     }
-                }
 
-                return Complete;
+                    return Task.FromResult(repository.Head?.Tip?.Sha);
+                }
             }
             catch (Exception ex)
             {

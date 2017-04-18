@@ -50,6 +50,12 @@ namespace Inedo.Extensions.Operations
         [DisplayName("Tag name")]
         public string Tag { get; set; }
 
+        [Output]
+        [ScriptAlias("CommitHash")]
+        [DisplayName("Commit hash")]
+        [Description("The full SHA1 hash of the fetched commit will be stored in this variable.")]
+        public string CommitHash { get; set; }
+
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             string repositoryUrl = await this.GetRepositoryUrlAsync().ConfigureAwait(false);
@@ -85,7 +91,7 @@ namespace Inedo.Extensions.Operations
                 ).ConfigureAwait(false);
             }
 
-            await client.UpdateAsync(
+            this.CommitHash = await client.UpdateAsync(
                 new GitUpdateOptions
                 {
                     RecurseSubmodules = this.RecurseSubmodules,
@@ -93,6 +99,8 @@ namespace Inedo.Extensions.Operations
                     Tag = this.Tag
                 }
             ).ConfigureAwait(false);
+
+            this.LogDebug($"Current commit is {this.CommitHash}.");
 
             await client.ArchiveAsync(context.ResolvePath(this.DiskPath)).ConfigureAwait(false);
 

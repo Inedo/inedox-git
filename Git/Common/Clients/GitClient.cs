@@ -26,7 +26,7 @@ namespace Inedo.Extensions.Clients
 
         public abstract Task<bool> IsRepositoryValidAsync();
         public abstract Task CloneAsync(GitCloneOptions options);
-        public abstract Task UpdateAsync(GitUpdateOptions options);
+        public abstract Task<string> UpdateAsync(GitUpdateOptions options);
         public abstract Task ArchiveAsync(string targetDirectory);
         public abstract Task<IEnumerable<string>> EnumerateRemoteBranchesAsync();
         public abstract Task TagAsync(string tag);
