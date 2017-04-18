@@ -131,7 +131,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
             var pushArgs = new GitArgumentsBuilder("push");
-            pushArgs.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
+            pushArgs.Append("origin");
             pushArgs.Append("--tags --quiet");
 
             await this.ExecuteCommandLineAsync(pushArgs, this.repository.LocalRepositoryPath).ConfigureAwait(false);
