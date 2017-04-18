@@ -84,7 +84,7 @@ namespace Inedo.Extensions.Clients.CommandLine
 
             var resetArgs = new GitArgumentsBuilder("reset --hard");
             if (options.Tag != null)
-                resetArgs.AppendQuoted("origin/" + options.Tag);
+                resetArgs.AppendQuoted(options.Tag);
             else if (options.Branch != null)
                 resetArgs.AppendQuoted("origin/" + options.Branch);
             else
