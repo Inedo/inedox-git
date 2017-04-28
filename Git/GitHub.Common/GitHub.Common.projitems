@@ -12,5 +12,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitHubClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitHubCredentials.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubGetSourceOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubTagOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsOrganizationNameSuggestionProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsRepositoryNameSuggestionProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\OrganizationNameSuggestionProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\RepositoryNameSuggestionProvider.cs" />
   </ItemGroup>
 </Project>

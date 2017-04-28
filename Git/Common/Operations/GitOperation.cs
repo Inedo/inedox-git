@@ -1,12 +1,13 @@
 ﻿using System.ComponentModel;
-using Inedo.Extensions.Credentials;
 using System.Security;
+using System.Threading.Tasks;
+using Inedo.Agents;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
-using Inedo.Agents;
-using Inedo.Diagnostics;
 using Inedo.Extensions.Clients.LibGitSharp.Remote;
+using Inedo.Extensions.Credentials;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
@@ -20,7 +21,7 @@ using Inedo.Otter.Extensibility.Operations;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GitOperation : ExecuteOperation
+    public abstract class GitOperation<TCredentials> : ExecuteOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
     {
         public abstract string CredentialName { get; set; }
 
@@ -28,14 +29,14 @@ namespace Inedo.Extensions.Operations
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
         [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentials.UserName))]
+        [MappedCredential(nameof(GitCredentialsBase.UserName))]
         public string UserName { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
         [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentials.Password))]
+        [MappedCredential(nameof(GitCredentialsBase.Password))]
         public SecureString Password { get; set; }
 
         [Category("Advanced")]
@@ -89,5 +90,7 @@ namespace Inedo.Extensions.Operations
                 );
             }
         }
+
+        protected abstract Task<string> GetRepositoryUrlAsync();
     }
 }

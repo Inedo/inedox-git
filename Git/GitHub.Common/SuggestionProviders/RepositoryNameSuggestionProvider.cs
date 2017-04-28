@@ -1,11 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+
+#if BuildMaster
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Web.Controls;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
+#elif Otter
+using Inedo.Otter.Extensibility;
+using Inedo.Otter.Extensibility.Credentials;
+using Inedo.Otter.Web.Controls;
+#endif
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
@@ -13,7 +20,7 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
     {
         public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
-            var credentialName = config["CredentialName"];
+            var credentialName = config[nameof(IHasCredentials.CredentialName)];
 
             if (string.IsNullOrEmpty(credentialName))
                 return Enumerable.Empty<string>();
@@ -34,7 +41,11 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
                         where !string.IsNullOrEmpty(name)
                         select name;
 
+#if BuildMaster
             return new[] { "$ApplicationName" }.Concat(names);
+#else
+            return names;
+#endif
         }
     }
 }

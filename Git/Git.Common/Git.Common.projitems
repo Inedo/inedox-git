@@ -9,10 +9,8 @@
     <Import_RootNamespace>Inedo.Extensions</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GeneralGitCredentials.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GeneralTagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GeneralGetSourceOperation.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Credentials\" />
   </ItemGroup>
 </Project>

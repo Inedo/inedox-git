@@ -37,7 +37,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 try
                 {
                     var info = this.GetInfo(root);
-                    repo.Network.Remotes.Update(repo.Network.Remotes["origin"], r => r.Url = info.GetRemoteUrlWithCredentials());
+                    repo.Network.Remotes.Update("origin", r => r.Url = info.GetRemoteUrlWithCredentials());
 
                     using (var process = CreateProcess("git-lfs", $"{mode} -- {path}", root))
                     {
@@ -66,7 +66,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 }
                 finally
                 {
-                    repo.Network.Remotes.Update(repo.Network.Remotes["origin"], r => r.Url = originUrl);
+                    repo.Network.Remotes.Update("origin", r => r.Url = originUrl);
                 }
             }
         }

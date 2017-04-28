@@ -1,26 +1,23 @@
-﻿using System.Security;
-using Inedo.Serialization;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
+using Inedo.Extensions.GitHub.SuggestionProviders;
+using Inedo.Serialization;
+
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web;
+using Inedo.BuildMaster.Web.Controls;
 #elif Otter
 using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensions;
-using Inedo.Otter.Web.Controls.Extensions;
+using Inedo.Otter.Web.Controls;
 #endif
-
 
 namespace Inedo.Extensions.Credentials
 {
     [ScriptAlias("GitHub")]
     [DisplayName("GitHub")]
     [Description("Credentials for GitHub.")]
-    public sealed class GitHubCredentials : GitCredentials
+    public sealed class GitHubCredentials : GitCredentialsBase
     {
         [Persistent]
         [DisplayName("API URL")]
@@ -31,11 +28,13 @@ namespace Inedo.Extensions.Credentials
         [Persistent]
         [DisplayName("Organization name")]
         [PlaceholderText("e.g. apache")]
+        [SuggestibleValue(typeof(CredentialsOrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Persistent]
         [DisplayName("Repository")]
         [PlaceholderText("e.g. log4net")]
+        [SuggestibleValue(typeof(CredentialsRepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
         
         [Persistent]
@@ -46,7 +45,7 @@ namespace Inedo.Extensions.Credentials
 
         public override RichDescription GetDescription()
         {
-            var desc = new RichDescription(this.UserName, "@", "GitHub");
+            var desc = new RichDescription(AH.CoalesceString(this.UserName, "Anonymous"), "@", "GitHub");
             if (!string.IsNullOrEmpty(this.OrganizationName))
                 desc.AppendContent(",Organization=", this.OrganizationName);
 

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.BuildMasterExtension", "Git.BuildMasterExtension\Git.BuildMasterExtension.csproj", "{21A80731-2805-488B-BA3A-CBE8B51940B4}"
 EndProject
@@ -19,8 +19,16 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitHub.Common", "GitHub.Com
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitLab.Common", "GitLab.Common\GitLab.Common.shproj", "{DE4D658B-FF70-44EA-AE79-4C49519908FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.BuildMasterExtension", "GitLab.BuildMasterExtension\GitLab.BuildMasterExtension.csproj", "{DAC5424D-A3D7-449F-9D7B-3B17EE886486}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.OtterExtension", "GitLab.OtterExtension\GitLab.OtterExtension.csproj", "{181B2161-2823-4ED6-9B62-856B3E8FCD72}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Common\Common.projitems*{181b2161-2823-4ed6-9b62-856b3e8fcd72}*SharedItemsImports = 4
+		GitLab.Common\GitLab.Common.projitems*{181b2161-2823-4ed6-9b62-856b3e8fcd72}*SharedItemsImports = 4
 		Common\Common.projitems*{21a80731-2805-488b-ba3a-cbe8b51940b4}*SharedItemsImports = 4
 		Git.Common\Git.Common.projitems*{21a80731-2805-488b-ba3a-cbe8b51940b4}*SharedItemsImports = 4
 		Common\Common.projitems*{2ac30183-a4bd-423f-bc64-990d4598feda}*SharedItemsImports = 4
@@ -31,6 +39,9 @@ Global
 		GitHub.Common\GitHub.Common.projitems*{9b802e5e-258e-484e-b45a-21e311992f8f}*SharedItemsImports = 13
 		Common\Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
 		GitHub.Common\GitHub.Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
+		Common\Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
+		GitLab.Common\GitLab.Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
+		GitLab.Common\GitLab.Common.projitems*{de4d658b-ff70-44ea-ae79-4c49519908fc}*SharedItemsImports = 13
 		Common\Common.projitems*{e7439368-9a13-487f-934f-78c67f9cee2f}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,6 +69,14 @@ Global
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.Build.0 = Release|Any CPU
+		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

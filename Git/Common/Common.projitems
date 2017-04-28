@@ -24,7 +24,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpJob.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\ClientCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\WorkspacePath.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentials.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentialsBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\TagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GetSourceOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitOperation.cs" />

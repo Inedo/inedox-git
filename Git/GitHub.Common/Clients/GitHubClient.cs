@@ -31,6 +31,12 @@ namespace Inedo.Extensions.Clients
         public string UserName { get; }
         public SecureString Password { get; }
 
+        public async Task<IList<Dictionary<string, object>>> GetOrganizationsAsync()
+        {
+            var results = (IEnumerable<object>)await this.InvokeAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=500").ConfigureAwait(false);
+            return results.Cast<Dictionary<string, object>>().ToList();
+        }
+
         public async Task<IList<Dictionary<string, object>>> GetRepositoriesAsync()
         {
             UriBuilder url;

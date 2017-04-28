@@ -4,11 +4,9 @@ using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.Operations;
 using Inedo.Agents;
 
 #if BuildMaster
-using Inedo.BuildMaster;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.Operations;
@@ -24,18 +22,8 @@ using Inedo.Otter.Web.Controls.Plans;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GetSourceOperation : GitOperation
+    public abstract class GetSourceOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentialsBase, new()
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-
-        [ScriptAlias("RepositoryUrl")]
-        [DisplayName("Repository URL")]
-        [PlaceholderText("Use repository from credentials")]
-        [MappedCredential(nameof(GitCredentials.RepositoryUrl))]
-        public string RepositoryUrl { get; set; }
-
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]
         [FilePathEditor]
@@ -106,21 +94,6 @@ namespace Inedo.Extensions.Operations
             await client.ArchiveAsync(context.ResolvePath(this.DiskPath)).ConfigureAwait(false);
 
             this.LogInformation("Get source complete.");
-        }
-
-        protected virtual Task<string> GetRepositoryUrlAsync()
-        {
-            return Task.FromResult(this.RepositoryUrl);
-        }
-
-        protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
-        {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryUrl)], config[nameof(this.CredentialName)]);
-
-            return new ExtendedRichDescription(
-               new RichDescription("Get Git Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new DirectoryHilite(config[nameof(this.DiskPath)]))
-            );
         }
     }
 }

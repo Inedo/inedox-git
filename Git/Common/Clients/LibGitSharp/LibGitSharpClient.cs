@@ -199,7 +199,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 using (var repository = new Repository(this.repository.LocalRepositoryPath))
                 {
                     this.log.LogDebug("Fetching commits from origin...");
-                    repository.Fetch("origin", new FetchOptions { CredentialsProvider = this.CredentialsHandler, Prune = true });
+                    Commands.Fetch(repository, "origin", new string[0], new FetchOptions { CredentialsProvider = this.CredentialsHandler, Prune = true }, null);
                     var refName = "FETCH_HEAD";
                     if (options.Branch != null)
                         refName = options.Branch;
