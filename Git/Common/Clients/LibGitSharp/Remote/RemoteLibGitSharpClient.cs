@@ -29,11 +29,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             this.cancellationToken = cancellationToken;
         }
 
-        public override Task ArchiveAsync(string targetDirectory)
+        public override Task ArchiveAsync(string targetDirectory, bool keepInternals = false)
         {
             return this.ExecuteRemoteAsync(
                 ClientCommand.Archive,
-                new RemoteLibGitSharpContext { TargetDirectory = targetDirectory }
+                new RemoteLibGitSharpContext { TargetDirectory = targetDirectory, KeepInternals = keepInternals }
             );
         }
 

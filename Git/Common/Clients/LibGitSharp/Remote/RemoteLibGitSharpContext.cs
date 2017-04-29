@@ -18,6 +18,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         public string Password { get; set; }
 
         public string TargetDirectory { get; set; }
+        public bool KeepInternals { get; set; }
         public GitCloneOptions CloneOptions { get; set; }
         public string Tag { get; set; }
         public string Commit { get; set; }

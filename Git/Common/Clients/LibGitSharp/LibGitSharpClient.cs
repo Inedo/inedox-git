@@ -231,9 +231,9 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
         }
 
-        public override Task ArchiveAsync(string targetDirectory)
+        public override Task ArchiveAsync(string targetDirectory, bool keepInternals = false)
         {
-            return CopyNonGitFilesAsync(new FileArchiver(targetDirectory), this.repository.LocalRepositoryPath, targetDirectory);
+            return CopyFilesAsync(new FileArchiver(targetDirectory), this.repository.LocalRepositoryPath, targetDirectory, keepInternals);
         }
 
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
