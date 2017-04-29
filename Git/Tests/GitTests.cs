@@ -170,7 +170,7 @@ namespace Tests
             var options = new GitCloneOptions();
             client.CloneAsync(options).GetAwaiter().GetResult();
 
-            client.TagAsync(tag).GetAwaiter().GetResult();
+            client.TagAsync(tag, null, null).GetAwaiter().GetResult();
         }
 
         private void Branches(string workingDirectory, ClientType type)
