@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Security;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -33,7 +34,7 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetGroupsAsync()
         {
-            var results = (IEnumerable<object>)await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/groups").ConfigureAwait(false);
+            var results = (IEnumerable<object>)await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/groups?per_page=100").ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
@@ -41,11 +42,11 @@ namespace Inedo.Extensions.Clients
         {
             UriBuilder url;
             if (!string.IsNullOrEmpty(this.GroupName))
-                url = new UriBuilder($"{this.apiBaseUrl}/v4/groups/{Uri.EscapeUriString(this.GroupName)}/projects");
+                url = new UriBuilder($"{this.apiBaseUrl}/v4/groups/{Uri.EscapeUriString(this.GroupName)}/projects?per_page=100");
             else
-                url = new UriBuilder($"{this.apiBaseUrl}/v4/projects?owned=true");
+                url = new UriBuilder($"{this.apiBaseUrl}/v4/projects?owned=true&per_page=100");
 
-            var results = (IEnumerable<object>)await this.InvokeAsync("GET", url.ToString()).ConfigureAwait(false);
+            var results = await this.InvokePagesAsync("GET", url.ToString()).ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
@@ -64,7 +65,7 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string repositoryName, GitLabIssueFilter filter)
         {
-            var issues = (IEnumerable<object>)await this.InvokeAsync("GET", string.Format("{0}/v4/projects/{1}/issues{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), filter.ToQueryString())).ConfigureAwait(false);
+            var issues = await this.InvokePagesAsync("GET", string.Format("{0}/v4/projects/{1}/issues{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), filter.ToQueryString())).ConfigureAwait(false);
             return issues.Cast<Dictionary<string, object>>().ToList();
         }
         
@@ -129,18 +130,24 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string repositoryName, string state)
         {
-            var milestones = (IEnumerable<object>)await this.InvokeAsync("GET", string.Format("{0}/v4/projects/{1}/milestones{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), string.IsNullOrEmpty(state) ? "" : "?state=" + state)).ConfigureAwait(false);
+            var milestones = (IEnumerable<object>)await this.InvokeAsync("GET", string.Format("{0}/v4/projects/{1}/milestones?per_page=100{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), string.IsNullOrEmpty(state) ? "" : "&state=" + state)).ConfigureAwait(false);
             if (milestones == null)
                 return new List<Dictionary<string, object>>();
 
             return milestones.Cast<Dictionary<string, object>>().ToList();                
         }
 
+        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<url>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+
+        private async Task<IEnumerable<object>> InvokePagesAsync(string method, string url)
+        {
+            return (IEnumerable<object>)await this.InvokeAsync(method, url, null, true).ConfigureAwait(false);
+        }
         private Task<object> InvokeAsync(string method, string url)
         {
             return this.InvokeAsync(method, url, null);
         }
-        private async Task<object> InvokeAsync(string method, string url, object data)
+        private async Task<object> InvokeAsync(string method, string url, object data, bool allPages = false)
         {
             var request = (HttpWebRequest)HttpWebRequest.Create(url);
             request.UserAgent = "BuildMasterGitLabExtension/" + typeof(GitLabClient).Assembly.GetName().Version.ToString();
@@ -153,10 +160,10 @@ namespace Inedo.Extensions.Clients
                     InedoLib.Util.JavaScript.WriteJson(writer, data);
                 }
             }
-            
+
             if (!string.IsNullOrEmpty(this.UserName))
                 request.Headers["PRIVATE-TOKEN"] = this.Password.ToUnsecureString();
-            
+
             try
             {
                 using (var response = await request.GetResponseAsync().ConfigureAwait(false))
@@ -165,7 +172,16 @@ namespace Inedo.Extensions.Clients
                 {
                     var js = new JavaScriptSerializer();
                     string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    return js.DeserializeObject(responseText);
+                    var responseJson = js.DeserializeObject(responseText);
+                    if (allPages)
+                    {
+                        var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? "");
+                        if (nextPage.Success)
+                        {
+                            responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["url"].Value, data, true).ConfigureAwait(false));
+                        }
+                    }
+                    return responseJson;
                 }
             }
             catch (WebException ex) when (ex.Response != null)
@@ -192,14 +208,12 @@ namespace Inedo.Extensions.Clients
 
             var buffer = new StringBuilder(128);
             if (!string.IsNullOrEmpty(this.Milestone))
-                buffer.Append("milestone=" + Uri.EscapeDataString(this.Milestone));
+                buffer.Append("&milestone=" + Uri.EscapeDataString(this.Milestone));
             if (!string.IsNullOrEmpty(this.Labels))
-                buffer.Append("labels=" + Uri.EscapeDataString(this.Labels));
+                buffer.Append("&labels=" + Uri.EscapeDataString(this.Labels));
+            buffer.Append("&per_page=100");
 
-            if (buffer.Length > 0)
-                return "?" + buffer.ToString();
-            else
-                return string.Empty;
+            return "?" + buffer.ToString().TrimStart('&');
         }
     }
 }
