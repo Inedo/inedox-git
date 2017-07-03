@@ -206,13 +206,14 @@ namespace Inedo.Extensions.Clients
                 return this.CustomFilterQueryString;
 
             var buffer = new StringBuilder(128);
+            buffer.Append("?state=all");
             if (!string.IsNullOrEmpty(this.Milestone))
                 buffer.Append("&milestone=" + Uri.EscapeDataString(this.Milestone));
             if (!string.IsNullOrEmpty(this.Labels))
                 buffer.Append("&labels=" + Uri.EscapeDataString(this.Labels));
             buffer.Append("&per_page=100");
 
-            return "?" + buffer.ToString().TrimStart('&');
+            return buffer.ToString();
         }
     }
 }
