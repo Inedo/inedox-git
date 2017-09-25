@@ -202,7 +202,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     Commands.Fetch(repository, "origin", new string[0], new FetchOptions { CredentialsProvider = this.CredentialsHandler, Prune = true }, null);
                     var refName = "FETCH_HEAD";
                     if (options.Branch != null)
-                        refName = options.Branch;
+                        refName = "origin/" + options.Branch;
                     else if (options.Tag != null)
                         refName = options.Tag;
                     this.log.LogDebug($"Resetting the index and working tree to {refName}...");
