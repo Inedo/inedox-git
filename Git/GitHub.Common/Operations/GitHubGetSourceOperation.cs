@@ -21,7 +21,7 @@ using Inedo.Otter.Web.Controls;
 
 namespace Inedo.Extensions.Operations
 {
-    [DisplayName("Get Source from GitHub")]
+    [DisplayName("Get Source from GitHub Repository")]
     [Description("Gets the source code from a GitHub repository.")]
     [Tag("source-control")]
     [ScriptAlias("GitHub-GetSource")]

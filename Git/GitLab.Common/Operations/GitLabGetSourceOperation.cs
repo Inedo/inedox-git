@@ -20,7 +20,7 @@ using Inedo.Otter.Web.Controls;
 
 namespace Inedo.Extensions.Operations
 {
-    [DisplayName("Get Source from GitLab")]
+    [DisplayName("Get Source from GitLab Repository")]
     [Description("Gets the source code from a GitLab project.")]
     [Tag("source-control")]
     [ScriptAlias("GitLab-GetSource")]

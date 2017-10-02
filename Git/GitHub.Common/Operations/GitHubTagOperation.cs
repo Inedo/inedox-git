@@ -34,7 +34,7 @@ GitHub-Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GeneralTagOperation : TagOperation<GitHubCredentials>
+    public sealed class GitHubTagOperation : TagOperation<GitHubCredentials>
     {
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
