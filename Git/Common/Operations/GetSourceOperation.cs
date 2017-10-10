@@ -45,6 +45,12 @@ namespace Inedo.Extensions.Operations
         [Description("The full SHA1 hash of the fetched commit will be stored in this variable.")]
         public string CommitHash { get; set; }
 
+        [Category("Advanced")]
+        [ScriptAlias("KeepInternals")]
+        [DisplayName("Copy internal Git files")]
+        [Description("When exporting the repository, also export .git* files.")]
+        public bool KeepInternals { get; set; }
+
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             string repositoryUrl = await this.GetRepositoryUrlAsync().ConfigureAwait(false);
@@ -91,7 +97,7 @@ namespace Inedo.Extensions.Operations
 
             this.LogDebug($"Current commit is {this.CommitHash}.");
 
-            await client.ArchiveAsync(context.ResolvePath(this.DiskPath)).ConfigureAwait(false);
+            await client.ArchiveAsync(context.ResolvePath(this.DiskPath), this.KeepInternals).ConfigureAwait(false);
 
             this.LogInformation("Get source complete.");
         }

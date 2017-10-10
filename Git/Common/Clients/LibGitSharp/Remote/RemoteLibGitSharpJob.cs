@@ -31,7 +31,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             switch (this.Command)
             {
                 case ClientCommand.Archive:
-                    await client.ArchiveAsync(this.Context.TargetDirectory).ConfigureAwait(false);
+                    await client.ArchiveAsync(this.Context.TargetDirectory, this.Context.KeepInternals).ConfigureAwait(false);
                     return null;
 
                 case ClientCommand.Clone:
@@ -45,7 +45,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                     return await client.IsRepositoryValidAsync().ConfigureAwait(false);
 
                 case ClientCommand.Tag:
-                    await client.TagAsync(this.Context.Tag, this.Context.Commit, this.Context.TagMessage);
+                    await client.TagAsync(this.Context.Tag, this.Context.Commit, this.Context.TagMessage).ConfigureAwait(false);
                     return null;
 
                 case ClientCommand.Update:

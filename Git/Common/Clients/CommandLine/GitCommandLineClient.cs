@@ -158,9 +158,9 @@ namespace Inedo.Extensions.Clients.CommandLine
             await this.ExecuteCommandLineAsync(pushArgs, this.repository.LocalRepositoryPath).ConfigureAwait(false);
         }
 
-        public override Task ArchiveAsync(string targetDirectory)
+        public override Task ArchiveAsync(string targetDirectory, bool keepInternals = false)
         {
-            return CopyNonGitFilesAsync(this.fileOps, this.repository.LocalRepositoryPath, targetDirectory);
+            return CopyFilesAsync(this.fileOps, this.repository.LocalRepositoryPath, targetDirectory, keepInternals);
         }
 
         private async Task<ProcessResults> ExecuteCommandLineAsync(GitArgumentsBuilder args, string workingDirectory, bool throwOnFailure = true)
