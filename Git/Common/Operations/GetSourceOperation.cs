@@ -91,7 +91,15 @@ namespace Inedo.Extensions.Operations
 
             this.LogDebug($"Current commit is {this.CommitHash}.");
 
-            await client.ArchiveAsync(context.ResolvePath(this.DiskPath)).ConfigureAwait(false);
+            var diskPath = context.ResolvePath(this.DiskPath);
+            if (string.Equals(workspacePath.FullPath, diskPath))
+            {
+                this.LogDebug("DiskPath matches WorkspaceDiskPath; not copying.");
+            }
+            else
+            {
+                await client.ArchiveAsync(diskPath).ConfigureAwait(false);
+            }
 
             this.LogInformation("Get source complete.");
         }
