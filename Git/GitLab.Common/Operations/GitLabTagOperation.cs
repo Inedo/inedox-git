@@ -33,7 +33,7 @@ GitLab-Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GeneralTagOperation : TagOperation<GitLabCredentials>
+    public sealed class GitLabTagOperation : TagOperation<GitLabCredentials>
     {
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
