@@ -30,8 +30,8 @@ Git-Tag(
 ")]
     public sealed class GeneralTagOperation : TagOperation<GeneralGitCredentials>
     {
-        [ScriptAlias("Credential")]
-        [DisplayName("Credential")]
+        [ScriptAlias("Credentials")]
+        [DisplayName("Credentials")]
         public override string CredentialName { get; set; }
 
         [ScriptAlias("RepositoryUrl")]
