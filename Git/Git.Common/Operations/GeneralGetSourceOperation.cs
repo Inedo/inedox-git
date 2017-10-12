@@ -30,8 +30,8 @@ Git-GetSource(
 ")]
     public sealed class GeneralGetSourceOperation : GetSourceOperation<GeneralGitCredentials>
     {
-        [ScriptAlias("Credential")]
-        [DisplayName("Credential")]
+        [ScriptAlias("Credentials")]
+        [DisplayName("Credentials")]
         public override string CredentialName { get; set; }
 
         [ScriptAlias("RepositoryUrl")]
