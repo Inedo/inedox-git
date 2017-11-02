@@ -117,7 +117,7 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string ownerName, string repositoryName, string state)
         {
-            var milestones = (IEnumerable<object>)await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/milestones?state={3}&sort=due_on&direction=desc&per_page=100", this.apiBaseUrl, ownerName, repositoryName, state)).ConfigureAwait(false);
+            var milestones = await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/milestones?state={3}&sort=due_on&direction=desc&per_page=100", this.apiBaseUrl, ownerName, repositoryName, state)).ConfigureAwait(false);
             if (milestones == null)
                 return new List<Dictionary<string, object>>();
 
@@ -136,9 +136,13 @@ namespace Inedo.Extensions.Clients
         }
         private async Task<object> InvokeAsync(string method, string url, object data, bool allPages = false)
         {
-            var request = (HttpWebRequest)HttpWebRequest.Create(url);
+            var request = WebRequest.CreateHttp(url);
             request.UserAgent = "BuildMasterGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
             request.Method = method;
+
+            if (!string.IsNullOrEmpty(this.UserName))
+                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + this.Password.ToUnsecureString()));
+
             if (data != null)
             {
                 using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
@@ -147,9 +151,6 @@ namespace Inedo.Extensions.Clients
                     InedoLib.Util.JavaScript.WriteJson(writer, data);
                 }
             }
-
-            if (!string.IsNullOrEmpty(this.UserName))
-                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + this.Password.ToUnsecureString()));
 
             try
             {
@@ -176,7 +177,7 @@ namespace Inedo.Extensions.Clients
                 using (var responseStream = ex.Response.GetResponseStream())
                 {
                     string message = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message);
+                    throw new Exception(message, ex);
                 }
             }
         }

@@ -34,7 +34,7 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetGroupsAsync()
         {
-            var results = (IEnumerable<object>)await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/groups?per_page=100").ConfigureAwait(false);
+            var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/groups?per_page=100").ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
@@ -130,7 +130,7 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string repositoryName, string state)
         {
-            var milestones = (IEnumerable<object>)await this.InvokeAsync("GET", string.Format("{0}/v4/projects/{1}/milestones?per_page=100{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), string.IsNullOrEmpty(state) ? "" : "&state=" + state)).ConfigureAwait(false);
+            var milestones = await this.InvokePagesAsync("GET", string.Format("{0}/v4/projects/{1}/milestones?per_page=100{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), string.IsNullOrEmpty(state) ? "" : "&state=" + state)).ConfigureAwait(false);
             if (milestones == null)
                 return new List<Dictionary<string, object>>();
 
@@ -149,9 +149,13 @@ namespace Inedo.Extensions.Clients
         }
         private async Task<object> InvokeAsync(string method, string url, object data, bool allPages = false)
         {
-            var request = (HttpWebRequest)HttpWebRequest.Create(url);
+            var request = WebRequest.CreateHttp(url);
             request.UserAgent = "BuildMasterGitLabExtension/" + typeof(GitLabClient).Assembly.GetName().Version.ToString();
             request.Method = method;
+
+            if (!string.IsNullOrEmpty(this.UserName))
+                request.Headers["PRIVATE-TOKEN"] = this.Password.ToUnsecureString();
+
             if (data != null)
             {
                 using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
@@ -160,9 +164,6 @@ namespace Inedo.Extensions.Clients
                     InedoLib.Util.JavaScript.WriteJson(writer, data);
                 }
             }
-
-            if (!string.IsNullOrEmpty(this.UserName))
-                request.Headers["PRIVATE-TOKEN"] = this.Password.ToUnsecureString();
 
             try
             {
@@ -189,7 +190,7 @@ namespace Inedo.Extensions.Clients
                 using (var responseStream = ex.Response.GetResponseStream())
                 {
                     string message = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message);
+                    throw new Exception(message, ex);
                 }
             }
         }

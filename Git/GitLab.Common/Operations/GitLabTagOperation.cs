@@ -28,7 +28,7 @@ namespace Inedo.Extensions.Operations
     [Example(@"
 # tags the current source tree with the current release name and package number
 GitLab-Tag(
-    Credentials: Hdars-GitHub,
+    Credentials: Hdars-GitLab,
     Group: Hdars,
     Tag: $ReleaseName.$PackageNumber
 );
