@@ -10,7 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitHubClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Configurations\GitHubReleaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitHubCredentials.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubEnsureReleaseOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubGetSourceOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubTagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsOrganizationNameSuggestionProvider.cs" />

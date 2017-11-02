@@ -124,6 +124,52 @@ namespace Inedo.Extensions.Clients
             return milestones.Cast<Dictionary<string, object>>().ToList();                
         }
 
+        public async Task<Dictionary<string, object>> GetReleaseAsync(string ownerName, string repositoryName, string tag)
+        {
+            try
+            {
+                var release = await this.InvokeAsync("GET", string.Format("{0}/repos/{1}/{2}/releases/tags/{3}", this.apiBaseUrl, ownerName, repositoryName, tag)).ConfigureAwait(false);
+                return (Dictionary<string, object>)release;
+            }
+            catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+        }
+
+        public async Task<object> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target = null, string name = null, string body = null, bool? draft = null, bool? prerelease = null)
+        {
+            var data = new Dictionary<string, object>();
+            data["tag_name"] = tag;
+            if (target != null)
+            {
+                data["target_commitish"] = target;
+            }
+            if (name != null)
+            {
+                data["name"] = name;
+            }
+            if (body != null)
+            {
+                data["body"] = body;
+            }
+            if (draft.HasValue)
+            {
+                data["draft"] = draft.Value;
+            }
+            if (prerelease.HasValue)
+            {
+                data["prerelease"] = prerelease.Value;
+            }
+
+            var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag).ConfigureAwait(false);
+            if (existingRelease != null)
+            {
+                return await this.InvokeAsync("PATCH", string.Format("{0}/repos/{1}/{2}/releases/{3}", this.apiBaseUrl, ownerName, repositoryName, existingRelease["id"]), data).ConfigureAwait(false);
+            }
+            return await this.InvokeAsync("POST", string.Format("{0}/repos/{1}/{2}/releases", this.apiBaseUrl, ownerName, repositoryName), data).ConfigureAwait(false);
+        }
+
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<url>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string url)
