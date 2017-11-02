@@ -137,6 +137,38 @@ namespace Inedo.Extensions.Clients
             return milestones.Cast<Dictionary<string, object>>().ToList();                
         }
 
+        public async Task<Dictionary<string, object>> GetTagAsync(string repositoryName, string tag)
+        {
+            try
+            {
+                var tagData = await this.InvokeAsync("GET", string.Format("{0}/v4/projects/{1}/repository/tags/{2}", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), Uri.EscapeUriString(tag))).ConfigureAwait(false);
+                return (Dictionary<string, object>)tagData;
+            }
+            catch (Exception ex) when (ex.Message == @"{""message"":""404 Tag Not Found""}")
+            {
+                return null;
+            }
+        }
+
+        public async Task EnsureReleaseAsync(string repositoryName, string tag, string description)
+        {
+            var uri = string.Format("{0}/v4/projects/{1}/repository/tags/{2}/release", this.apiBaseUrl, Uri.EscapeUriString(repositoryName), Uri.EscapeUriString(tag));
+            var data = new
+            {
+                tag_name = tag,
+                description = description
+            };
+
+            try
+            {
+                await this.InvokeAsync("POST", uri, data).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.Conflict)
+            {
+                await this.InvokeAsync("PUT", uri, data).ConfigureAwait(false);
+            }
+        }
+
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<url>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string url)

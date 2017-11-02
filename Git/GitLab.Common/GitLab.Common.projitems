@@ -10,7 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitLabClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Configurations\GitLabReleaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitLabCredentials.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GitLabEnsureReleaseOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitLabGetSourceOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitLabTagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsGroupNameSuggestionProvider.cs" />
