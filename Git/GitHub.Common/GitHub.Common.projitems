@@ -15,6 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubEnsureReleaseOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubGetSourceOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubTagOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Operations\GitHubUploadReleaseAssetsOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsOrganizationNameSuggestionProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\CredentialsRepositoryNameSuggestionProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SuggestionProviders\OrganizationNameSuggestionProvider.cs" />

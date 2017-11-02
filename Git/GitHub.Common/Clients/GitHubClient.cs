@@ -170,6 +170,52 @@ namespace Inedo.Extensions.Clients
             return await this.InvokeAsync("POST", string.Format("{0}/repos/{1}/{2}/releases", this.apiBaseUrl, ownerName, repositoryName), data).ConfigureAwait(false);
         }
 
+        public async Task<object> UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents)
+        {
+            var release = await this.GetReleaseAsync(ownerName, repositoryName, tag).ConfigureAwait(false);
+            if (release == null)
+            {
+                throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
+            }
+
+            var uploadUriTemplate = new UriTemplate.Core.UriTemplate((string)release["upload_url"]);
+            var uploadUri = uploadUriTemplate.BindByName(new Dictionary<string, string> { { "name", name } });
+
+            var request = WebRequest.CreateHttp(uploadUri);
+            request.UserAgent = "BuildMasterGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
+            request.Method = "POST";
+
+            request.ContentType = contentType;
+            if (!string.IsNullOrEmpty(this.UserName))
+                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + this.Password.ToUnsecureString()));
+
+            using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
+            {
+                await contents.CopyToAsync(requestStream).ConfigureAwait(false);
+            }
+
+            try
+            {
+                using (var response = await request.GetResponseAsync().ConfigureAwait(false))
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    var js = new JavaScriptSerializer();
+                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    var responseJson = js.DeserializeObject(responseText);
+                    return responseJson;
+                }
+            }
+            catch (WebException ex) when (ex.Response != null)
+            {
+                using (var responseStream = ex.Response.GetResponseStream())
+                {
+                    string message = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
+                    throw new Exception(message, ex);
+                }
+            }
+        }
+
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<url>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string url)
