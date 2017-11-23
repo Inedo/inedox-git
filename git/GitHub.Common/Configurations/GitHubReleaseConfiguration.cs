@@ -116,6 +116,7 @@ namespace Inedo.Extensions.Configurations
         [Persistent]
         public bool Exists { get; set; } = true;
 
+#if !BuildMaster
         public override ComparisonResult Compare(PersistedConfiguration other)
         {
             if (other == null)
@@ -175,5 +176,6 @@ namespace Inedo.Extensions.Configurations
 
             return new ComparisonResult(differences);
         }
+#endif
     }
 }
