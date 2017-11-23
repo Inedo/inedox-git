@@ -13,7 +13,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
             this.Title = issue["title"].ToString();
             var labels = issue["labels"] as IEnumerable<Dictionary<string, object>>;
             this.Type = labels?.FirstOrDefault()?["name"]?.ToString();
-            this.Description = issue["body"].ToString();
+            this.Description = issue["body"]?.ToString() ?? string.Empty;
             this.Status = issue["state"].ToString();
             this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
