@@ -128,8 +128,8 @@ namespace Inedo.Extensions.Clients
         {
             try
             {
-                var release = await this.InvokeAsync("GET", string.Format("{0}/repos/{1}/{2}/releases/tags/{3}", this.apiBaseUrl, ownerName, repositoryName, tag)).ConfigureAwait(false);
-                return (Dictionary<string, object>)release;
+                var releases = await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/releases", this.apiBaseUrl, ownerName, repositoryName)).ConfigureAwait(false);
+                return releases.Cast<Dictionary<string, object>>().SingleOrDefault(r => string.Equals(r["tag_name"], tag));
             }
             catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
             {
