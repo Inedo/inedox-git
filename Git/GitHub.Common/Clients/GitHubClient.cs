@@ -40,13 +40,13 @@ namespace Inedo.Extensions.Clients
 
         public async Task<IList<Dictionary<string, object>>> GetRepositoriesAsync()
         {
-            UriBuilder url;
+            string url;
             if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = new UriBuilder($"{this.apiBaseUrl}/orgs/{Uri.EscapeUriString(this.OrganizationName)}/repos?per_page=100");
+                url = $"{this.apiBaseUrl}/users/{Uri.EscapeUriString(this.OrganizationName)}/repos?per_page=100";
             else
-                url = new UriBuilder($"{this.apiBaseUrl}/user/repos?per_page=100");
+                url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
-            var results = await this.InvokePagesAsync("GET", url.ToString()).ConfigureAwait(false);
+            var results = await this.InvokePagesAsync("GET", url).ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
