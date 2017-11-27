@@ -121,6 +121,8 @@ namespace Inedo.Extensions.Operations
 
             var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
+            var ownerName = AH.CoalesceString(this.OrganizationName, this.UserName);
+
             foreach (var info in files)
             {
                 var file = info as SlimFileInfo;
@@ -133,7 +135,7 @@ namespace Inedo.Extensions.Operations
                 using (var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false))
                 {
                     this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
-                    await github.UploadReleaseAssetAsync(this.OrganizationName, this.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size)).ConfigureAwait(false);
+                    await github.UploadReleaseAssetAsync(ownerName, this.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size)).ConfigureAwait(false);
                 }
             }
         }

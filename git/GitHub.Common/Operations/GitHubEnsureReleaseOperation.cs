@@ -27,7 +27,9 @@ namespace Inedo.Extensions.Operations
         {
             var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
 
-            var release = await github.GetReleaseAsync(this.Template.OrganizationName, this.Template.RepositoryName, this.Template.Tag);
+            var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
+
+            var release = await github.GetReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag);
 
             if (release == null)
             {
@@ -50,7 +52,9 @@ namespace Inedo.Extensions.Operations
         {
             var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
 
-            await github.EnsureReleaseAsync(this.Template.OrganizationName, this.Template.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease).ConfigureAwait(false);
+            var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
+
+            await github.EnsureReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
