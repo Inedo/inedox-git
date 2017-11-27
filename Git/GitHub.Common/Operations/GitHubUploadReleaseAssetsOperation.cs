@@ -145,7 +145,7 @@ namespace Inedo.Extensions.Operations
             string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
 
             return new ExtendedRichDescription(
-               new RichDescription("Upload ", new MaskHilite(this.Includes, this.Excludes), " from ", new DirectoryHilite(this.SourceDirectory), " to GitHub"),
+               new RichDescription("Upload ", new MaskHilite(config[nameof(this.Includes)], config[nameof(this.Excludes)]), " from ", new DirectoryHilite(config[nameof(this.SourceDirectory)]), " to GitHub"),
                new RichDescription("in ", new Hilite(source), " release ", new Hilite(config[nameof(this.Tag)]))
             );
         }
