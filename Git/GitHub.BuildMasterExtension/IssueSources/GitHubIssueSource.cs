@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.IssueSources;
@@ -75,7 +76,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
             if (!string.IsNullOrEmpty(this.MilestoneTitle))
             {
-                int? milestoneId = await client.FindMilestoneAsync(this.MilestoneTitle, ownerName, repositoryName).ConfigureAwait(false);
+                int? milestoneId = await client.FindMilestoneAsync(this.MilestoneTitle, ownerName, repositoryName, CancellationToken.None).ConfigureAwait(false);
                 if (milestoneId == null)
                     throw new InvalidOperationException($"Milestone '{this.MilestoneTitle}' not found in repository '{repositoryName}' owned by '{ownerName}'.");
 
@@ -86,7 +87,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 filter.Milestone = "*";
             }
 
-            var issues = await client.GetIssuesAsync(ownerName, repositoryName, filter).ConfigureAwait(false);
+            var issues = await client.GetIssuesAsync(ownerName, repositoryName, filter, CancellationToken.None).ConfigureAwait(false);
 
             return from i in issues
                    select new GitHubIssue(i);

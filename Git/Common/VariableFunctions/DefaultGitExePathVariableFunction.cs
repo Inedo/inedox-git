@@ -4,10 +4,14 @@ using Inedo.Documentation;
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.VariableFunctions;
+using IVariableFunctionContext = Inedo.BuildMaster.Extensibility.IGenericBuildMasterContext;
 #elif Otter
-using Inedo.Otter;
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.VariableFunctions;
+using IVariableFunctionContext = Inedo.Otter.IOtterContext;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.VariableFunctions;
 #endif
 
 namespace Inedo.Extensions.VariableFunctions
@@ -18,16 +22,9 @@ namespace Inedo.Extensions.VariableFunctions
     [ExtensionConfigurationVariable(Required = false)]
     public sealed class DefaultGitExePathVariableFunction : ScalarVariableFunction
     {
-#if BuildMaster
-        protected override object EvaluateScalar(IGenericBuildMasterContext context)
+        protected override object EvaluateScalar(IVariableFunctionContext context)
         {
             return string.Empty;
         }
-#elif Otter
-        protected override object EvaluateScalar(IOtterContext context)
-        {
-            return string.Empty;
-        }
-#endif
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Security;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
@@ -17,6 +18,10 @@ using Inedo.BuildMaster.Extensibility.Operations;
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -91,6 +96,6 @@ namespace Inedo.Extensions.Operations
             }
         }
 
-        protected abstract Task<string> GetRepositoryUrlAsync();
+        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken);
     }
 }

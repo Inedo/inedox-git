@@ -18,8 +18,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
             this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
             this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
-            var author = issue["author"] as Dictionary<string, object>;
-            if (author != null)
+            if (issue["author"] is Dictionary<string, object> author)
                 this.Submitter = author["username"].ToString();
             this.Url = issue["web_url"].ToString();
         }

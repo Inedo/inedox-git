@@ -12,12 +12,17 @@ using System.Security;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Configurations;
 using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Configurations;
 using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Web.Controls;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Configurations
@@ -53,7 +58,7 @@ namespace Inedo.Extensions.Configurations
         [DisplayName("Organization name")]
         [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
         [PlaceholderText("Use organization from credentials")]
-        [SuggestibleValue(typeof(OrganizationNameSuggestionProvider))]
+        [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Persistent]
@@ -62,7 +67,7 @@ namespace Inedo.Extensions.Configurations
         [DisplayName("Repository name")]
         [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
         [PlaceholderText("Use repository from credentials")]
-        [SuggestibleValue(typeof(RepositoryNameSuggestionProvider))]
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         [Persistent]

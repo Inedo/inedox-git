@@ -34,25 +34,20 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BuildMaster.Web.Controls, Version=5.6.0.23, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.6.0\lib\net45\BuildMaster.Web.Controls.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="BuildMaster.Web.Controls, Version=5.7.3.1, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\BuildMaster.Web.Controls.dll</HintPath>
     </Reference>
-    <Reference Include="BuildMasterCore, Version=5.6.0.23, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.6.0\lib\net45\BuildMasterCore.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="BuildMasterCore, Version=5.7.3.1, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\BuildMasterCore.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.Agents.Client, Version=471.1.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.6.0\lib\net45\Inedo.Agents.Client.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Inedo.Agents.Client, Version=503.1.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\Inedo.Agents.Client.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.ExecutionEngine, Version=49.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.6.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Inedo.ExecutionEngine, Version=59.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="InedoLib, Version=471.1.0.0, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.6.0\lib\net45\InedoLib.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="InedoLib, Version=503.1.0.0, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\InedoLib.dll</HintPath>
     </Reference>
     <Reference Include="LibGit2Sharp, Version=0.24.0.0, Culture=neutral, PublicKeyToken=7cbde695407f0333, processorArchitecture=MSIL">
       <HintPath>..\packages\LibGit2Sharp.0.24.0\lib\net40\LibGit2Sharp.dll</HintPath>

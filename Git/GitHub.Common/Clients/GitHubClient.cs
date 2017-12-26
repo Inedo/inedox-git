@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Inedo.IO;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Net;
 using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -16,6 +18,9 @@ namespace Inedo.Extensions.Clients
         public const string GitHubComUrl = "https://api.github.com";
 
         private string apiBaseUrl;
+        private static readonly JavaScriptSerializer jsonSerializer = new JavaScriptSerializer();
+        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
+        private static string Esc(object part) => Esc(part?.ToString());
 
         public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
         {
@@ -32,103 +37,86 @@ namespace Inedo.Extensions.Clients
         public string UserName { get; }
         public SecureString Password { get; }
 
-        public async Task<IList<Dictionary<string, object>>> GetOrganizationsAsync()
+        public async Task<IList<Dictionary<string, object>>> GetOrganizationsAsync(CancellationToken cancellationToken)
         {
-            var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100").ConfigureAwait(false);
+            var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100", cancellationToken).ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetRepositoriesAsync()
+        public async Task<IList<Dictionary<string, object>>> GetRepositoriesAsync(CancellationToken cancellationToken)
         {
             string url;
             if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/users/{Uri.EscapeUriString(this.OrganizationName)}/repos?per_page=100";
+                url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
-            var results = await this.InvokePagesAsync("GET", url).ConfigureAwait(false);
+            var results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter)
+        public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {
-            var issues = await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/issues{3}", this.apiBaseUrl, ownerName, repositoryName, filter.ToQueryString())).ConfigureAwait(false);
+            var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
             return issues.Cast<Dictionary<string, object>>().ToList();
         }
-        
-        public async Task<Dictionary<string, object>> GetIssueAsync(string issueId, string ownerName, string repositoryName)
+
+        public async Task<Dictionary<string, object>> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
-            var issue = await this.InvokeAsync("GET", string.Format("{0}/repos/{1}/{2}/issues/{3}", this.apiBaseUrl, ownerName, repositoryName, issueId)).ConfigureAwait(false);
+            var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
             return (Dictionary<string, object>)issue;
         }
-        public Task UpdateIssueAsync(string issueId, string ownerName, string repositoryName, object update)
+        public Task UpdateIssueAsync(string issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PATCH", string.Format("{0}/repos/{1}/{2}/issues/{3}", this.apiBaseUrl, ownerName, repositoryName, issueId), update);
+            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{Esc(issueId)}", update, cancellationToken);
         }
 
-        public async Task CreateMilestoneAsync(string milestone, string ownerName, string repositoryName)
+        public async Task CreateMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
-            var url = string.Format("{0}/repos/{1}/{2}/milestones", this.apiBaseUrl, ownerName, repositoryName);
-            int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName).ConfigureAwait(false);
+            int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName, cancellationToken).ConfigureAwait(false);
             if (milestoneNumber != null)
                 return;
 
-            await this.InvokeAsync(
-                "POST",
-                url,
-                new { title = milestone }
-            ).ConfigureAwait(false);
+            await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
         }
-        public async Task CloseMilestoneAsync(string milestone, string ownerName, string repositoryName)
+        public async Task CloseMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
-            var url = string.Format("{0}/repos/{1}/{2}/milestones", this.apiBaseUrl, ownerName, repositoryName);
-            int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName).ConfigureAwait(false);
+            int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName, cancellationToken).ConfigureAwait(false);
             if (milestoneNumber == null)
                 return;
 
-            await this.InvokeAsync(
-                "PATCH",
-                url + "/" + milestoneNumber,
-                new { state = "closed" }
-            ).ConfigureAwait(false);
+            await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{Esc(milestoneNumber)}", new { state = "closed" }, cancellationToken).ConfigureAwait(false);
         }
 
-        public Task CreateCommentAsync(string issueId, string ownerName, string repositoryName, string commentText)
+        public Task CreateCommentAsync(string issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync(
-                "POST",
-                string.Format("{0}/repos/{1}/{2}/issues/{3}/comments", this.apiBaseUrl, Uri.EscapeDataString(ownerName), Uri.EscapeDataString(repositoryName), Uri.EscapeDataString(issueId)),
-                new
-                {
-                    body = commentText
-                }
-            );
+            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{Esc(issueId)}/comments", new { body = commentText }, cancellationToken);
         }
 
-        public async Task<int?> FindMilestoneAsync(string title, string ownerName, string repositoryName)
+        public async Task<int?> FindMilestoneAsync(string title, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
-            var milestones = await this.GetMilestonesAsync(ownerName, repositoryName, "all").ConfigureAwait(false);
+            var milestones = await this.GetMilestonesAsync(ownerName, repositoryName, "all", cancellationToken).ConfigureAwait(false);
 
             return milestones
-                .Where(m => string.Equals((m["title"] ?? "").ToString(), title, StringComparison.OrdinalIgnoreCase))
+                .Where(m => string.Equals(m["title"]?.ToString() ?? string.Empty, title, StringComparison.OrdinalIgnoreCase))
                 .Select(m => m["number"] as int?)
                 .FirstOrDefault();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string ownerName, string repositoryName, string state)
+        public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string ownerName, string repositoryName, string state, CancellationToken cancellationToken)
         {
-            var milestones = await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/milestones?state={3}&sort=due_on&direction=desc&per_page=100", this.apiBaseUrl, ownerName, repositoryName, state)).ConfigureAwait(false);
+            var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones?state={Uri.EscapeDataString(state)}&sort=due_on&direction=desc&per_page=100", cancellationToken).ConfigureAwait(false);
             if (milestones == null)
-                return new List<Dictionary<string, object>>();
+                return new Dictionary<string, object>[0];
 
-            return milestones.Cast<Dictionary<string, object>>().ToList();                
+            return milestones.Cast<Dictionary<string, object>>().ToList();
         }
 
-        public async Task<Dictionary<string, object>> GetReleaseAsync(string ownerName, string repositoryName, string tag)
+        public async Task<Dictionary<string, object>> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
         {
             try
             {
-                var releases = await this.InvokePagesAsync("GET", string.Format("{0}/repos/{1}/{2}/releases", this.apiBaseUrl, ownerName, repositoryName)).ConfigureAwait(false);
+                var releases = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", cancellationToken).ConfigureAwait(false);
                 return releases.Cast<Dictionary<string, object>>().SingleOrDefault(r => string.Equals(r["tag_name"], tag));
             }
             catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
@@ -137,7 +125,7 @@ namespace Inedo.Extensions.Clients
             }
         }
 
-        public async Task<object> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target = null, string name = null, string body = null, bool? draft = null, bool? prerelease = null)
+        public async Task<object> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target, string name, string body, bool? draft, bool? prerelease, CancellationToken cancellationToken)
         {
             var data = new Dictionary<string, object>();
             data["tag_name"] = tag;
@@ -162,17 +150,17 @@ namespace Inedo.Extensions.Clients
                 data["prerelease"] = prerelease.Value;
             }
 
-            var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag).ConfigureAwait(false);
+            var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (existingRelease != null)
             {
-                return await this.InvokeAsync("PATCH", string.Format("{0}/repos/{1}/{2}/releases/{3}", this.apiBaseUrl, ownerName, repositoryName, existingRelease["id"]), data).ConfigureAwait(false);
+                return await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{Esc(existingRelease["id"])}", data, cancellationToken).ConfigureAwait(false);
             }
-            return await this.InvokeAsync("POST", string.Format("{0}/repos/{1}/{2}/releases", this.apiBaseUrl, ownerName, repositoryName), data).ConfigureAwait(false);
+            return await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", data, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<object> UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents)
+        public async Task<object> UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents, Action<long> reportProgress, CancellationToken cancellationToken)
         {
-            var release = await this.GetReleaseAsync(ownerName, repositoryName, tag).ConfigureAwait(false);
+            var release = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (release == null)
             {
                 throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
@@ -181,97 +169,119 @@ namespace Inedo.Extensions.Clients
             var uploadUriTemplate = new UriTemplate.Core.UriTemplate((string)release["upload_url"]);
             var uploadUri = uploadUriTemplate.BindByName(new Dictionary<string, string> { { "name", name } });
 
-            var request = WebRequest.CreateHttp(uploadUri);
-            request.UserAgent = "BuildMasterGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
-            request.Method = "POST";
-
+            var request = this.CreateRequest("POST", uploadUri.ToString());
             request.ContentType = contentType;
-            if (!string.IsNullOrEmpty(this.UserName))
-                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + this.Password.ToUnsecureString()));
 
-            using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
+            using (cancellationToken.Register(() => request.Abort()))
             {
-                await contents.CopyToAsync(requestStream).ConfigureAwait(false);
-            }
-
-            try
-            {
-                using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                using (var responseStream = response.GetResponseStream())
-                using (var reader = new StreamReader(responseStream))
+                using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
                 {
-                    var js = new JavaScriptSerializer();
-                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    var responseJson = js.DeserializeObject(responseText);
-                    return responseJson;
+                    await contents.CopyToAsync(requestStream, 81920, cancellationToken, reportProgress).ConfigureAwait(false);
+                }
+
+                try
+                {
+                    using (var response = await request.GetResponseAsync().ConfigureAwait(false))
+                    using (var responseStream = response.GetResponseStream())
+                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    {
+                        var js = new JavaScriptSerializer();
+                        string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        var responseJson = js.DeserializeObject(responseText);
+                        return responseJson;
+                    }
+                }
+                catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
+                }
+                catch (WebException ex) when (ex.Response != null)
+                {
+                    using (var responseStream = ex.Response.GetResponseStream())
+                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    {
+                        string message = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        throw new Exception(message, ex);
+                    }
                 }
             }
-            catch (WebException ex) when (ex.Response != null)
+        }
+
+        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+
+        private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
+        {
+            return (IEnumerable<object>)await this.InvokeAsync(method, uri, null, true, cancellationToken).ConfigureAwait(false);
+        }
+        private Task<object> InvokeAsync(string method, string uri, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync(method, uri, null, false, cancellationToken);
+        }
+        private Task<object> InvokeAsync(string method, string uri, object data, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync(method, uri, data, false, cancellationToken);
+        }
+        private async Task<object> InvokeAsync(string method, string uri, object data, bool allPages, CancellationToken cancellationToken)
+        {
+            var request = this.CreateRequest(method, uri);
+
+            using (cancellationToken.Register(() => request.Abort()))
             {
-                using (var responseStream = ex.Response.GetResponseStream())
+                if (data != null)
                 {
-                    string message = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
+                    using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
+                    using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
+                    {
+                        await writer.WriteAsync(jsonSerializer.Serialize(data)).ConfigureAwait(false);
+                    }
+                }
+
+                try
+                {
+                    using (var response = await request.GetResponseAsync().ConfigureAwait(false))
+                    using (var responseStream = response.GetResponseStream())
+                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    {
+                        string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        var responseJson = jsonSerializer.DeserializeObject(responseText);
+                        if (allPages)
+                        {
+                            var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? string.Empty);
+                            if (nextPage.Success)
+                            {
+                                responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
+                            }
+                        }
+                        return responseJson;
+                    }
+                }
+                catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
+                }
+                catch (WebException ex) when (ex.Response != null)
+                {
+                    using (var responseStream = ex.Response.GetResponseStream())
+                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    {
+                        string message = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        throw new Exception(message, ex);
+                    }
                 }
             }
         }
-
-        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<url>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
-
-        private async Task<IEnumerable<object>> InvokePagesAsync(string method, string url)
+        private HttpWebRequest CreateRequest(string method, string uri)
         {
-            return (IEnumerable<object>)await this.InvokeAsync(method, url, null, true).ConfigureAwait(false);
-        }
-        private Task<object> InvokeAsync(string method, string url)
-        {
-            return this.InvokeAsync(method, url, null);
-        }
-        private async Task<object> InvokeAsync(string method, string url, object data, bool allPages = false)
-        {
-            var request = WebRequest.CreateHttp(url);
-            request.UserAgent = "BuildMasterGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
+            var request = WebRequest.CreateHttp(uri);
+            request.UserAgent = "InedoGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
             request.Method = method;
 
             if (!string.IsNullOrEmpty(this.UserName))
-                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + this.Password.ToUnsecureString()));
+                request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + AH.Unprotect(this.Password)));
 
-            if (data != null)
-            {
-                using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
-                using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
-                {
-                    InedoLib.Util.JavaScript.WriteJson(writer, data);
-                }
-            }
-
-            try
-            {
-                using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                using (var responseStream = response.GetResponseStream())
-                using (var reader = new StreamReader(responseStream))
-                {
-                    var js = new JavaScriptSerializer();
-                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    var responseJson = js.DeserializeObject(responseText);
-                    if (allPages)
-                    {
-                        var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? "");
-                        if (nextPage.Success)
-                        {
-                            responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["url"].Value, data, true).ConfigureAwait(false));
-                        }
-                    }
-                    return responseJson;
-                }
-            }
-            catch (WebException ex) when (ex.Response != null)
-            {
-                using (var responseStream = ex.Response.GetResponseStream())
-                {
-                    string message = await new StreamReader(responseStream).ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
-                }
-            }
+            return request;
         }
     }
 

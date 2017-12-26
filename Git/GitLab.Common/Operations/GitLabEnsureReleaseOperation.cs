@@ -12,6 +12,11 @@ using Inedo.BuildMaster.Extensibility.Operations;
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Configurations;
 using Inedo.Otter.Extensibility.Operations;
+using IOperationCollectionContext = Inedo.Otter.Extensibility.Operations.IOperationExecutionContext;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -24,11 +29,11 @@ namespace Inedo.Extensions.Operations
     public sealed class GitLabEnsureReleaseOperation : EnsureOperation<GitLabReleaseConfiguration>
     {
 #if !BuildMaster
-        public override async Task<PersistedConfiguration> CollectAsync(IOperationExecutionContext context)
+        public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
 
-            var tag = await gitlab.GetTagAsync(this.Template.ProjectName, this.Template.Tag).ConfigureAwait(false);
+            var tag = await gitlab.GetTagAsync(this.Template.ProjectName, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
 
             if (tag == null || !tag.ContainsKey("release") || tag["release"] == null)
             {
@@ -48,7 +53,7 @@ namespace Inedo.Extensions.Operations
         {
             var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
 
-            await gitlab.EnsureReleaseAsync(this.Template.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty).ConfigureAwait(false);
+            await gitlab.EnsureReleaseAsync(this.Template.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

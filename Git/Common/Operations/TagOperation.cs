@@ -11,6 +11,9 @@ using Inedo.BuildMaster.Extensibility.Operations;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Operations;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -41,7 +44,7 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            string repositoryUrl = await this.GetRepositoryUrlAsync().ConfigureAwait(false);
+            string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(repositoryUrl))
             {
                 this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");

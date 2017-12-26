@@ -9,10 +9,15 @@ using Inedo.Serialization;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Web;
 using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Web.Controls;
 using Inedo.Otter.Extensions;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Credentials
@@ -31,13 +36,13 @@ namespace Inedo.Extensions.Credentials
         [Persistent]
         [DisplayName("Group name")]
         [PlaceholderText("e.g. apache")]
-        [SuggestibleValue(typeof(CredentialsGroupNameSuggestionProvider))]
+        [SuggestableValue(typeof(CredentialsGroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
         [Persistent]
         [DisplayName("Project")]
         [PlaceholderText("e.g. log4net")]
-        [SuggestibleValue(typeof(CredentialsProjectNameSuggestionProvider))]
+        [SuggestableValue(typeof(CredentialsProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Persistent]

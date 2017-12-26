@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
@@ -10,12 +11,17 @@ using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.Operations;
-using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
-using Inedo.Otter.Web.Controls;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -44,7 +50,7 @@ GitLab-Tag(
         [DisplayName("Group name")]
         [MappedCredential(nameof(GitLabCredentials.GroupName))]
         [PlaceholderText("Use group from credentials")]
-        [SuggestibleValue(typeof(GroupNameSuggestionProvider))]
+        [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
         [Category("GitLab")]
@@ -52,7 +58,7 @@ GitLab-Tag(
         [DisplayName("Project name")]
         [MappedCredential(nameof(GitLabCredentials.ProjectName))]
         [PlaceholderText("Use project from credentials")]
-        [SuggestibleValue(typeof(ProjectNameSuggestionProvider))]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Category("Advanced")]
@@ -63,11 +69,11 @@ GitLab-Tag(
         [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync()
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
         {
             var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
 
-            var project = await gitlab.GetProjectAsync(this.ProjectName).ConfigureAwait(false);
+            var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
 
             if (project == null)
                 throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");

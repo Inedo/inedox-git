@@ -6,17 +6,23 @@ using Inedo.Serialization;
 using System;
 using System.ComponentModel;
 using System.Security;
+using System.Collections.Generic;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Configurations;
 using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Configurations;
 using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Web.Controls;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Configurations
@@ -61,7 +67,7 @@ namespace Inedo.Extensions.Configurations
         [DisplayName("Group name")]
         [MappedCredential(nameof(GitLabCredentials.GroupName))]
         [PlaceholderText("Use group from credentials")]
-        [SuggestibleValue(typeof(GroupNameSuggestionProvider))]
+        [SuggestableValue(typeof(GroupNameSuggestionProvider))]
 #if !BuildMaster
         [IgnoreConfigurationDrift]
 #endif
@@ -73,7 +79,7 @@ namespace Inedo.Extensions.Configurations
         [DisplayName("Project name")]
         [MappedCredential(nameof(GitLabCredentials.ProjectName))]
         [PlaceholderText("Use project from credentials")]
-        [SuggestibleValue(typeof(ProjectNameSuggestionProvider))]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
 #if !BuildMaster
         [IgnoreConfigurationDrift]
 #endif
@@ -107,5 +113,47 @@ namespace Inedo.Extensions.Configurations
 
         [Persistent]
         public bool Exists { get; set; } = true;
+
+#if !BuildMaster
+        public override ComparisonResult Compare(PersistedConfiguration other)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+            if (!(other is GitLabReleaseConfiguration))
+            {
+                throw new InvalidOperationException("Cannot compare configurations of different types.");
+            }
+
+            return Compare((GitLabReleaseConfiguration)other);
+        }
+
+        private ComparisonResult Compare(GitLabReleaseConfiguration other)
+        {
+            if (!this.Exists && !other.Exists)
+            {
+                return ComparisonResult.Identical;
+            }
+            if (!this.Exists || !other.Exists)
+            {
+                return new ComparisonResult(new[] { new Difference(nameof(Exists), this.Exists, other.Exists) });
+            }
+
+            var differences = new List<Difference>();
+
+            if (!string.Equals(this.Tag, other.Tag, StringComparison.OrdinalIgnoreCase))
+            {
+                differences.Add(new Difference(nameof(Tag), this.Tag, other.Tag));
+            }
+
+            if (this.Description != null && !string.Equals(this.Description, other.Description))
+            {
+                differences.Add(new Difference(nameof(Description), this.Description, other.Description));
+            }
+
+            return new ComparisonResult(differences);
+        }
+#endif
     }
 }

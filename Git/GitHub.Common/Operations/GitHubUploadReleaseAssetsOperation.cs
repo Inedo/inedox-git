@@ -1,26 +1,31 @@
-﻿using Inedo.Agents;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Security;
+using System.Threading.Tasks;
+using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Security;
-using System.Threading.Tasks;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.Operations;
-using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
-using Inedo.Otter.Web.Controls;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -55,7 +60,7 @@ namespace Inedo.Extensions.Operations
         [DisplayName("Organization name")]
         [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
         [PlaceholderText("Use organization from credentials")]
-        [SuggestibleValue(typeof(OrganizationNameSuggestionProvider))]
+        [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Category("GitHub")]
@@ -63,7 +68,7 @@ namespace Inedo.Extensions.Operations
         [DisplayName("Repository name")]
         [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
         [PlaceholderText("Use repository from credentials")]
-        [SuggestibleValue(typeof(RepositoryNameSuggestionProvider))]
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         [Category("Advanced")]
@@ -106,8 +111,13 @@ namespace Inedo.Extensions.Operations
         [DefaultValue("application/octet-stream")]
         public string ContentType { get; set; } = "application/octet-stream";
 
+        private OperationProgress progress = null;
+        public override OperationProgress GetProgress() => this.progress;
+
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
+            this.progress = null;
+
             var sourceDirectory = context.ResolvePath(this.SourceDirectory);
 
             var fileOps = await context.Agent.GetServiceAsync<IFileOperationsExecuter>().ConfigureAwait(false);
@@ -135,7 +145,8 @@ namespace Inedo.Extensions.Operations
                 using (var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false))
                 {
                     this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
-                    await github.UploadReleaseAssetAsync(ownerName, this.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size)).ConfigureAwait(false);
+                    await github.UploadReleaseAssetAsync(ownerName, this.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
+                    this.progress = null;
                 }
             }
         }

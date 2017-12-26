@@ -5,10 +5,11 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
+using Inedo.Diagnostics;
 
 namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 {
-    internal sealed class RemoteLibGitSharpJob : RemoteJob
+    internal sealed class RemoteLibGitSharpJob : RemoteJob, ILogSink
     {
         public RemoteLibGitSharpJob()
         {
@@ -23,7 +24,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                 new WorkspacePath(this.Context.LocalRepositoryPath),
                 this.Context.RemoteRepositoryUrl,
                 this.Context.UserName,
-                this.Context.Password?.ToSecureString()
+                AH.CreateSecureString(this.Context.Password)
             );
 
             var client = new LibGitSharpClient(repo, this);
@@ -82,6 +83,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                 return new BinaryFormatter().Deserialize(stream);
             else
                 return null;
+        }
+
+        void ILogSink.Log(IMessage message)
+        {
+            this.Log(message.Level, message.Message);
         }
     }
 }

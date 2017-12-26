@@ -1,8 +1,8 @@
-﻿using Inedo.Documentation;
+﻿using System.ComponentModel;
+using System.Threading.Tasks;
+using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Configurations;
-using System.ComponentModel;
-using System.Threading.Tasks;
 
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility;
@@ -11,6 +11,11 @@ using Inedo.BuildMaster.Extensibility.Operations;
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Configurations;
 using Inedo.Otter.Extensibility.Operations;
+using IOperationCollectionContext = Inedo.Otter.Extensibility.Operations.IOperationExecutionContext;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -23,13 +28,13 @@ namespace Inedo.Extensions.Operations
     public sealed class GitHubEnsureReleaseOperation : EnsureOperation<GitHubReleaseConfiguration>
     {
 #if !BuildMaster
-        public override async Task<PersistedConfiguration> CollectAsync(IOperationExecutionContext context)
+        public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
 
             var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
 
-            var release = await github.GetReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag);
+            var release = await github.GetReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, context.CancellationToken);
 
             if (release == null)
             {
@@ -54,7 +59,7 @@ namespace Inedo.Extensions.Operations
 
             var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
 
-            await github.EnsureReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease).ConfigureAwait(false);
+            await github.EnsureReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

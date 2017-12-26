@@ -18,8 +18,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
             this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
             this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
-            var user = issue["user"] as Dictionary<string, object>;
-            if (user != null)
+            if (issue["user"] is Dictionary<string, object> user)
                 this.Submitter = user["login"].ToString();
             this.Url = issue["html_url"].ToString();
         }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
@@ -28,7 +29,7 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
 
             var client = new GitLabClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.GroupName);
 
-            var milestones = await client.GetMilestonesAsync(repositoryName, "open").ConfigureAwait(false);
+            var milestones = await client.GetMilestonesAsync(repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
 
             var titles = from m in milestones
                          let title = m["title"]?.ToString()

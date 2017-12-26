@@ -41,7 +41,7 @@ namespace Tests
             {
                 var lines = File.ReadAllLines(credentialsFilePath);
                 this.userName = lines[0];
-                this.password = SecureStringExtensions.ToSecureString(lines[1]);
+                this.password = AH.CreateSecureString(lines[1]);
             }
 
             var fileOps = new TestFileOperationsExecuter(Path.Combine(this.rootDir, "agent"));
