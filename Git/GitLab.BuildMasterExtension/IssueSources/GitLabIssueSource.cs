@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.IssueSources;
@@ -72,7 +73,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
                 CustomFilterQueryString = this.CustomFilterQueryString
             };
 
-            var issues = await client.GetIssuesAsync(projectName, filter).ConfigureAwait(false);
+            var issues = await client.GetIssuesAsync(projectName, filter, CancellationToken.None).ConfigureAwait(false);
 
             return from i in issues
                    select new GitLabIssue(i);

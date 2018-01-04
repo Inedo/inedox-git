@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
@@ -12,6 +13,10 @@ using Inedo.BuildMaster.Web.Controls;
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Web.Controls;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
@@ -34,7 +39,7 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
 
             var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
 
-            var orgs = await client.GetOrganizationsAsync().ConfigureAwait(false);
+            var orgs = await client.GetOrganizationsAsync(CancellationToken.None).ConfigureAwait(false);
 
             var names = from m in orgs
                         let name = m["login"]?.ToString()

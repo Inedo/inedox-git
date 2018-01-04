@@ -11,6 +11,10 @@ using Inedo.BuildMaster.Extensibility.Operations;
 using Inedo.Otter.Extensibility.Operations;
 #endif
 
+#if !Hedgehog
+using ILogSink = Inedo.Diagnostics.ILogger;
+#endif
+
 namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 {
     public sealed class RemoteLibGitSharpClient : GitClient
@@ -20,7 +24,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         private bool simulation;
         private CancellationToken cancellationToken;
 
-        public RemoteLibGitSharpClient(IRemoteJobExecuter jobExecuter, string workingDirectory, bool simulation, CancellationToken cancellationToken, GitRepositoryInfo repository, ILogger log) 
+        public RemoteLibGitSharpClient(IRemoteJobExecuter jobExecuter, string workingDirectory, bool simulation, CancellationToken cancellationToken, GitRepositoryInfo repository, ILogSink log) 
             : base(repository, log)
         {
             this.jobExecuter = jobExecuter ?? throw new NotSupportedException("A hosted agent must be used with the built-in LibGitSharp git client.");
@@ -88,7 +92,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             context.LocalRepositoryPath = this.repository.LocalRepositoryPath;
             context.RemoteRepositoryUrl = this.repository.RemoteRepositoryUrl;
             context.UserName = this.repository.UserName;
-            context.Password = this.repository.Password?.ToUnsecureString();
+            context.Password = AH.Unprotect(this.repository.Password);
 
             var job = new RemoteLibGitSharpJob();
             job.MessageLogged += this.Job_MessageLogged;

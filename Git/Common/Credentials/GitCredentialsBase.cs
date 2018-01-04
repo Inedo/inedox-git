@@ -2,12 +2,16 @@
 using Inedo.Serialization;
 using System.ComponentModel;
 using Inedo.Documentation;
+
 #if BuildMaster
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Web;
 #elif Otter
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensions;
+#elif Hedgehog
+using Inedo.Extensibility.Credentials;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Credentials

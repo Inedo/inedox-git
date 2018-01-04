@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
@@ -11,12 +12,17 @@ using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.Operations;
-using Inedo.BuildMaster.Web.Controls;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
-using Inedo.Otter.Web.Controls;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+#elif Hedgehog
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
+using Inedo.Web;
 #endif
 
 namespace Inedo.Extensions.Operations
@@ -45,7 +51,7 @@ GitHub-Tag(
         [DisplayName("Organization name")]
         [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
         [PlaceholderText("Use organization from credentials")]
-        [SuggestibleValue(typeof(OrganizationNameSuggestionProvider))]
+        [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Category("GitHub")]
@@ -53,7 +59,7 @@ GitHub-Tag(
         [DisplayName("Repository name")]
         [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
         [PlaceholderText("Use repository from credentials")]
-        [SuggestibleValue(typeof(RepositoryNameSuggestionProvider))]
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         [Category("Advanced")]
@@ -64,11 +70,11 @@ GitHub-Tag(
         [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync()
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
         {
             var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
-            var repo = (from r in await github.GetRepositoriesAsync().ConfigureAwait(false)
+            var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
                         where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
                         select r).FirstOrDefault();
 

@@ -6,14 +6,18 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.IO;
 
+#if !Hedgehog
+using ILogSink = Inedo.Diagnostics.ILogger;
+#endif
+
 namespace Inedo.Extensions.Clients
 {
     public abstract class GitClient
     {
-        protected ILogger log;
+        protected ILogSink log;
         protected GitRepositoryInfo repository;
 
-        protected GitClient(GitRepositoryInfo repository, ILogger log)
+        protected GitClient(GitRepositoryInfo repository, ILogSink log)
         {
             this.log = log ?? throw new ArgumentNullException(nameof(log));
             this.repository = repository ?? throw new ArgumentNullException(nameof(repository));

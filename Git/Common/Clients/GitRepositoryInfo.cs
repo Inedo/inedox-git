@@ -30,19 +30,10 @@ namespace Inedo.Extensions.Clients
             if (!string.IsNullOrEmpty(this.UserName))
             {
                 uri.UserName = this.UserName;
-                uri.Password = this.Password.ToUnsecureString();
+                uri.Password = AH.Unprotect(this.Password);
             }
 
             return uri.ToString();
         }
     }
-
-#if Otter
-    // remove this when BuildMaster SDK is updated to v5.7, and replace all SecureString extension methods with their AH equivalents
-    internal static class SecureStringExtensions
-    {
-        public static string ToUnsecureString(this SecureString thisValue) => AH.Unprotect(thisValue);
-        public static SecureString ToSecureString(this string s) => AH.CreateSecureString(s);
-    }
-#endif
 }

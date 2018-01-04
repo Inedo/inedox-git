@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
@@ -28,7 +29,7 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
 
             var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
 
-            var milestones = await client.GetMilestonesAsync(ownerName, repositoryName, "open").ConfigureAwait(false);
+            var milestones = await client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
 
             var titles = from m in milestones
                          let title = m["title"]?.ToString()

@@ -8,6 +8,8 @@ using Inedo.IO;
 using Inedo.BuildMaster.Extensibility.Operations;
 #elif Otter
 using Inedo.Otter.Extensibility.Operations;
+#elif Hedgehog
+using Inedo.Extensibility.Operations;
 #endif
 
 namespace Inedo.Extensions.Clients

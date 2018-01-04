@@ -8,6 +8,10 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.ExecutionEngine.Executer;
 
+#if !Hedgehog
+using ILogSink = Inedo.Diagnostics.ILogger;
+#endif
+
 namespace Inedo.Extensions.Clients.CommandLine
 {
     public sealed class GitCommandLineClient : GitClient
@@ -19,7 +23,7 @@ namespace Inedo.Extensions.Clients.CommandLine
         private IFileOperationsExecuter fileOps;
         private CancellationToken cancellationToken;
 
-        public GitCommandLineClient(string gitExePath, IRemoteProcessExecuter processExecuter, IFileOperationsExecuter fileOps, GitRepositoryInfo repository, ILogger log, CancellationToken cancellationToken)
+        public GitCommandLineClient(string gitExePath, IRemoteProcessExecuter processExecuter, IFileOperationsExecuter fileOps, GitRepositoryInfo repository, ILogSink log, CancellationToken cancellationToken)
             : base(repository, log)
         {
             if (gitExePath == null)
