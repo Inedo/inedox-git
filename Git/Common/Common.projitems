@@ -28,6 +28,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Operations\TagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GetSourceOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GitOperation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SharedProperties.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)VariableFunctions\DefaultGitExePathVariableFunction.cs" />
   </ItemGroup>
 </Project>
