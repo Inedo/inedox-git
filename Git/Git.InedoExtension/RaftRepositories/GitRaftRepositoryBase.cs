@@ -118,11 +118,7 @@ namespace Inedo.Extensions.RaftRepositories
 
             RaftItem inner()
             {
-                var itemPath = PathEx.Combine(GetStandardTypeName(type), name);
-                if (!string.IsNullOrEmpty(this.RepositoryRoot))
-                    itemPath = PathEx.Combine(this.RepositoryRoot, itemPath);
-
-                var entry = this.FindEntry(itemPath, version);
+                var entry = this.FindEntry(type, name, version);
                 if (entry != null)
                 {
                     long? size = null;
@@ -159,11 +155,11 @@ namespace Inedo.Extensions.RaftRepositories
 
             EnsureRelativePath(name);
 
-            var itemPath = PathEx.Combine(GetStandardTypeName(type), name);
+            var itemPath = PathEx.Combine('/', GetStandardTypeName(type), name);
             if (!string.IsNullOrEmpty(this.RepositoryRoot))
-                itemPath = PathEx.Combine(this.RepositoryRoot, itemPath);
+                itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
 
-            var entry = this.FindEntry(itemPath, version);
+            var entry = this.FindEntry(type, name, version);
 
             return Task.FromResult(inner());
 
@@ -480,7 +476,7 @@ namespace Inedo.Extensions.RaftRepositories
 
             return root?[path];
         }
-        private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine(GetStandardTypeName(type), name), hash);
+        private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
 
         private sealed class RaftItemStream : Stream
         {
