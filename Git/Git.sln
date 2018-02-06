@@ -3,19 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Git.Common", "Git.Common\Git.Common.shproj", "{50444F91-CC59-45EF-A20F-033EF09867CA}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common", "Common\Common.shproj", "{E7439368-9A13-487F-934F-78C67F9CEE2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.BuildMasterExtension", "GitHub.BuildMasterExtension\GitHub.BuildMasterExtension.csproj", "{C93C2A17-8091-4B8F-AC8A-822C442AACF0}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitHub.Common", "GitHub.Common\GitHub.Common.shproj", "{9B802E5E-258E-484E-B45A-21E311992F8F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitLab.Common", "GitLab.Common\GitLab.Common.shproj", "{DE4D658B-FF70-44EA-AE79-4C49519908FC}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.BuildMasterExtension", "GitLab.BuildMasterExtension\GitLab.BuildMasterExtension.csproj", "{DAC5424D-A3D7-449F-9D7B-3B17EE886486}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.InedoExtension", "Git.InedoExtension\Git.InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
 EndProject
@@ -25,38 +15,20 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.InedoExtension", "Gi
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Git.Common\Git.Common.projitems*{50444f91-cc59-45ef-a20f-033ef09867ca}*SharedItemsImports = 13
 		Common\Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
-		GitLab.Common\GitLab.Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
-		GitHub.Common\GitHub.Common.projitems*{9b802e5e-258e-484e-b45a-21e311992f8f}*SharedItemsImports = 13
 		Common\Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 4
-		GitHub.Common\GitHub.Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 4
-		Common\Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
-		GitHub.Common\GitHub.Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
-		Common\Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
-		GitLab.Common\GitLab.Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
-		GitLab.Common\GitLab.Common.projitems*{de4d658b-ff70-44ea-ae79-4c49519908fc}*SharedItemsImports = 13
 		Common\Common.projitems*{e7439368-9a13-487f-934f-78c67f9cee2f}*SharedItemsImports = 13
 		Common\Common.projitems*{f4b222c8-1270-4153-b50b-62d70abd73dd}*SharedItemsImports = 4
-		Git.Common\Git.Common.projitems*{f4b222c8-1270-4153-b50b-62d70abd73dd}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.ActiveCfg = Release|Any CPU

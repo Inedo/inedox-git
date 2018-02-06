@@ -63,13 +63,26 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Clients\GitHubClient.cs" />
+    <Compile Include="Configurations\GitHubReleaseConfiguration.cs" />
+    <Compile Include="Credentials\GitHubCredentials.cs" />
+    <Compile Include="IssueSources\GitHubIssue.cs" />
+    <Compile Include="IssueSources\GitHubIssueSource.cs" />
+    <Compile Include="Operations\GitHubEnsureReleaseOperation.cs" />
+    <Compile Include="Operations\GitHubGetSourceOperation.cs" />
+    <Compile Include="Operations\GitHubTagOperation.cs" />
+    <Compile Include="Operations\GitHubUploadReleaseAssetsOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SuggestionProviders\CredentialsOrganizationNameSuggestionProvider.cs" />
+    <Compile Include="SuggestionProviders\CredentialsRepositoryNameSuggestionProvider.cs" />
+    <Compile Include="SuggestionProviders\MilestoneSuggestionProvider.cs" />
+    <Compile Include="SuggestionProviders\OrganizationNameSuggestionProvider.cs" />
+    <Compile Include="SuggestionProviders\RepositoryNameSuggestionProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
-  <Import Project="..\GitHub.Common\GitHub.Common.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

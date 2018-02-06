@@ -64,6 +64,9 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Credentials\GeneralGitCredentials.cs" />
+    <Compile Include="Operations\GeneralGetSourceOperation.cs" />
+    <Compile Include="Operations\GeneralTagOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RaftRepositories\ExternalGitRaftRepository.cs" />
     <Compile Include="RaftRepositories\GitRaftRepositoryBase.cs" />
@@ -72,7 +75,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
-  <Import Project="..\Git.Common\Git.Common.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
