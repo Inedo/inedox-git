@@ -1,19 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.BuildMasterExtension", "Git.BuildMasterExtension\Git.BuildMasterExtension.csproj", "{21A80731-2805-488B-BA3A-CBE8B51940B4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.OtterExtension", "Git.OtterExtension\Git.OtterExtension.csproj", "{2AC30183-A4BD-423F-BC64-990D4598FEDA}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Git.Common", "Git.Common\Git.Common.shproj", "{50444F91-CC59-45EF-A20F-033EF09867CA}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common", "Common\Common.shproj", "{E7439368-9A13-487F-934F-78C67F9CEE2F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.BuildMasterExtension", "GitHub.BuildMasterExtension\GitHub.BuildMasterExtension.csproj", "{C93C2A17-8091-4B8F-AC8A-822C442AACF0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.OtterExtension", "GitHub.OtterExtension\GitHub.OtterExtension.csproj", "{646AC243-0136-474E-9474-2236DC08C898}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitHub.Common", "GitHub.Common\GitHub.Common.shproj", "{9B802E5E-258E-484E-B45A-21E311992F8F}"
 EndProject
@@ -23,8 +17,6 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GitLab.Common", "GitLab.Com
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.BuildMasterExtension", "GitLab.BuildMasterExtension\GitLab.BuildMasterExtension.csproj", "{DAC5424D-A3D7-449F-9D7B-3B17EE886486}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.OtterExtension", "GitLab.OtterExtension\GitLab.OtterExtension.csproj", "{181B2161-2823-4ED6-9B62-856B3E8FCD72}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.InedoExtension", "Git.InedoExtension\Git.InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.InedoExtension", "GitHub.InedoExtension\GitHub.InedoExtension.csproj", "{AA553FE9-1918-4B8A-846A-1821F3485C04}"
@@ -33,15 +25,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.InedoExtension", "Gi
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Common\Common.projitems*{181b2161-2823-4ed6-9b62-856b3e8fcd72}*SharedItemsImports = 4
-		GitLab.Common\GitLab.Common.projitems*{181b2161-2823-4ed6-9b62-856b3e8fcd72}*SharedItemsImports = 4
-		Common\Common.projitems*{21a80731-2805-488b-ba3a-cbe8b51940b4}*SharedItemsImports = 4
-		Git.Common\Git.Common.projitems*{21a80731-2805-488b-ba3a-cbe8b51940b4}*SharedItemsImports = 4
-		Common\Common.projitems*{2ac30183-a4bd-423f-bc64-990d4598feda}*SharedItemsImports = 4
-		Git.Common\Git.Common.projitems*{2ac30183-a4bd-423f-bc64-990d4598feda}*SharedItemsImports = 4
 		Git.Common\Git.Common.projitems*{50444f91-cc59-45ef-a20f-033ef09867ca}*SharedItemsImports = 13
-		Common\Common.projitems*{646ac243-0136-474e-9474-2236dc08c898}*SharedItemsImports = 4
-		GitHub.Common\GitHub.Common.projitems*{646ac243-0136-474e-9474-2236dc08c898}*SharedItemsImports = 4
 		Common\Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
 		GitLab.Common\GitLab.Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
 		GitHub.Common\GitHub.Common.projitems*{9b802e5e-258e-484e-b45a-21e311992f8f}*SharedItemsImports = 13
@@ -61,22 +45,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{21A80731-2805-488B-BA3A-CBE8B51940B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{21A80731-2805-488B-BA3A-CBE8B51940B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{21A80731-2805-488B-BA3A-CBE8B51940B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{21A80731-2805-488B-BA3A-CBE8B51940B4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2AC30183-A4BD-423F-BC64-990D4598FEDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2AC30183-A4BD-423F-BC64-990D4598FEDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2AC30183-A4BD-423F-BC64-990D4598FEDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2AC30183-A4BD-423F-BC64-990D4598FEDA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C93C2A17-8091-4B8F-AC8A-822C442AACF0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{646AC243-0136-474E-9474-2236DC08C898}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{646AC243-0136-474E-9474-2236DC08C898}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{646AC243-0136-474E-9474-2236DC08C898}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{646AC243-0136-474E-9474-2236DC08C898}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -85,10 +57,6 @@ Global
 		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DAC5424D-A3D7-449F-9D7B-3B17EE886486}.Release|Any CPU.Build.0 = Release|Any CPU
-		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
