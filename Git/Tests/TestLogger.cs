@@ -1,22 +1,15 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Inedo.Diagnostics;
 
 namespace Tests
 {
-    internal sealed class TestLogger : ILogger
+    internal sealed class TestLogger : ILogSink
     {
-        public static ILogger Instance = new TestLogger();
+        public static ILogSink Instance = new TestLogger();
 
-        event EventHandler<LogMessageEventArgs> ILogger.MessageLogged
+        public void Log(IMessage message)
         {
-            add { }
-            remove { }
-        }
-
-        void ILogger.Log(MessageLevel logLevel, string message)
-        {
-            Debug.WriteLine(logLevel + " - " + message);
+            Debug.WriteLine(message.Level + " - " + message.Message);
         }
     }
 }

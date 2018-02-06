@@ -9,12 +9,12 @@ using Inedo.Serialization;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Web;
 using Inedo.BuildMaster.Web.Controls;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Web.Controls;
 using Inedo.Otter.Extensions;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
 #elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Web;

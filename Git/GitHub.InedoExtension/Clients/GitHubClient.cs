@@ -166,10 +166,9 @@ namespace Inedo.Extensions.Clients
                 throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
             }
 
-            var uploadUriTemplate = new UriTemplate.Core.UriTemplate((string)release["upload_url"]);
-            var uploadUri = uploadUriTemplate.BindByName(new Dictionary<string, string> { { "name", name } });
+            string uploadUrl = FormatTemplateUri((string)release["upload_url"], name);
 
-            var request = this.CreateRequest("POST", uploadUri.ToString());
+            var request = this.CreateRequest("POST", uploadUrl);
             request.ContentType = contentType;
 
             using (cancellationToken.Register(() => request.Abort()))
@@ -206,6 +205,15 @@ namespace Inedo.Extensions.Clients
                     }
                 }
             }
+        }
+
+        private static string FormatTemplateUri(string templateUri, string name)
+        {
+            // quick hack for URI templates since former NuGet package doesn't support target framework v4.5.2 
+            // The format of templatedUploadUri is: https://host/repos/org/repoName/releases/1000/assets{?name,label}
+
+            int index = templateUri.IndexOf('{');
+            return templateUri.Substring(0, index) + "?" + Uri.EscapeDataString(name);
         }
 
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);

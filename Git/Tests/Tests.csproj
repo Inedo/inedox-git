@@ -36,24 +36,20 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BuildMaster.Web.Controls, Version=5.7.3.1, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\BuildMaster.Web.Controls.dll</HintPath>
+    <Reference Include="Inedo.Agents, Version=40.0.0.1, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.Agents.40.1.0\lib\net45\Inedo.Agents.dll</HintPath>
     </Reference>
-    <Reference Include="BuildMasterCore, Version=5.7.3.1, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\BuildMasterCore.dll</HintPath>
+    <Reference Include="Inedo.Agents.Client, Version=520.0.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.Agents.Client.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.Agents, Version=35.0.0.2, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.Agents.35.2\lib\net45\Inedo.Agents.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Inedo.ExecutionEngine, Version=63.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.ExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.Agents.Client, Version=503.1.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\Inedo.Agents.Client.dll</HintPath>
+    <Reference Include="Inedo.SDK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=29fae5dec3001603, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.SDK.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.ExecutionEngine, Version=59.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="InedoLib, Version=503.1.0.0, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.BuildMaster.SDK.5.7.0\lib\net45\InedoLib.dll</HintPath>
+    <Reference Include="InedoLib, Version=520.0.0.0, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\InedoLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
@@ -79,6 +75,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Git.InedoExtension\Git.InedoExtension.csproj">
+      <Project>{f4b222c8-1270-4153-b50b-62d70abd73dd}</Project>
+      <Name>Git.InedoExtension</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

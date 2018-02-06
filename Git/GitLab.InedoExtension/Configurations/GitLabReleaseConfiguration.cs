@@ -12,12 +12,12 @@ using System.Collections.Generic;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Configurations;
 using Inedo.BuildMaster.Extensibility.Credentials;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Configurations;
 using Inedo.Otter.Extensibility.Credentials;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
 #elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;

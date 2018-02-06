@@ -4,16 +4,14 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.IssueSources;
-using Inedo.BuildMaster.Extensibility.IssueTrackerConnections;
-using Inedo.BuildMaster.Web;
-using Inedo.BuildMaster.Web.Controls;
 using Inedo.Documentation;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.IssueSources;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
+using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.IssueSources
 {
@@ -29,12 +27,12 @@ namespace Inedo.Extensions.GitHub.IssueSources
         [Persistent]
         [DisplayName("Repository name")]
         [PlaceholderText("Use repository name from credentials")]
-        [SuggestibleValue(typeof(RepositoryNameSuggestionProvider))]
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         [Persistent]
         [DisplayName("Milestone")]
-        [SuggestibleValue(typeof(MilestoneSuggestionProvider))]
+        [SuggestableValue(typeof(MilestoneSuggestionProvider))]
         public string MilestoneTitle { get; set; }
 
         [Persistent]

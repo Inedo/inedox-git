@@ -11,12 +11,12 @@ using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.BuildMaster.Extensibility;
 using Inedo.BuildMaster.Extensibility.Credentials;
 using Inedo.BuildMaster.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
 #elif Otter
 using Inedo.Otter.Extensibility;
 using Inedo.Otter.Extensibility.Credentials;
 using Inedo.Otter.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestibleValueAttribute;
+using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
 #elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;

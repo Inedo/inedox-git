@@ -2,11 +2,11 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web.Controls;
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
+using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {

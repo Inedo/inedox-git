@@ -4,11 +4,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.IssueSources;
-using Inedo.BuildMaster.Extensibility.IssueTrackerConnections;
-using Inedo.BuildMaster.Web;
-using Inedo.BuildMaster.Web.Controls;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.IssueSources;
+using Inedo.Web;
 using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
@@ -29,12 +27,12 @@ namespace Inedo.Extensions.GitLab.IssueSources
         [Persistent]
         [DisplayName("Project name")]
         [PlaceholderText("Use project name from credentials")]
-        [SuggestibleValue(typeof(ProjectNameSuggestionProvider))]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Persistent]
         [DisplayName("Milestone")]
-        [SuggestibleValue(typeof(MilestoneSuggestionProvider))]
+        [SuggestableValue(typeof(MilestoneSuggestionProvider))]
         public string MilestoneTitle { get; set; }
 
         [Persistent]
