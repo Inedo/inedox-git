@@ -72,6 +72,7 @@
     <Compile Include="Operations\GitHubGetSourceOperation.cs" />
     <Compile Include="Operations\GitHubTagOperation.cs" />
     <Compile Include="Operations\GitHubUploadReleaseAssetsOperation.cs" />
+    <Compile Include="Operations\GitHubSetStatusOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SuggestionProviders\CredentialsOrganizationNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\CredentialsRepositoryNameSuggestionProvider.cs" />
