@@ -28,6 +28,7 @@ namespace Inedo.Extensions.GitHub.Operations
 catch
 {
     # make sure the status is set even if the build fails.
+    error;
 }
 
 GitHub-Set-Status (
