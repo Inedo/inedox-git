@@ -219,7 +219,7 @@ namespace Inedo.Extensions.Clients
             // The format of templatedUploadUri is: https://host/repos/org/repoName/releases/1000/assets{?name,label}
 
             int index = templateUri.IndexOf('{');
-            return templateUri.Substring(0, index) + "?" + Uri.EscapeDataString(name);
+            return templateUri.Substring(0, index) + "?name=" + Uri.EscapeDataString(name);
         }
 
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
