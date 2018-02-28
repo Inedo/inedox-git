@@ -94,6 +94,11 @@ namespace Inedo.Extensions.Clients
             await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{Esc(milestoneNumber)}", new { state = "closed" }, cancellationToken).ConfigureAwait(false);
         }
 
+        public Task CreateStatusAsync(string ownerName, string repositoryName, string commitHash, string state, string target_url, string description, string context, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/statuses/{Esc(commitHash)}", new { state, target_url, description, context }, cancellationToken);
+        }
+
         public Task CreateCommentAsync(string issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
             return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{Esc(issueId)}/comments", new { body = commentText }, cancellationToken);
