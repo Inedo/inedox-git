@@ -25,12 +25,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.BuildMasterExtension
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.OtterExtension", "GitLab.OtterExtension\GitLab.OtterExtension.csproj", "{181B2161-2823-4ED6-9B62-856B3E8FCD72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.InedoExtension", "Git.InedoExtension\Git.InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.InedoExtension", "GitHub.InedoExtension\GitHub.InedoExtension.csproj", "{AA553FE9-1918-4B8A-846A-1821F3485C04}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.InedoExtension", "GitLab.InedoExtension\GitLab.InedoExtension.csproj", "{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}"
-EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Common\Common.projitems*{181b2161-2823-4ed6-9b62-856b3e8fcd72}*SharedItemsImports = 4
@@ -42,19 +36,13 @@ Global
 		Git.Common\Git.Common.projitems*{50444f91-cc59-45ef-a20f-033ef09867ca}*SharedItemsImports = 13
 		Common\Common.projitems*{646ac243-0136-474e-9474-2236dc08c898}*SharedItemsImports = 4
 		GitHub.Common\GitHub.Common.projitems*{646ac243-0136-474e-9474-2236dc08c898}*SharedItemsImports = 4
-		Common\Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
-		GitLab.Common\GitLab.Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
 		GitHub.Common\GitHub.Common.projitems*{9b802e5e-258e-484e-b45a-21e311992f8f}*SharedItemsImports = 13
-		Common\Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 4
-		GitHub.Common\GitHub.Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 4
 		Common\Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
 		GitHub.Common\GitHub.Common.projitems*{c93c2a17-8091-4b8f-ac8a-822c442aacf0}*SharedItemsImports = 4
 		Common\Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
 		GitLab.Common\GitLab.Common.projitems*{dac5424d-a3d7-449f-9d7b-3b17ee886486}*SharedItemsImports = 4
 		GitLab.Common\GitLab.Common.projitems*{de4d658b-ff70-44ea-ae79-4c49519908fc}*SharedItemsImports = 13
 		Common\Common.projitems*{e7439368-9a13-487f-934f-78c67f9cee2f}*SharedItemsImports = 13
-		Common\Common.projitems*{f4b222c8-1270-4153-b50b-62d70abd73dd}*SharedItemsImports = 4
-		Git.Common\Git.Common.projitems*{f4b222c8-1270-4153-b50b-62d70abd73dd}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -89,18 +77,6 @@ Global
 		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{181B2161-2823-4ED6-9B62-856B3E8FCD72}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
