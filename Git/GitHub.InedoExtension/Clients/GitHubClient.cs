@@ -181,6 +181,15 @@ namespace Inedo.Extensions.Clients
 
             var request = this.CreateRequest("POST", uploadUrl);
             request.ContentType = contentType;
+            request.AllowWriteStreamBuffering = false;
+            try
+            {
+                request.ContentLength = contents.Length;
+            }
+            catch
+            {
+                request.SendChunked = true;
+            }
 
             using (cancellationToken.Register(() => request.Abort()))
             {
