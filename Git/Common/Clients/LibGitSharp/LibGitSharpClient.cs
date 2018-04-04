@@ -244,8 +244,16 @@ namespace Inedo.Extensions.Clients.LibGitSharp
         {
             if (string.IsNullOrEmpty(this.repository.UserName))
             {
-                this.log.LogDebug($"Connecting with default credentials...");
-                return new DefaultCredentials();
+                if (types.HasFlag(SupportedCredentialTypes.Default))
+                {
+                    this.log.LogDebug($"Connecting with default credentials...");
+                    return new DefaultCredentials();
+                }
+                else
+                {
+                    this.log.LogDebug($"Connecting anonymously...");
+                    return null;
+                }
             }
             else
             {

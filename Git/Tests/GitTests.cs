@@ -70,7 +70,7 @@ namespace Tests
         [TestMethod]
         public void LibGitSharp_Tag()
         {
-            this.Tag("clone-libgit", ClientType.LibGitSharp);
+            this.Tag("clone-libgit-base", "clone-libgit", ClientType.LibGitSharp);
         }
 
         [TestMethod]
@@ -94,7 +94,7 @@ namespace Tests
         [TestMethod]
         public void RemoteLibGitSharp_Tag()
         {
-            this.Tag("clone-remote-libgit", ClientType.RemoteLibGitSharp);
+            this.Tag("clone-remote-libgit-base", "clone-remote-libgit", ClientType.RemoteLibGitSharp);
         }
 
         [TestMethod]
@@ -118,7 +118,7 @@ namespace Tests
         [TestMethod]
         public void CommandLine_Tag()
         {
-            this.Tag("clone-cmd", ClientType.CommandLine);
+            this.Tag("clone-cmd-base", "clone-cmd", ClientType.CommandLine);
         }
 
         [TestMethod]
@@ -160,14 +160,24 @@ namespace Tests
             Assert.IsFalse(this.fileOps.DirectoryExists(gitDirectory));
         }
 
-        private void Tag(string cloneDirectory, ClientType type)
+        private void Tag(string baseDirectory, string cloneDirectory, ClientType type)
         {
+            string baseCloneDirectory = PathEx.Combine(this.rootDir, baseDirectory);
             string fullCloneDirectory = PathEx.Combine(this.rootDir, cloneDirectory);
+            string baseGitDirectory = PathEx.Combine(baseCloneDirectory, ".git");
             string tag = "tag-" + DateTime.Now.ToString("yyMMddhhmmss");
 
-            var client = this.CreateClient(type, fullCloneDirectory);
+            var client = this.CreateClient(type, baseCloneDirectory);
 
             var options = new GitCloneOptions();
+            client.CloneAsync(options).GetAwaiter().GetResult();
+
+            // HACK: pretend we just made a bare clone
+            var configFile = PathEx.Combine(baseGitDirectory, "config");
+            File.WriteAllText(configFile, File.ReadAllText(configFile).Replace("bare = false", "bare = true"));
+
+            client = this.CreateClient(type, fullCloneDirectory, baseGitDirectory);
+
             client.CloneAsync(options).GetAwaiter().GetResult();
 
             client.TagAsync(tag, null, null).GetAwaiter().GetResult();
@@ -184,9 +194,9 @@ namespace Tests
             CollectionAssert.Contains(branches, "branch1");
         }
 
-        private GitClient CreateClient(ClientType type, string workingDirectory)
+        private GitClient CreateClient(ClientType type, string workingDirectory, string overrideRepoUrl = null)
         {
-            var repo = new GitRepositoryInfo(new WorkspacePath(workingDirectory), repoUrl, this.userName, this.password);
+            var repo = new GitRepositoryInfo(new WorkspacePath(workingDirectory), overrideRepoUrl ?? repoUrl, this.userName, this.password);
 
             if (type == ClientType.CommandLine)
                 return new GitCommandLineClient(gitExePath, this.processExecuter, this.fileOps, repo, TestLogger.Instance, CancellationToken.None);

@@ -37,7 +37,7 @@ namespace Inedo.Extensions.Clients
 
             char separator = fileOps.DirectorySeparator;
 
-            var infos = await fileOps.GetFileSystemInfosAsync(sourceDirectory, keepInternals ? MaskingContext.IncludeAll : new MaskingContext(new[] { "**" }, new[] { "**" + separator + ".git**" })).ConfigureAwait(false);
+            var infos = await fileOps.GetFileSystemInfosAsync(sourceDirectory, keepInternals ? MaskingContext.IncludeAll : new MaskingContext(new[] { "**" }, new[] { "**" + separator + ".git**", ".git**" })).ConfigureAwait(false);
 
             var directoriesToCreate = infos.OfType<SlimDirectoryInfo>().Select(d => CombinePaths(targetDirectory, d.FullName.Substring(sourceDirectory.Length), separator)).ToArray();
             var relativeFileNames = infos.OfType<SlimFileInfo>().Select(f => f.FullName.Substring(sourceDirectory.Length).TrimStart(separator)).ToArray();

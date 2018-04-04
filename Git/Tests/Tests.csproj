@@ -43,7 +43,7 @@
       <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.Agents.Client.dll</HintPath>
     </Reference>
     <Reference Include="Inedo.ExecutionEngine, Version=63.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.ExecutionEngine.dll</HintPath>
+      <HintPath>..\packages\Inedo.ExecutionEngine.63.0.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="Inedo.SDK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=29fae5dec3001603, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.SDK.1.0.3\lib\net452\Inedo.SDK.dll</HintPath>
@@ -74,13 +74,13 @@
     <Compile Include="TestRemoteProcessExecuter.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Git.InedoExtension\Git.InedoExtension.csproj">
       <Project>{f4b222c8-1270-4153-b50b-62d70abd73dd}</Project>
       <Name>Git.InedoExtension</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
