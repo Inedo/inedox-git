@@ -67,3 +67,5 @@ artifacts:
 - path: Git.upack
 - path: GitHub.upack
 - path: GitLab.upack
+nuget:
+  account_feed: true
