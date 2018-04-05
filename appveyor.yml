@@ -4,6 +4,10 @@ configuration: Release
 environment:
   PROGET_API_KEY:
     secure: cK5vivAu043l5udO8/xlrju1zldGzrHfQxWXVNeyAfg=
+  NUGET_API_KEY:
+    secure: vPMa7CVfcT3E1azyRzinbM1J7VmfXxuMM7/+SJgciP0=
+install:
+- ps: nuget sources add -Name InedoAccountFeed -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2 -ApiKey $env:NUGET_API_KEY
 before_build:
 - ps: nuget restore "Git\Git.sln"
 build:
@@ -67,5 +71,3 @@ artifacts:
 - path: Git.upack
 - path: GitHub.upack
 - path: GitLab.upack
-nuget:
-  account_feed: true
