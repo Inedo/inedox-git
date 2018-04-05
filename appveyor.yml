@@ -4,12 +4,10 @@ configuration: Release
 environment:
   PROGET_API_KEY:
     secure: cK5vivAu043l5udO8/xlrju1zldGzrHfQxWXVNeyAfg=
-  NUGET_API_KEY:
-    secure: vPMa7CVfcT3E1azyRzinbM1J7VmfXxuMM7/+SJgciP0=
+  NUGET_PASSWORD:
+    secure: CIUMwE0/iDcMPY26+YXY++vOWNxNpxT+vDYB1spShMBd6fTn1mVIN2XLq4NvhZ8NAdFHcGPlYKCT7TyCRlSWww==
 install:
-- pwsh: >-
-    nuget sources add -Name InedoAccountFeed -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2;
-    nuget setapikey $env:NUGET_API_KEY -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2
+- ps: nuget sources add -Name InedoAccountFeed -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2 -UserName blubar@inedo.com -Password $env:NUGET_PASSWORD
 before_build:
 - ps: nuget restore "Git\Git.sln"
 build:
