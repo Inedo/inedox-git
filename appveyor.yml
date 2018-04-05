@@ -20,13 +20,13 @@ after_build:
 
     Expand-Archive -Path $toolPath -DestinationPath .\Tools\inedoxpack
 
-    .\Tools\inedoxpack\inedoxpack.exe ".\Git\Git.InedoExtension\bin\Release\Git.dll" ".\Git.upack"
-    .\Tools\inedoxpack\inedoxpack.exe ".\Git\GitHub.InedoExtension\bin\Release\GitHub.dll" ".\GitHub.upack"
-    .\Tools\inedoxpack\inedoxpack.exe ".\Git\GitLab.InedoExtension\bin\Release\GitLab.dll" ".\GitLab.upack"
+    .\Tools\inedoxpack\inedoxpack.exe ".\Git\Git.InedoExtension\bin\Release\Git.dll" ".\Git.upack";
+    .\Tools\inedoxpack\inedoxpack.exe ".\Git\GitHub.InedoExtension\bin\Release\GitHub.dll" ".\GitHub.upack";
+    .\Tools\inedoxpack\inedoxpack.exe ".\Git\GitLab.InedoExtension\bin\Release\GitLab.dll" ".\GitLab.upack";
 
-    $upackFilePathGit = (Resolve-Path ".\Git.upack").Path
-    $upackFilePathGitHub = (Resolve-Path ".\GitHub.upack").Path
-    $upackFilePathGitLab = (Resolve-Path ".\GitLab.upack").Path
+    $upackFilePathGit = (Resolve-Path ".\Git.upack").Path;
+    $upackFilePathGitHub = (Resolve-Path ".\GitHub.upack").Path;
+    $upackFilePathGitLab = (Resolve-Path ".\GitLab.upack").Path;
 
     $queryGit = (`
       "?name=Git" + `
