@@ -7,7 +7,9 @@ environment:
   NUGET_API_KEY:
     secure: vPMa7CVfcT3E1azyRzinbM1J7VmfXxuMM7/+SJgciP0=
 install:
-- ps: nuget sources add -Name InedoAccountFeed -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2 -ApiKey $env:NUGET_API_KEY
+- pwsh: >-
+    nuget sources add -Name InedoAccountFeed -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2
+    nuget setapikey $env:NUGET_API_KEY -Source https://ci.appveyor.com/nuget/inedo-5t8me5ojckq2
 before_build:
 - ps: nuget restore "Git\Git.sln"
 build:
