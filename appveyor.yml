@@ -32,19 +32,19 @@ after_build:
       "?name=Git" + `
       "&version=$($env:APPVEYOR_BUILD_VERSION)" + `
       "&title=Git" + `
-      "&description = [Uri]::EscapeDataString('Source control operations for Git.')" `
+      "&description=" + [Uri]::EscapeDataString('Source control operations for Git.') `
     );
     $queryGitHub = (`
       "?name=GitHub" + `
       "&version=$($env:APPVEYOR_BUILD_VERSION)" + `
       "&title=GitHub" + `
-      "&description = [Uri]::EscapeDataString('Source control, release management, and issue tracking integration for GitHub.')" `
+      "&description=" + [Uri]::EscapeDataString('Source control, release management, and issue tracking integration for GitHub.') `
     );
     $queryGitLab = (`
       "?name=GitLab" + `
       "&version=$($env:APPVEYOR_BUILD_VERSION)" + `
       "&title=GitLab" + `
-      "&description = [Uri]::EscapeDataString('Source control and issue tracking integration for GitLab.')" `
+      "&description=" + [Uri]::EscapeDataString('Source control and issue tracking integration for GitLab.') `
     );
 
     Invoke-RestMethod -Method Put `
@@ -71,3 +71,4 @@ artifacts:
 - path: Git.upack
 - path: GitHub.upack
 - path: GitLab.upack
+test: off
