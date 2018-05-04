@@ -159,16 +159,31 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     }
                     else
                     {
+                        var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
+                        if (signature == null)
+                        {
+                            var hostname = "example.com";
+                            if (Uri.TryCreate(SDK.BaseUrl, UriKind.Absolute, out var baseUrl))
+                                hostname = baseUrl.Host;
+
+                            signature = new Signature(SDK.ProductName, SDK.ProductName.ToLower() + "@" + hostname, DateTimeOffset.Now);
+
+                            var gitConfigPath = PathEx.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitconfig");
+                            this.log.LogWarning($"git is not configured on this server. Using default values for name and email.");
+                            this.log.LogDebug($"To change these values, {(FileEx.Exists(gitConfigPath) ? "edit" : "create")} '{gitConfigPath}' {(FileEx.Exists(gitConfigPath) ? "to add" : "with")} contents similar to the following:");
+                            this.log.LogDebug($"[user]\n\tname = {signature.Name}\n\temail = {signature.Email}");
+                        }
+
                         // annotated tag
                         if (string.IsNullOrEmpty(commit))
                         {
                             this.log.LogDebug($"Creating annotated tag \"{tag}\" with message \"{message}\"...");
-                            createdTag = repository.ApplyTag(tag, repository.Config.BuildSignature(DateTimeOffset.Now), message);
+                            createdTag = repository.ApplyTag(tag, signature, message);
                         }
                         else
                         {
                             this.log.LogDebug($"Creating annotated tag \"{tag}\" for commit {commit} with message \"{message}\"...");
-                            createdTag = repository.ApplyTag(tag, commit, repository.Config.BuildSignature(DateTimeOffset.Now), message);
+                            createdTag = repository.ApplyTag(tag, commit, signature, message);
                             
                         }
                     }
