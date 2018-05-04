@@ -46,7 +46,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                     return await client.IsRepositoryValidAsync().ConfigureAwait(false);
 
                 case ClientCommand.Tag:
-                    await client.TagAsync(this.Context.Tag, this.Context.Commit, this.Context.TagMessage).ConfigureAwait(false);
+                    await client.TagAsync(this.Context.Tag, this.Context.Commit, this.Context.TagMessage, this.Context.Force).ConfigureAwait(false);
                     return null;
 
                 case ClientCommand.Update:

@@ -42,8 +42,8 @@
     <Reference Include="Inedo.Agents.Client, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.SDK.1.0.4\lib\net452\Inedo.Agents.Client.dll</HintPath>
     </Reference>
-    <Reference Include="Inedo.ExecutionEngine, Version=63.2.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.ExecutionEngine.63.0.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
+    <Reference Include="Inedo.ExecutionEngine, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
+      <HintPath>..\packages\Inedo.ExecutionEngine.64.0.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="Inedo.SDK, Version=1.0.4.0, Culture=neutral, PublicKeyToken=29fae5dec3001603, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.SDK.1.0.4\lib\net452\Inedo.SDK.dll</HintPath>

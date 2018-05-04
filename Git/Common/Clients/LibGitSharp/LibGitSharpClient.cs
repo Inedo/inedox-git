@@ -133,7 +133,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
         }
 
-        public override Task TagAsync(string tag, string commit, string message)
+        public override Task TagAsync(string tag, string commit, string message, bool force = false)
         {
             try
             {
@@ -149,12 +149,12 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         if (string.IsNullOrEmpty(commit))
                         {
                             this.log.LogDebug($"Creating lightweight tag \"{tag}\"...");
-                            createdTag = repository.ApplyTag(tag);
+                            createdTag = repository.Tags.Add(tag, repository.Head.Tip, force);
                         }
                         else
                         {
                             this.log.LogDebug($"Creating lightweight tag \"{tag}\" for commit {commit}...");
-                            createdTag = repository.ApplyTag(tag, commit);
+                            createdTag = repository.Tags.Add(tag, commit, force);
                         }
                     }
                     else
@@ -178,21 +178,23 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         if (string.IsNullOrEmpty(commit))
                         {
                             this.log.LogDebug($"Creating annotated tag \"{tag}\" with message \"{message}\"...");
-                            createdTag = repository.ApplyTag(tag, signature, message);
+                            createdTag = repository.Tags.Add(tag, repository.Head.Tip, signature, message, force);
                         }
                         else
                         {
                             this.log.LogDebug($"Creating annotated tag \"{tag}\" for commit {commit} with message \"{message}\"...");
-                            createdTag = repository.ApplyTag(tag, commit, signature, message);
+                            createdTag = repository.Tags.Add(tag, commit, signature, message, force);
                             
                         }
                     }
 
                     this.log.LogDebug($"Pushing '{createdTag.CanonicalName}' to remote 'origin'...");
 
+                    var pushRef = $"{createdTag.CanonicalName}:{createdTag.CanonicalName}";
+
                     repository.Network.Push(
                         repository.Network.Remotes["origin"],
-                        createdTag.CanonicalName,
+                        force ? '+' + pushRef : pushRef,
                         new PushOptions { CredentialsProvider = this.CredentialsHandler }
                     );
                 }

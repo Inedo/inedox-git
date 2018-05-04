@@ -181,6 +181,19 @@ namespace Tests
             client.CloneAsync(options).GetAwaiter().GetResult();
 
             client.TagAsync(tag, null, null).GetAwaiter().GetResult();
+
+            bool failed = false;
+            try
+            {
+                client.TagAsync(tag, null, null, false).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                failed = true;
+            }
+            Assert.IsTrue(failed, "Creating an existing tag with force=false should fail.");
+
+            client.TagAsync(tag, null, null, true).GetAwaiter().GetResult();
         }
 
         private void Branches(string workingDirectory, ClientType type)

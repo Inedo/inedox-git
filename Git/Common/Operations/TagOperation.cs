@@ -42,6 +42,11 @@ namespace Inedo.Extensions.Operations
         [Description("The tag will refer to this commit if specified; otherwise it will refer to the current head.")]
         public string CommitHash { get; set; }
 
+        [Category("Advanced")]
+        [ScriptAlias("Force")]
+        [Description("Overwrite another tag that has the same name; otherwise using an existing tag name is an error.")]
+        public bool Force { get; set; }
+
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken).ConfigureAwait(false);
@@ -75,7 +80,7 @@ namespace Inedo.Extensions.Operations
                 }
             ).ConfigureAwait(false);
 
-            await client.TagAsync(this.Tag, this.CommitHash, this.TagMessage).ConfigureAwait(false);
+            await client.TagAsync(this.Tag, this.CommitHash, this.TagMessage, this.Force).ConfigureAwait(false);
 
             this.LogInformation("Tag complete.");
         }

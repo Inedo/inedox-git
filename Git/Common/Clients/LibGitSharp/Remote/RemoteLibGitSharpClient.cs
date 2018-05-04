@@ -69,11 +69,11 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             return (bool)result;
         }
 
-        public override Task TagAsync(string tag, string commit, string message)
+        public override Task TagAsync(string tag, string commit, string message, bool force = false)
         {
             return this.ExecuteRemoteAsync(
                 ClientCommand.Tag,
-                new RemoteLibGitSharpContext { Tag = tag, Commit = commit, TagMessage = message }
+                new RemoteLibGitSharpContext { Tag = tag, Commit = commit, TagMessage = message, Force = force }
             );
         }
 

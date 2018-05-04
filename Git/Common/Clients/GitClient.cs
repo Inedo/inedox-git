@@ -28,7 +28,7 @@ namespace Inedo.Extensions.Clients
         public abstract Task<string> UpdateAsync(GitUpdateOptions options);
         public abstract Task ArchiveAsync(string targetDirectory, bool keepInternals = false);
         public abstract Task<IEnumerable<string>> EnumerateRemoteBranchesAsync();
-        public abstract Task TagAsync(string tag, string commit, string message);
+        public abstract Task TagAsync(string tag, string commit, string message, bool force = false);
 
         protected static async Task CopyFilesAsync(IFileOperationsExecuter fileOps, string sourceDirectory, string targetDirectory, bool keepInternals = false)
         {
