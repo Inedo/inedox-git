@@ -1,4 +1,7 @@
-﻿using Inedo.Diagnostics;
+﻿using System.ComponentModel;
+using System.Security;
+using System.Threading.Tasks;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
@@ -8,9 +11,6 @@ using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Web;
-using System.ComponentModel;
-using System.Security;
-using System.Threading.Tasks;
 
 namespace Inedo.Extensions.GitHub.Operations
 {
@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitHub.Operations
     [Description("Sets a status message on a GitHub commit.")]
     [Example(@"try
 {
-    GitHub-Set-Status (
+    GitHub::Set-Status (
         Status = pending,
         ...
     );
@@ -31,12 +31,13 @@ catch
     error;
 }
 
-GitHub-Set-Status (
+GitHub::Set-Status (
     Status = auto,
     ...
 );")]
-    [ScriptAlias("GitHub-Set-Status")]
-    [ScriptNamespace("GitHub", PreferUnqualified = true)]
+    [ScriptAlias("Set-Status")]
+    [ScriptAlias("GitHub-Set-Status", Obsolete = true)]
+    [ScriptNamespace("GitHub", PreferUnqualified = false)]
     [Tag("source-control")]
     public sealed class GitHubSetStatusOperation : ExecuteOperation, IHasCredentials<GitHubCredentials>
     {

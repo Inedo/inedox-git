@@ -1,19 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
-using System.Threading;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility.Operations;
-#endif
-
-#if !Hedgehog
-using ILogSink = Inedo.Diagnostics.ILogger;
-#endif
 
 namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 {

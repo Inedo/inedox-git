@@ -6,10 +6,6 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.IO;
 
-#if !Hedgehog
-using ILogSink = Inedo.Diagnostics.ILogger;
-#endif
-
 namespace Inedo.Extensions.Clients
 {
     public abstract class GitClient

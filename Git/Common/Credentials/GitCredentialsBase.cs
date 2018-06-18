@@ -1,18 +1,9 @@
-﻿using System.Security;
-using Inedo.Serialization;
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.Security;
 using Inedo.Documentation;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web;
-#elif Otter
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensions;
-#elif Hedgehog
 using Inedo.Extensibility.Credentials;
+using Inedo.Serialization;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Credentials
 {

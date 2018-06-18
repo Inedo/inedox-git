@@ -2,15 +2,8 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using Inedo.Agents;
-using Inedo.IO;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility.Operations;
-#elif Hedgehog
 using Inedo.Extensibility.Operations;
-#endif
+using Inedo.IO;
 
 namespace Inedo.Extensions.Clients
 {

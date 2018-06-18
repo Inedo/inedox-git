@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("GitHub")]
-[assembly: AssemblyDescription("Source control and issue tracking integration for GitLab.")]
+[assembly: AssemblyDescription("Source control and issue tracking integration for GitHub.")]
 [assembly: AssemblyCompany("Inedo, LLC")]
 [assembly: AssemblyProduct("any")]
 [assembly: AssemblyCopyright("Copyright © Inedo 2018")]

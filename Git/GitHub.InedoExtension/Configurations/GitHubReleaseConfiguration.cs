@@ -1,29 +1,16 @@
-﻿using Inedo.Documentation;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Security;
+using Inedo.Documentation;
+using Inedo.Extensibility;
+using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Security;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Configurations;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Configurations;
-using Inedo.Otter.Extensibility.Credentials;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
-using Inedo.Extensibility;
-using Inedo.Extensibility.Configurations;
-using Inedo.Extensibility.Credentials;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Configurations
 {
@@ -121,7 +108,6 @@ namespace Inedo.Extensions.Configurations
         [Persistent]
         public bool Exists { get; set; } = true;
 
-#if !BuildMaster
         public override ComparisonResult Compare(PersistedConfiguration other)
         {
             if (other == null)
@@ -181,6 +167,5 @@ namespace Inedo.Extensions.Configurations
 
             return new ComparisonResult(differences);
         }
-#endif
     }
 }

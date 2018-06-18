@@ -5,24 +5,13 @@ using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Extensions.Clients.LibGitSharp.Remote;
 using Inedo.Extensions.Credentials;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-#elif Hedgehog
-using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
-using Inedo.Extensibility.Operations;
-#endif
 
 namespace Inedo.Extensions.Operations
 {

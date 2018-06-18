@@ -1,33 +1,22 @@
 ﻿using System.ComponentModel;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Configurations;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Configurations;
-using Inedo.Otter.Extensibility.Operations;
-using IOperationCollectionContext = Inedo.Otter.Extensibility.Operations.IOperationExecutionContext;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-#endif
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Configurations;
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Ensure GitHub Release")]
     [Description("Creates or updates a tagged release in a GitHub repository.")]
     [Tag("source-control")]
-    [ScriptAlias("Ensure-GitHub-Release")]
-    [ScriptNamespace("GitHub", PreferUnqualified = true)]
+    [ScriptAlias("Ensure-Release")]
+    [ScriptAlias("Ensure-GitHub-Release", Obsolete = true)]
+    [ScriptNamespace("GitHub", PreferUnqualified = false)]
     public sealed class GitHubEnsureReleaseOperation : EnsureOperation<GitHubReleaseConfiguration>
     {
-#if !BuildMaster
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
@@ -51,7 +40,6 @@ namespace Inedo.Extensions.Operations
                 Prerelease = (bool)release["prerelease"]
             };
         }
-#endif
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {

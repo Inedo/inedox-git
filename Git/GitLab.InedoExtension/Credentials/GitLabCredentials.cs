@@ -1,24 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Security;
 using Inedo.Documentation;
+using Inedo.Extensibility;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Web;
-using Inedo.BuildMaster.Web.Controls;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Web.Controls;
-using Inedo.Otter.Extensions;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
-using Inedo.Extensibility;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Credentials
 {
