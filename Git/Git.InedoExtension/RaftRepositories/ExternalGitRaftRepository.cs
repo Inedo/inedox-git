@@ -74,7 +74,14 @@ namespace Inedo.Extensions.RaftRepositories
                     if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                     {
                         Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                        repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                        if (repository.Refs["refs/heads/" + this.BranchName] == null)
+                        {
+                            repository.Refs.Add("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                        }
+                        else
+                        {
+                            repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                        }
                     }
 
                     return repository;
