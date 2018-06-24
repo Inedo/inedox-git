@@ -73,15 +73,18 @@ namespace Inedo.Extensions.RaftRepositories
 
                     if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                     {
-                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+
+                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), 
+                            new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+
                         if (repository.Refs["refs/heads/" + this.BranchName] == null)
                         {
-                            repository.Refs.Add("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                            //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
+                            var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.BranchName].TargetIdentifier);
+                            repository.Refs.Add("refs/heads/" + this.BranchName, objId);
                         }
-                        else
-                        {
-                            repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
-                        }
+
+                        repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
                     }
 
                     return repository;

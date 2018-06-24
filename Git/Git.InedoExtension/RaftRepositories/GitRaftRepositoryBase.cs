@@ -48,7 +48,7 @@ namespace Inedo.Extensions.RaftRepositories
         private protected bool Dirty => this.dirty;
         private protected Repository Repo => this.lazyRepository.Value;
 
-        private bool OptimizeLoadTime => (this.OpenOptions & OpenRaftOptions.OptimizeLoadTime) != 0;
+         private bool OptimizeLoadTime => (this.OpenOptions & OpenRaftOptions.OptimizeLoadTime) != 0;
         private string RepositoryRoot { get; set; }
 
         public sealed override Task<IEnumerable<RaftItem>> GetRaftItemsAsync()
@@ -61,7 +61,7 @@ namespace Inedo.Extensions.RaftRepositories
             IEnumerable<RaftItem> inner()
             {
                 var repo = this.lazyRepository.Value;
-
+               
                 var tip = repo.Branches[this.BranchName]?.Tip;
                 if (tip == null)
                     yield break;
@@ -95,11 +95,18 @@ namespace Inedo.Extensions.RaftRepositories
                                 }
                                 else
                                 {
-                                    var commit = repo.Commits.QueryBy(item.Path).FirstOrDefault();
+                                    var commits = repo.Commits.QueryBy(item.Path,
+                                        new CommitFilter {
+                                            IncludeReachableFrom = repo.Branches[this.BranchName],
+                                            FirstParentOnly = true,
+                                            SortBy = CommitSortStrategies.Time }
+                                        );
+                                    var commit = commits.FirstOrDefault();
+
                                     if (commit != null)
                                     {
                                         var committer = commit.Commit.Committer;
-                                        yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name);
+                                        yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
                                     }
                                 }
                             }
@@ -130,7 +137,12 @@ namespace Inedo.Extensions.RaftRepositories
 
                     if (string.IsNullOrEmpty(version))
                     {
-                        var commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path).FirstOrDefault()?.Commit;
+                        var commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
+                        {
+                            IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
+                            FirstParentOnly = true,
+                            SortBy = CommitSortStrategies.Time
+                        }).FirstOrDefault()?.Commit;
                         return new RaftItem(type, name, commit?.Committer?.When ?? DateTimeOffset.Now, commit?.Committer?.Name, size, commit?.Id?.ToString());
                     }
                     else
@@ -241,7 +253,14 @@ namespace Inedo.Extensions.RaftRepositories
                 var entry = this.FindEntry(type, name);
                 if (entry != null)
                 {
-                    foreach (var c in this.lazyRepository.Value.Commits.QueryBy(entry.Path))
+                    var commits = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
+                    {
+                        IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
+                        FirstParentOnly = true,
+                        SortBy = CommitSortStrategies.Time
+                    });
+
+                    foreach (var c in commits)
                     {
                         var commit = c.Commit;
                         var committer = commit.Committer;
