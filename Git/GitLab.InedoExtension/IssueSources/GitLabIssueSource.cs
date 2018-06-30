@@ -4,14 +4,14 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
-using Inedo.Web;
-using Inedo.Documentation;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
+using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.IssueSources
 {

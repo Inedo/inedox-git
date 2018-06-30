@@ -1,12 +1,12 @@
-﻿using Inedo.ExecutionEngine.Executer;
-using LibGit2Sharp;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.IO;
+using LibGit2Sharp;
 
 namespace Inedo.Extensions.Clients.LibGitSharp
 {

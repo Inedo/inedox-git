@@ -7,10 +7,6 @@ using Inedo.ExecutionEngine.Executer;
 using Inedo.IO;
 using LibGit2Sharp;
 
-#if !Hedgehog
-using ILogSink = Inedo.Diagnostics.ILogger;
-#endif
-
 namespace Inedo.Extensions.Clients.LibGitSharp
 {
     public sealed class LibGitSharpClient : GitClient

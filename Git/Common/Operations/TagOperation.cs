@@ -2,19 +2,10 @@
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Operations;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-#endif
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {

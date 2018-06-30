@@ -6,35 +6,23 @@ using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.IO;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
-using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
-using Inedo.Extensibility.Operations;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Upload GitHub Release Assets")]
     [Description("Uploads files as attachments to a GitHub release.")]
     [Tag("source-control")]
-    [ScriptAlias("GitHub-Upload-Release-Assets")]
-    [ScriptNamespace("GitHub", PreferUnqualified = true)]
+    [ScriptAlias("Upload-ReleaseAssets")]
+    [ScriptAlias("GitHub-Upload-Release-Assets", Obsolete = true)]
+    [ScriptNamespace("GitHub", PreferUnqualified = false)]
     public sealed class GitHubUploadReleaseAssetsOperation : ExecuteOperation, IHasCredentials<GitHubCredentials>
     {
         [ScriptAlias("Credentials")]
@@ -87,19 +75,11 @@ namespace Inedo.Extensions.Operations
 
         [Required]
         [ScriptAlias("Include")]
-#if Hedgehog
         [MaskingDescription]
-#else
-        [Description(CommonDescriptions.MaskingHelp)]
-#endif
         [PlaceholderText("* (top-level items)")]
         public IEnumerable<string> Includes { get; set; }
         [ScriptAlias("Exclude")]
-#if Hedgehog
         [MaskingDescription]
-#else
-        [Description(CommonDescriptions.MaskingHelp)]
-#endif
         public IEnumerable<string> Excludes { get; set; }
         [ScriptAlias("Directory")]
         public string SourceDirectory { get; set; }

@@ -3,37 +3,25 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitLab.SuggestionProviders;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Tag GitLab Source")]
     [Description("Tags the source code in a GitLab project.")]
     [Tag("source-control")]
-    [ScriptAlias("GitLab-Tag")]
-    [ScriptNamespace("GitLab", PreferUnqualified = true)]
+    [ScriptAlias("Tag")]
+    [ScriptAlias("GitLab-Tag", Obsolete = true)]
+    [ScriptNamespace("GitLab", PreferUnqualified = false)]
     [Example(@"
 # tags the current source tree with the current release name and package number
-GitLab-Tag(
+GitLab::Tag(
     Credentials: Hdars-GitLab,
     Group: Hdars,
     Tag: $ReleaseName.$PackageNumber

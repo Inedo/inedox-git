@@ -8,10 +8,6 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.ExecutionEngine.Executer;
 
-#if !Hedgehog
-using ILogSink = Inedo.Diagnostics.ILogger;
-#endif
-
 namespace Inedo.Extensions.Clients.CommandLine
 {
     public sealed class GitCommandLineClient : GitClient
