@@ -67,7 +67,8 @@ namespace Inedo.Extensions.Operations
                 new GitUpdateOptions
                 {
                     RecurseSubmodules = this.RecurseSubmodules,
-                    Branch = this.Branch
+                    Branch = this.Branch,
+                    Ref = this.CommitHash
                 }
             ).ConfigureAwait(false);
 

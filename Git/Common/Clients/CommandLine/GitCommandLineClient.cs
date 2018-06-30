@@ -83,8 +83,8 @@ namespace Inedo.Extensions.Clients.CommandLine
             await this.ExecuteCommandLineAsync(new GitArgumentsBuilder("fetch origin"), this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
             var resetArgs = new GitArgumentsBuilder("reset --hard");
-            if (options.Tag != null)
-                resetArgs.AppendQuoted(options.Tag);
+            if (options.Ref != null)
+                resetArgs.AppendQuoted(options.Ref);
             else if (options.Branch != null)
                 resetArgs.AppendQuoted("origin/" + options.Branch);
             else
