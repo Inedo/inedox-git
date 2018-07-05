@@ -65,10 +65,12 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Clients\GitLabClient.cs" />
+    <Compile Include="Configurations\GitLabMilestoneConfiguration.cs" />
     <Compile Include="Configurations\GitLabReleaseConfiguration.cs" />
     <Compile Include="Credentials\GitLabCredentials.cs" />
     <Compile Include="IssueSources\GitLabIssue.cs" />
@@ -76,6 +78,10 @@
     <Compile Include="Operations\GitLabEnsureReleaseOperation.cs" />
     <Compile Include="Operations\GitLabGetSourceOperation.cs" />
     <Compile Include="Operations\GitLabTagOperation.cs" />
+    <Compile Include="Operations\Issues\GitLabCloseIssueOperation.cs" />
+    <Compile Include="Operations\Issues\GitLabCreateIssueNoteOperation.cs" />
+    <Compile Include="Operations\Issues\GitLabCreateIssueOperation.cs" />
+    <Compile Include="Operations\Issues\GitLabEnsureMilestoneOperation.cs" />
     <Compile Include="Operations\GitLabOperationBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SuggestionProviders\CredentialsGroupNameSuggestionProvider.cs" />

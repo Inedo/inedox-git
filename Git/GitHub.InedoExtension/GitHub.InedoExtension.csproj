@@ -65,14 +65,20 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Clients\GitHubClient.cs" />
+    <Compile Include="Configurations\GitHubMilestoneConfiguration.cs" />
     <Compile Include="Configurations\GitHubReleaseConfiguration.cs" />
     <Compile Include="Credentials\GitHubCredentials.cs" />
     <Compile Include="IssueSources\GitHubIssue.cs" />
     <Compile Include="IssueSources\GitHubIssueSource.cs" />
+    <Compile Include="Operations\Issues\GitHubCloseIssueOperation.cs" />
+    <Compile Include="Operations\Issues\GitHubCreateIssueCommentOperation.cs" />
+    <Compile Include="Operations\Issues\GitHubCreateIssueOperation.cs" />
+    <Compile Include="Operations\Issues\GitHubEnsureMilestoneOperation.cs" />
     <Compile Include="Operations\GitHubOperationBase.cs" />
     <Compile Include="Operations\Releases\GitHubEnsureReleaseOperation.cs" />
     <Compile Include="Operations\GitHubGetSourceOperation.cs" />

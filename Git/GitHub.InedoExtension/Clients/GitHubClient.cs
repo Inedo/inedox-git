@@ -72,18 +72,24 @@ namespace Inedo.Extensions.GitHub.Clients
             var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
             return (Dictionary<string, object>)issue;
         }
-        public Task UpdateIssueAsync(string issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
+        public async Task<int> CreateIssueAsync(string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{Esc(issueId)}", update, cancellationToken);
+            var issue = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues", data, cancellationToken).ConfigureAwait(false);
+            return (int)issue["number"];
+        }
+        public Task UpdateIssueAsync(int issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", update, cancellationToken);
         }
 
-        public async Task CreateMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
+        public async Task<int> CreateMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName, cancellationToken).ConfigureAwait(false);
-            if (milestoneNumber != null)
-                return;
+            if (milestoneNumber.HasValue)
+                return milestoneNumber.Value;
 
-            await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            var data = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            return (int)data["number"];
         }
         public async Task CloseMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
@@ -91,7 +97,12 @@ namespace Inedo.Extensions.GitHub.Clients
             if (milestoneNumber == null)
                 return;
 
-            await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{Esc(milestoneNumber)}", new { state = "closed" }, cancellationToken).ConfigureAwait(false);
+            await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{milestoneNumber}", new { state = "closed" }, cancellationToken).ConfigureAwait(false);
+        }
+
+        public Task UpdateMilestoneAsync(int milestoneNumber, string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{milestoneNumber}", data, cancellationToken);
         }
 
         public Task CreateStatusAsync(string ownerName, string repositoryName, string commitHash, string state, string target_url, string description, string context, CancellationToken cancellationToken)
@@ -99,9 +110,9 @@ namespace Inedo.Extensions.GitHub.Clients
             return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/statuses/{Esc(commitHash)}", new { state, target_url, description, context }, cancellationToken);
         }
 
-        public Task CreateCommentAsync(string issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
+        public Task CreateCommentAsync(int issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{Esc(issueId)}/comments", new { body = commentText }, cancellationToken);
+            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}/comments", new { body = commentText }, cancellationToken);
         }
 
         public async Task<int?> FindMilestoneAsync(string title, string ownerName, string repositoryName, CancellationToken cancellationToken)
