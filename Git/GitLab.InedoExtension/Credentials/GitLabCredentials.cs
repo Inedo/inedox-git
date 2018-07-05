@@ -2,12 +2,13 @@
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Credentials
+namespace Inedo.Extensions.GitLab.Credentials
 {
     [ScriptAlias("GitLab")]
     [DisplayName("GitLab")]

@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace Inedo.Extensions.Clients
+namespace Inedo.Extensions.GitLab.Clients
 {
     internal sealed class GitLabClient
     {

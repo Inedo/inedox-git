@@ -1,21 +1,16 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.SuggestionProviders;
+using Inedo.Extensions.GitHub.Clients;
 using Inedo.IO;
-using Inedo.Web;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitHub.Operations.Releases
 {
     [DisplayName("Upload GitHub Release Assets")]
     [Description("Uploads files as attachments to a GitHub release.")]
@@ -23,50 +18,8 @@ namespace Inedo.Extensions.Operations
     [ScriptAlias("Upload-ReleaseAssets")]
     [ScriptAlias("GitHub-Upload-Release-Assets", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
-    public sealed class GitHubUploadReleaseAssetsOperation : ExecuteOperation, IHasCredentials<GitHubCredentials>
+    public sealed class GitHubUploadReleaseAssetsOperation : GitHubOperationBase
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
-
-        [Category("Connection/Identity")]
-        [ScriptAlias("UserName")]
-        [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
-        public string UserName { get; set; }
-
-        [Category("Connection/Identity")]
-        [ScriptAlias("Password")]
-        [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
-        public SecureString Password { get; set; }
-
-        [Category("GitHub")]
-        [ScriptAlias("Organization")]
-        [DisplayName("Organization name")]
-        [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
-        [PlaceholderText("Use organization from credentials")]
-        [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
-        public string OrganizationName { get; set; }
-
-        [Category("GitHub")]
-        [ScriptAlias("Repository")]
-        [DisplayName("Repository name")]
-        [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
-        [PlaceholderText("Use repository from credentials")]
-        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
-        public string RepositoryName { get; set; }
-
-        [Category("Advanced")]
-        [ScriptAlias("ApiUrl")]
-        [DisplayName("API URL")]
-        [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
-        public string ApiUrl { get; set; }
-
         [Required]
         [ScriptAlias("Tag")]
         [DisplayName("Tag")]

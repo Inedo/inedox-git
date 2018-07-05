@@ -1,16 +1,18 @@
 ﻿using System.ComponentModel;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Credentials
+namespace Inedo.Extensions.GitHub.Credentials
 {
     [ScriptAlias("GitHub")]
     [DisplayName("GitHub")]
     [Description("Credentials for GitHub.")]
+    [PersistFrom("Inedo.Extensions.Credentials.GitHubCredentials,GitHub")]
     public sealed class GitHubCredentials : GitCredentialsBase
     {
         [Persistent]

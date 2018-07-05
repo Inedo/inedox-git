@@ -5,10 +5,10 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Configurations;
+using Inedo.Extensions.GitLab.Clients;
+using Inedo.Extensions.GitLab.Configurations;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitLab.Operations
 {
     [DisplayName("Ensure GitLab Release")]
     [Description("Sets the release notes for a tag in a GitLab repository.")]

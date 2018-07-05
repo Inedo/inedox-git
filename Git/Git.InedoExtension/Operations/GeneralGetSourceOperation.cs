@@ -6,8 +6,10 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Git.Credentials;
+using Inedo.Extensions.Operations;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.Git.Operations
 {
     [DisplayName("Get Source from Git Repository")]
     [Description("Gets the source code from a general Git repository.")]

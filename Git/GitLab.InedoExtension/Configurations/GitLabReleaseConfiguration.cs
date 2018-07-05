@@ -6,13 +6,14 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitLab.Clients;
+using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Configurations
+namespace Inedo.Extensions.GitLab.Configurations
 {
     [Serializable]
     [DisplayName("GitLab Release")]
@@ -33,7 +34,7 @@ namespace Inedo.Extensions.Configurations
         [IgnoreConfigurationDrift]
         public string UserName { get; set; }
 
-        [Persistent]
+        [Persistent(Encrypted = true)]
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]

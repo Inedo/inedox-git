@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using Inedo.IO;
 
-namespace Inedo.Extensions.Clients
+namespace Inedo.Extensions.GitHub.Clients
 {
     internal sealed class GitHubClient
     {

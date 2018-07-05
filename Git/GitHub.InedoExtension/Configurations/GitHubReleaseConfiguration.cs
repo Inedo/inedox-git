@@ -6,13 +6,14 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitHub.Clients;
+using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Configurations
+namespace Inedo.Extensions.GitHub.Configurations
 {
     [Serializable]
     [DisplayName("GitHub Release")]
@@ -31,7 +32,7 @@ namespace Inedo.Extensions.Configurations
         [MappedCredential(nameof(GitCredentialsBase.UserName))]
         public string UserName { get; set; }
 
-        [Persistent]
+        [Persistent(Encrypted = true)]
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
