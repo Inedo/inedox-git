@@ -1,34 +1,23 @@
-﻿using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Configurations;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Configurations;
-using Inedo.Otter.Extensibility.Operations;
-using IOperationCollectionContext = Inedo.Otter.Extensibility.Operations.IOperationExecutionContext;
-#elif Hedgehog
+using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-#endif
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Configurations;
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Ensure GitLab Release")]
     [Description("Sets the release notes for a tag in a GitLab repository.")]
     [Tag("source-control")]
-    [ScriptAlias("Ensure-GitLab-Release")]
-    [ScriptNamespace("GitLab", PreferUnqualified = true)]
+    [ScriptAlias("Ensure-TagReleaseNotes")]
+    [ScriptAlias("Ensure-GitLab-Release", Obsolete = true)]
+    [ScriptNamespace("GitLab", PreferUnqualified = false)]
     public sealed class GitLabEnsureReleaseOperation : EnsureOperation<GitLabReleaseConfiguration>
     {
-#if !BuildMaster
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
@@ -47,7 +36,6 @@ namespace Inedo.Extensions.Operations
                 Description = (string)release["description"]
             };
         }
-#endif
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {

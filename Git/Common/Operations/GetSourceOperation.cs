@@ -1,28 +1,13 @@
 ﻿using System.ComponentModel;
 using System.Threading.Tasks;
+using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Agents;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-using Inedo.BuildMaster.Web.Controls.Plans;
-#elif Otter
-using Inedo.Otter.Documentation;
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-using Inedo.Otter.Extensions.Credentials;
-using Inedo.Otter.Web.Controls.Plans;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
 using Inedo.Web.Plans.ArgumentEditors;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
@@ -38,9 +23,11 @@ namespace Inedo.Extensions.Operations
         [DisplayName("Branch name")]
         [PlaceholderText("default")]
         public string Branch { get; set; }
-        [ScriptAlias("Tag")]
-        [DisplayName("Tag name")]
-        public string Tag { get; set; }
+        [ScriptAlias("Ref")]
+        [ScriptAlias("Tag", Obsolete = true)]
+        [DisplayName("Reference")]
+        [Description("A reference such as a tag name or a commit hash.")]
+        public string Ref { get; set; }
 
         [Output]
         [Category("Advanced")]
@@ -65,8 +52,8 @@ namespace Inedo.Extensions.Operations
             }
 
             string branchDesc = string.IsNullOrEmpty(this.Branch) ? "" : $" on '{this.Branch}' branch";
-            string tagDesc = string.IsNullOrEmpty(this.Tag) ? "" : $" tagged '{this.Tag}'";
-            this.LogInformation($"Getting source from '{repositoryUrl}'{branchDesc}{tagDesc}...");
+            string refDesc = string.IsNullOrEmpty(this.Ref) ? "" : $", commit '{this.Ref}'";
+            this.LogInformation($"Getting source from '{repositoryUrl}'{branchDesc}{refDesc}...");
 
             var workspacePath = WorkspacePath.Resolve(context, repositoryUrl, this.WorkspaceDiskPath);
 
@@ -95,7 +82,7 @@ namespace Inedo.Extensions.Operations
                 {
                     RecurseSubmodules = this.RecurseSubmodules,
                     Branch = this.Branch,
-                    Tag = this.Tag
+                    Ref = this.Ref
                 }
             ).ConfigureAwait(false);
 

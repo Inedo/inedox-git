@@ -2,22 +2,11 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Web.Controls;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Web.Controls;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {

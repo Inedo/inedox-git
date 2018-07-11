@@ -36,7 +36,12 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
                          where !string.IsNullOrEmpty(title)
                          select title;
 
-            return new[] { "$ReleaseName", "$ReleaseNumber" }.Concat(titles);
+            if (SDK.ProductName == "BuildMaster")
+            {
+                titles = new[] { "$ReleaseName", "$ReleaseNumber" }.Concat(titles);
+            }
+
+            return titles;
         }
     }
 }

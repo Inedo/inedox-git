@@ -3,31 +3,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensions.Credentials;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Tag Git Source")]
     [Description("Tags the source code in a general Git repository.")]
     [Tag("source-control")]
-    [ScriptAlias("Git-Tag")]
-    [ScriptNamespace("Git", PreferUnqualified = true)]
+    [ScriptAlias("Tag")]
+    [ScriptAlias("Git-Tag", Obsolete = true)]
+    [ScriptNamespace("Git", PreferUnqualified = false)]
     [Example(@"
 # tags the current source tree with the current release name and package number
-Git-Tag(
+Git::Tag(
     Credentials: Hdars-Git,
     RepositoryUrl: https://github.com/Inedo/git-test.git,
     Tag: $ReleaseName.$PackageNumber

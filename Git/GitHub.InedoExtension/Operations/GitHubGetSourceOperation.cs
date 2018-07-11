@@ -4,37 +4,25 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.SuggestionProviders;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Get Source from GitHub Repository")]
     [Description("Gets the source code from a GitHub repository.")]
     [Tag("source-control")]
-    [ScriptAlias("GitHub-GetSource")]
-    [ScriptNamespace("GitHub", PreferUnqualified = true)]
+    [ScriptAlias("Get-Source")]
+    [ScriptAlias("GitHub-GetSource", Obsolete = true)]
+    [ScriptNamespace("GitHub", PreferUnqualified = false)]
     [Example(@"
 # pulls source from a remote repository and archives/exports the contents to a target directory
-GitHub-GetSource(
+GitHub::Get-Source(
     Credentials: Hdars-GitHub,
     Organization: Hdars,
     DiskPath: ~\Sources

@@ -7,10 +7,6 @@ using Inedo.ExecutionEngine.Executer;
 using Inedo.IO;
 using LibGit2Sharp;
 
-#if !Hedgehog
-using ILogSink = Inedo.Diagnostics.ILogger;
-#endif
-
 namespace Inedo.Extensions.Clients.LibGitSharp
 {
     public sealed class LibGitSharpClient : GitClient
@@ -224,8 +220,8 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     var refName = "FETCH_HEAD";
                     if (options.Branch != null)
                         refName = "origin/" + options.Branch;
-                    else if (options.Tag != null)
-                        refName = options.Tag;
+                    else if (options.Ref != null)
+                        refName = options.Ref;
                     this.log.LogDebug($"Resetting the index and working tree to {refName}...");
                     repository.Reset(ResetMode.Hard, refName);
                     repository.RemoveUntrackedFiles();

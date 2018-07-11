@@ -4,37 +4,25 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.SuggestionProviders;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.BuildMaster.Web.Controls.SuggestableValueAttribute;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-using SuggestableValueAttribute = Inedo.Otter.Web.Controls.SuggestableValueAttribute;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Web;
-#endif
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Tag GitHub Source")]
     [Description("Tags the source code in a GitHub repository.")]
     [Tag("source-control")]
-    [ScriptAlias("GitHub-Tag")]
-    [ScriptNamespace("GitHub", PreferUnqualified = true)]
+    [ScriptAlias("Tag")]
+    [ScriptAlias("GitHub-Tag", Obsolete = true)]
+    [ScriptNamespace("GitHub", PreferUnqualified = false)]
     [Example(@"
 # tags the current source tree with the current release name and package number
-GitHub-Tag(
+GitHub::Tag(
     Credentials: Hdars-GitHub,
     Organization: Hdars,
     Tag: $ReleaseName.$PackageNumber

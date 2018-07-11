@@ -2,32 +2,22 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensions.Credentials;
-
-#if BuildMaster
-using Inedo.BuildMaster.Extensibility;
-using Inedo.BuildMaster.Extensibility.Credentials;
-using Inedo.BuildMaster.Extensibility.Operations;
-#elif Otter
-using Inedo.Otter.Extensibility;
-using Inedo.Otter.Extensibility.Credentials;
-using Inedo.Otter.Extensibility.Operations;
-#elif Hedgehog
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-#endif
+using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {
     [DisplayName("Get Source from Git Repository")]
     [Description("Gets the source code from a general Git repository.")]
     [Tag("source-control")]
-    [ScriptAlias("Git-GetSource")]
-    [ScriptNamespace("Git", PreferUnqualified = true)]
+    [ScriptAlias("Get-Source")]
+    [ScriptAlias("Git-GetSource", Obsolete = true)]
+    [ScriptNamespace("Git", PreferUnqualified = false)]
     [Example(@"
 # pulls source from a remote repository and archives/exports the contents to a target directory
-Git-GetSource(
+Git::Get-Source(
     Credentials: Hdars-Git,
     RepositoryUrl: https://github.com/Inedo/git-test.git,
     DiskPath: ~\Sources

@@ -1,6 +1,6 @@
-﻿using Inedo.IO;
-using System;
+﻿using System;
 using System.Security;
+using Inedo.IO;
 
 namespace Inedo.Extensions.Clients
 {
