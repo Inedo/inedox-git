@@ -97,7 +97,7 @@ namespace Inedo.Extensions.RaftRepositories
                                     var commits = repo.Commits.QueryBy(item.Path,
                                         new CommitFilter {
                                             IncludeReachableFrom = repo.Branches[this.BranchName],
-                                            FirstParentOnly = true,
+                                            FirstParentOnly = false,
                                             SortBy = CommitSortStrategies.Time }
                                         );
                                     var commit = commits.FirstOrDefault();
@@ -138,7 +138,7 @@ namespace Inedo.Extensions.RaftRepositories
                         var commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
                         {
                             IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
-                            FirstParentOnly = true,
+                            FirstParentOnly = false,
                             SortBy = CommitSortStrategies.Time
                         }).FirstOrDefault()?.Commit;
                         return new RaftItem(type, name, commit?.Committer?.When ?? DateTimeOffset.Now, commit?.Committer?.Name, size, commit?.Id?.ToString());
@@ -254,7 +254,7 @@ namespace Inedo.Extensions.RaftRepositories
                     var commits = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
                     {
                         IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
-                        FirstParentOnly = true,
+                        FirstParentOnly = false,
                         SortBy = CommitSortStrategies.Time
                     });
                     foreach (var c in commits)
