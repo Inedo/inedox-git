@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace Inedo.Extensions.Clients
+namespace Inedo.Extensions.GitLab.Clients
 {
     internal sealed class GitLabClient
     {
@@ -67,6 +67,12 @@ namespace Inedo.Extensions.Clients
             }
         }
 
+        public async Task<int?> FindUserAsync(string name, CancellationToken cancellationToken)
+        {
+            var users = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/users?username={Esc(name)}", cancellationToken).ConfigureAwait(false);
+            return (int?)users.Cast<Dictionary<string, object>>().FirstOrDefault()?["id"];
+        }
+
         public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string repositoryName, GitLabIssueFilter filter, CancellationToken cancellationToken)
         {
             var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
@@ -78,29 +84,39 @@ namespace Inedo.Extensions.Clients
             var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{Esc(issueId)}", cancellationToken).ConfigureAwait(false);
             return (Dictionary<string, object>)issue;
         }
-        public Task UpdateIssueAsync(string issueId, string repositoryName, object update, CancellationToken cancellationToken)
+        public async Task<int> CreateIssueAsync(string repositoryName, object data, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{Esc(issueId)}", update, cancellationToken);
+            var issue = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues", data, cancellationToken);
+            return (int)issue["iid"];
+        }
+        public Task UpdateIssueAsync(int issueId, string repositoryName, object update, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{issueId}", update, cancellationToken);
         }
 
-        public async Task CreateMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
+        public async Task<int> CreateMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
         {
-            int? milestoneNumber = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
-            if (milestoneNumber != null)
-                return;
+            int? milestoneId = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
+            if (milestoneId.HasValue)
+                return milestoneId.Value;
 
-            await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            var data = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            return (int)data["id"];
         }
         public async Task CloseMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
         {
-            int? milestoneNumber = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
-            if (milestoneNumber == null)
+            int? milestoneId = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
+            if (milestoneId == null)
                 return;
 
-            await this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones/{Esc(milestoneNumber)}", new { state_event = "close" }, cancellationToken).ConfigureAwait(false);
+            await this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones/{milestoneId}", new { state_event = "close" }, cancellationToken).ConfigureAwait(false);
+        }
+        public Task UpdateMilestoneAsync(int milestoneId, string repositoryName, object data, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones/{milestoneId}", data, cancellationToken);
         }
 
-        public Task CreateCommentAsync(string issueId, string repositoryName, string commentText, CancellationToken cancellationToken)
+        public Task CreateCommentAsync(int issueId, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
             return this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{Esc(issueId)}/notes", new { body = commentText }, cancellationToken);
         }
