@@ -13,7 +13,7 @@ using Inedo.IO;
 using Inedo.Serialization;
 using LibGit2Sharp;
 
-namespace Inedo.Extensions.RaftRepositories
+namespace Inedo.Extensions.Git.RaftRepositories
 {
     public abstract class GitRaftRepositoryBase : RaftRepository
     {

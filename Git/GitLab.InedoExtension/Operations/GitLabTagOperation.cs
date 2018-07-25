@@ -6,12 +6,13 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitLab.Clients;
+using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
+using Inedo.Extensions.Operations;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitLab.Operations
 {
     [DisplayName("Tag GitLab Source")]
     [Description("Tags the source code in a GitLab project.")]

@@ -4,10 +4,10 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Configurations;
+using Inedo.Extensions.GitHub.Clients;
+using Inedo.Extensions.GitHub.Configurations;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitHub.Operations.Releases
 {
     [DisplayName("Ensure GitHub Release")]
     [Description("Creates or updates a tagged release in a GitHub repository.")]

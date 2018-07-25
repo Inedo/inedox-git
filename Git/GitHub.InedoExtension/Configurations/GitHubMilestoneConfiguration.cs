@@ -7,6 +7,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Editors;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -16,8 +17,8 @@ using Inedo.Web;
 namespace Inedo.Extensions.GitHub.Configurations
 {
     [Serializable]
-    [DisplayName("GitHub Release")]
-    public sealed class GitHubReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>
+    [DisplayName("GitHub Milestone")]
+    public sealed class GitHubMilestoneConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>
     {
         [Persistent]
         [ScriptAlias("Credentials")]
@@ -67,44 +68,31 @@ namespace Inedo.Extensions.GitHub.Configurations
         [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        [Persistent]
         [Required]
-        [ScriptAlias("Tag")]
-        [DisplayName("Tag name")]
-        [ConfigurationKey]
-        public string Tag { get; set; }
-
-        [Persistent]
-        [ScriptAlias("Target")]
-        [DisplayName("Target commit")]
-        [Description("May be specified as a branch name, a commit hash, or left blank for the latest commit on the default branch (usually master).")]
-        public string Target { get; set; }
-
         [Persistent]
         [ScriptAlias("Title")]
-        [DisplayName("Title")]
-        [Description("If left blank, the tag name will be used for new releases and existing releases will keep their original title.")]
-        [PlaceholderText("(keep existing)")]
         public string Title { get; set; }
 
         [Persistent]
+        [DisplayName("Due date")]
+        [ScriptAlias("DueDate")]
+        [CustomEditor(typeof(DateEditor))]
+        public string DueDate { get; set; }
+
+        [Persistent]
         [ScriptAlias("Description")]
-        [DisplayName("Description")]
-        [Description("Release notes, formatted as Markdown. Leave blank to keep the existing release notes.")]
-        [PlaceholderText("(keep existing)")]
+        [FieldEditMode(FieldEditMode.Multiline)]
         public string Description { get; set; }
 
-        [Persistent]
-        [ScriptAlias("Draft")]
-        [DisplayName("Is draft")]
-        [PlaceholderText("(keep existing)")]
-        public bool? Draft { get; set; }
+        public enum OpenOrClosed
+        {
+            open,
+            closed
+        }
 
         [Persistent]
-        [ScriptAlias("Prerelease")]
-        [DisplayName("Is prerelease")]
-        [PlaceholderText("(keep existing)")]
-        public bool? Prerelease { get; set; }
+        [ScriptAlias("State")]
+        public OpenOrClosed? State { get; set; }
 
         [Persistent]
         public bool Exists { get; set; } = true;
@@ -115,15 +103,15 @@ namespace Inedo.Extensions.GitHub.Configurations
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            if (!(other is GitHubReleaseConfiguration))
+            if (!(other is GitHubMilestoneConfiguration))
             {
                 throw new InvalidOperationException("Cannot compare configurations of different types.");
             }
 
-            return Compare((GitHubReleaseConfiguration)other);
+            return Compare((GitHubMilestoneConfiguration)other);
         }
 
-        private ComparisonResult Compare(GitHubReleaseConfiguration other)
+        private ComparisonResult Compare(GitHubMilestoneConfiguration other)
         {
             if (!this.Exists && !other.Exists)
             {
@@ -136,34 +124,21 @@ namespace Inedo.Extensions.GitHub.Configurations
 
             var differences = new List<Difference>();
 
-            if (!string.Equals(this.Tag, other.Tag, StringComparison.OrdinalIgnoreCase))
-            {
-                differences.Add(new Difference(nameof(Tag), this.Tag, other.Tag));
-            }
-
-            if (this.Target != null && !string.Equals(this.Target, other.Target))
-            {
-                differences.Add(new Difference(nameof(Target), this.Target, other.Target));
-            }
-
-            if (this.Title != null && !string.Equals(this.Title, other.Title))
+            if (!string.Equals(this.Title, other.Title))
             {
                 differences.Add(new Difference(nameof(Title), this.Title, other.Title));
             }
-
-            if (this.Description != null && !string.Equals(this.Description, other.Description))
+            if (this.DueDate != null && !string.Equals(this.DueDate, other.DueDate ?? string.Empty))
+            {
+                differences.Add(new Difference(nameof(DueDate), this.DueDate, other.DueDate));
+            }
+            if (this.Description != null && !string.Equals(this.Description, other.Description ?? string.Empty))
             {
                 differences.Add(new Difference(nameof(Description), this.Description, other.Description));
             }
-
-            if (this.Draft.HasValue && this.Draft != other.Draft)
+            if (this.State.HasValue && this.State != other.State)
             {
-                differences.Add(new Difference(nameof(Draft), this.Draft, other.Draft));
-            }
-
-            if (this.Prerelease.HasValue && this.Prerelease != other.Prerelease)
-            {
-                differences.Add(new Difference(nameof(Prerelease), this.Prerelease, other.Prerelease));
+                differences.Add(new Difference(nameof(State), this.State, other.State));
             }
 
             return new ComparisonResult(differences);

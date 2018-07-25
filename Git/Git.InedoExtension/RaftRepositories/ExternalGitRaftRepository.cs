@@ -10,10 +10,11 @@ using Inedo.IO;
 using Inedo.Serialization;
 using LibGit2Sharp;
 
-namespace Inedo.Extensions.RaftRepositories
+namespace Inedo.Extensions.Git.RaftRepositories
 {
     [DisplayName("Git")]
     [Description("The raft is persisted as a Git repository that is automatically synchronized with an external Git repository.")]
+    [PersistFrom("Inedo.Extensions.RaftRepositories.ExternalGitRaftRepository,Git")]
     [PersistFrom("Inedo.Otter.Extensions.RaftRepositories.ExternalGitRaftRepository,OtterCoreEx")]
     public sealed class ExternalGitRaftRepository : GitRaftRepositoryBase
     {

@@ -7,12 +7,13 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitHub.Clients;
+using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
+using Inedo.Extensions.Operations;
 using Inedo.Web;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitHub.Operations
 {
     [DisplayName("Tag GitHub Source")]
     [Description("Tags the source code in a GitHub repository.")]

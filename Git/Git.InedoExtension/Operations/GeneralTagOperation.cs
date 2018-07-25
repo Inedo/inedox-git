@@ -6,8 +6,10 @@ using Inedo.Extensions.Credentials;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Git.Credentials;
+using Inedo.Extensions.Operations;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.Git.Operations
 {
     [DisplayName("Tag Git Source")]
     [Description("Tags the source code in a general Git repository.")]

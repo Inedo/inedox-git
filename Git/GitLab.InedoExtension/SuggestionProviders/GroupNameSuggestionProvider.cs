@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensions.GitLab.Clients;
+using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders

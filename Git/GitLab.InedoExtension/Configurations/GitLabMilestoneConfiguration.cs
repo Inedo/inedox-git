@@ -7,6 +7,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Editors;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -16,8 +17,8 @@ using Inedo.Web;
 namespace Inedo.Extensions.GitLab.Configurations
 {
     [Serializable]
-    [DisplayName("GitLab Release")]
-    public sealed class GitLabReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>
+    [DisplayName("GitLab Milestone")]
+    public sealed class GitLabMilestoneConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>
     {
         [Persistent]
         [ScriptAlias("Credentials")]
@@ -73,19 +74,37 @@ namespace Inedo.Extensions.GitLab.Configurations
         [IgnoreConfigurationDrift]
         public string ApiUrl { get; set; }
 
-        [Persistent]
         [Required]
-        [ScriptAlias("Tag")]
-        [DisplayName("Tag name")]
-        [Description("The tag must already exist.")]
-        [ConfigurationKey]
-        public string Tag { get; set; }
+        [Persistent]
+        [ScriptAlias("Title")]
+        public string Title { get; set; }
+
+        [Persistent]
+        [DisplayName("Start date")]
+        [ScriptAlias("StartDate")]
+        [CustomEditor(typeof(DateEditor))]
+        public string StartDate { get; set; }
+
+        [Persistent]
+        [DisplayName("Due date")]
+        [ScriptAlias("DueDate")]
+        [CustomEditor(typeof(DateEditor))]
+        public string DueDate { get; set; }
 
         [Persistent]
         [ScriptAlias("Description")]
-        [DisplayName("Description")]
-        [Description("Release notes, formatted using Markdown.")]
+        [FieldEditMode(FieldEditMode.Multiline)]
         public string Description { get; set; }
+
+        public enum OpenOrClosed
+        {
+            open,
+            closed
+        }
+
+        [Persistent]
+        [ScriptAlias("State")]
+        public OpenOrClosed? State { get; set; }
 
         [Persistent]
         public bool Exists { get; set; } = true;
@@ -96,15 +115,15 @@ namespace Inedo.Extensions.GitLab.Configurations
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            if (!(other is GitLabReleaseConfiguration))
+            if (!(other is GitLabMilestoneConfiguration))
             {
                 throw new InvalidOperationException("Cannot compare configurations of different types.");
             }
 
-            return Compare((GitLabReleaseConfiguration)other);
+            return Compare((GitLabMilestoneConfiguration)other);
         }
 
-        private ComparisonResult Compare(GitLabReleaseConfiguration other)
+        private ComparisonResult Compare(GitLabMilestoneConfiguration other)
         {
             if (!this.Exists && !other.Exists)
             {
@@ -117,14 +136,25 @@ namespace Inedo.Extensions.GitLab.Configurations
 
             var differences = new List<Difference>();
 
-            if (!string.Equals(this.Tag, other.Tag, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(this.Title, other.Title))
             {
-                differences.Add(new Difference(nameof(Tag), this.Tag, other.Tag));
+                differences.Add(new Difference(nameof(Title), this.Title, other.Title));
             }
-
+            if (this.StartDate != null && !string.Equals(this.StartDate, other.StartDate ?? string.Empty))
+            {
+                differences.Add(new Difference(nameof(StartDate), this.StartDate, other.StartDate));
+            }
+            if (this.DueDate != null && !string.Equals(this.DueDate, other.DueDate ?? string.Empty))
+            {
+                differences.Add(new Difference(nameof(DueDate), this.DueDate, other.DueDate));
+            }
             if (this.Description != null && !string.Equals(this.Description, other.Description))
             {
                 differences.Add(new Difference(nameof(Description), this.Description, other.Description));
+            }
+            if (this.State.HasValue && this.State != other.State)
+            {
+                differences.Add(new Difference(nameof(State), this.State, other.State));
             }
 
             return new ComparisonResult(differences);
