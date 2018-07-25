@@ -98,7 +98,7 @@ namespace Inedo.Extensions.RaftRepositories
                                         new CommitFilter {
                                             IncludeReachableFrom = repo.Branches[this.BranchName],
                                             FirstParentOnly = false,
-                                            SortBy = CommitSortStrategies.Time }
+                                            SortBy = CommitSortStrategies.None, }
                                         );
                                     var commit = commits.FirstOrDefault();
                                     if (commit != null)
@@ -106,6 +106,11 @@ namespace Inedo.Extensions.RaftRepositories
                                         var committer = commit.Commit.Committer;
                                         yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
                                     }
+                                    else
+                                    {
+                                        yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
+                                    }
+
                                 }
                             }
                         }
@@ -139,7 +144,7 @@ namespace Inedo.Extensions.RaftRepositories
                         {
                             IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                             FirstParentOnly = false,
-                            SortBy = CommitSortStrategies.Time
+                            SortBy = CommitSortStrategies.None
                         }).FirstOrDefault()?.Commit;
                         return new RaftItem(type, name, commit?.Committer?.When ?? DateTimeOffset.Now, commit?.Committer?.Name, size, commit?.Id?.ToString());
                     }
