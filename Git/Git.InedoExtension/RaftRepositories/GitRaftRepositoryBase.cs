@@ -98,7 +98,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                                         new CommitFilter {
                                             IncludeReachableFrom = repo.Branches[this.BranchName],
                                             FirstParentOnly = false,
-                                            SortBy = CommitSortStrategies.Time }
+                                            SortBy = CommitSortStrategies.None, }
                                         );
                                     var commit = commits.FirstOrDefault();
                                     if (commit != null)
@@ -106,6 +106,14 @@ namespace Inedo.Extensions.Git.RaftRepositories
                                         var committer = commit.Commit.Committer;
                                         yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
                                     }
+                                    else
+                                    {
+                                        // Handles situations where the commits are empty, even though the
+                                        // file has been committed and pushed.  There is likely a root cause, but
+                                        // it is not known as of yet.
+                                        yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
+                                    }
+
                                 }
                             }
                         }
@@ -132,21 +140,31 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         var blob = (Blob)entry.Target;
                         size = blob.Size;
                     }
-
+                    Commit commit = null;
                     if (string.IsNullOrEmpty(version))
                     {
-                        var commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
+                        commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
                         {
                             IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                             FirstParentOnly = false,
-                            SortBy = CommitSortStrategies.Time
+                            SortBy = CommitSortStrategies.None
                         }).FirstOrDefault()?.Commit;
-                        return new RaftItem(type, name, commit?.Committer?.When ?? DateTimeOffset.Now, commit?.Committer?.Name, size, commit?.Id?.ToString());
                     }
                     else
                     {
-                        var commit = this.lazyRepository.Value.Lookup<Commit>(version);
-                        return new RaftItem(type, name, commit.Committer.When, commit.Committer.Name, size, commit.Id.ToString());
+                        commit = this.lazyRepository.Value.Lookup<Commit>(version);
+                    }
+
+                    if(commit != null)
+                    {
+                        return new RaftItem(type, name, commit.Committer?.When ?? DateTimeOffset.Now, commit.Committer?.Name ?? "NA", size, commit.Id?.ToString() ?? "NA");
+                    }
+                    else
+                    {
+                        // Handles situations where the commits are empty, even though the
+                        // file has been committed and pushed.  There is likely a root cause, but
+                        // it is not known as of yet.
+                        return new RaftItem(type, name, DateTimeOffset.Now);
                     }
                 }
 
@@ -255,7 +273,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     {
                         IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                         FirstParentOnly = false,
-                        SortBy = CommitSortStrategies.Time
+                        SortBy = CommitSortStrategies.None
                     });
                     foreach (var c in commits)
                     {
