@@ -13,6 +13,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\CommandLine\GitCommandLineClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\CommandLine\ProcessResults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\GitPushOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitUpdateOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitCloneOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\GitRepositoryInfo.cs" />

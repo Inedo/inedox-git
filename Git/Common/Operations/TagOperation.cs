@@ -73,6 +73,13 @@ namespace Inedo.Extensions.Operations
             ).ConfigureAwait(false);
 
             await client.TagAsync(this.Tag, this.CommitHash, this.TagMessage, this.Force).ConfigureAwait(false);
+            await client.PushAsync(
+                new GitPushOptions
+                {
+                    Ref = this.Tag,
+                    Force = this.Force
+                }
+            ).ConfigureAwait(false);
 
             this.LogInformation("Tag complete.");
         }

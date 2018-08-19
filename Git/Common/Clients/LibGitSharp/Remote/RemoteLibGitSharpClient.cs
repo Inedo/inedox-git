@@ -75,6 +75,14 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             ).ConfigureAwait(false);
         }
 
+        public override Task PushAsync(GitPushOptions options)
+        {
+            return this.ExecuteRemoteAsync(
+                ClientCommand.Push,
+                new RemoteLibGitSharpContext { PushOptions = options }
+            );
+        }
+
         private async Task<object> ExecuteRemoteAsync(ClientCommand command, RemoteLibGitSharpContext context)
         {
             context.WorkingDirectory = this.workingDirectory;

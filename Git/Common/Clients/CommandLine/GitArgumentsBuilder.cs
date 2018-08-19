@@ -5,7 +5,7 @@ namespace Inedo.Extensions.Clients.CommandLine
 {
     internal sealed class GitArgumentsBuilder
     {
-        private List<GitArg> arguments = new List<GitArg>(16);
+        private readonly List<GitArg> arguments = new List<GitArg>(16);
 
         public GitArgumentsBuilder()
         {
@@ -25,9 +25,9 @@ namespace Inedo.Extensions.Clients.CommandLine
 
         private sealed class GitArg
         {
-            private bool quoted;
-            private bool sensitive;
-            private string arg;
+            private readonly bool quoted;
+            private readonly bool sensitive;
+            private readonly string arg;
 
             public GitArg(string arg, bool quoted, bool sensitive)
             {

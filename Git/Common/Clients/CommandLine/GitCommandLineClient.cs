@@ -14,24 +14,17 @@ namespace Inedo.Extensions.Clients.CommandLine
     {
         private static readonly LazyRegex BranchParsingRegex = new LazyRegex(@"refs/heads/(?<branch>.*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.Multiline);
 
-        private string gitExePath;
-        private IRemoteProcessExecuter processExecuter;
-        private IFileOperationsExecuter fileOps;
-        private CancellationToken cancellationToken;
+        private readonly string gitExePath;
+        private readonly IRemoteProcessExecuter processExecuter;
+        private readonly IFileOperationsExecuter fileOps;
+        private readonly CancellationToken cancellationToken;
 
         public GitCommandLineClient(string gitExePath, IRemoteProcessExecuter processExecuter, IFileOperationsExecuter fileOps, GitRepositoryInfo repository, ILogSink log, CancellationToken cancellationToken)
             : base(repository, log)
         {
-            if (gitExePath == null)
-                throw new ArgumentNullException(nameof(gitExePath));
-            if (processExecuter == null)
-                throw new ArgumentNullException(nameof(processExecuter));
-            if (fileOps == null)
-                throw new ArgumentNullException(nameof(fileOps));
-
-            this.gitExePath = gitExePath;
-            this.processExecuter = processExecuter;
-            this.fileOps = fileOps;
+            this.gitExePath = gitExePath ?? throw new ArgumentNullException(nameof(gitExePath));
+            this.processExecuter = processExecuter ?? throw new ArgumentNullException(nameof(processExecuter));
+            this.fileOps = fileOps ?? throw new ArgumentNullException(nameof(fileOps));
             this.cancellationToken = cancellationToken;
         }
 
@@ -154,11 +147,14 @@ namespace Inedo.Extensions.Clients.CommandLine
                 args.AppendQuoted(commit);
 
             await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
+        }
 
+        public override async Task PushAsync(GitPushOptions options)
+        {
             var pushArgs = new GitArgumentsBuilder("push origin");
-            pushArgs.AppendQuoted(tag);
+            pushArgs.AppendQuoted(options.Ref);
             pushArgs.Append("--quiet");
-            if (force)
+            if (options.Force)
             {
                 pushArgs.Append("--force");
             }

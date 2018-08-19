@@ -8,6 +8,7 @@
         EnumerateRemoteBranches,
         IsRepositoryValid,
         Tag,
-        Update
+        Update,
+        Push
     }
 }

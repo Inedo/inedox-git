@@ -183,16 +183,6 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                             
                         }
                     }
-
-                    this.log.LogDebug($"Pushing '{createdTag.CanonicalName}' to remote 'origin'...");
-
-                    var pushRef = $"{createdTag.CanonicalName}:{createdTag.CanonicalName}";
-
-                    repository.Network.Push(
-                        repository.Network.Remotes["origin"],
-                        force ? '+' + pushRef : pushRef,
-                        new PushOptions { CredentialsProvider = this.CredentialsHandler }
-                    );
                 }
 
                 return Complete;
@@ -251,6 +241,40 @@ namespace Inedo.Extensions.Clients.LibGitSharp
         public override Task ArchiveAsync(string targetDirectory, bool keepInternals = false)
         {
             return CopyFilesAsync(new FileArchiver(targetDirectory), this.repository.LocalRepositoryPath, targetDirectory, keepInternals);
+        }
+
+        public override Task PushAsync(GitPushOptions options)
+        {
+            try
+            {
+                this.BeginOperation();
+
+
+                this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
+                using (var repository = new Repository(this.repository.LocalRepositoryPath))
+                {
+                    this.log.LogDebug($"Pushing '{options.Ref}' to remote 'origin'...");
+
+                    var pushRef = $"{options.Ref}:{options.Ref}";
+
+                    repository.Network.Push(
+                        repository.Network.Remotes["origin"],
+                        options.Force ? '+' + pushRef : pushRef,
+                        new PushOptions { CredentialsProvider = this.CredentialsHandler }
+                    );
+                }
+
+                return Complete;
+            }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException("Push failed: " + ex.Message);
+            }
+            finally
+            {
+                this.EndOperation();
+            }
         }
 
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
