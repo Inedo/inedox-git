@@ -1,37 +1,48 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Agents;
+using Inedo.Data;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
+using Inedo.Extensibility;
 using Inedo.Extensibility.RaftRepositories;
 using Inedo.Extensibility.UserDirectories;
+using Inedo.Extensions.Clients;
+using Inedo.Extensions.Clients.CommandLine;
+using Inedo.Extensions.Clients.LibGitSharp;
 using Inedo.IO;
 using Inedo.Serialization;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
 {
-    public abstract class GitRaftRepositoryBase : RaftRepository
+    public abstract class GitRaftRepositoryBase : RaftRepository, ILogSink
     {
-        private Lazy<Repository> lazyRepository;
-        private Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
-        private Lazy<TreeDefinition> lazyCurrentTree;
-        private bool dirty;
+        private readonly Lazy<Repository> lazyRepository;
+        private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
+        private readonly Lazy<TreeDefinition> lazyCurrentTree;
+        private readonly Lazy<GitClient> lazyClient;
         private bool variablesDirty;
         private bool disposed;
 
         protected GitRaftRepositoryBase()
         {
             this.lazyRepository = new Lazy<Repository>(this.OpenRepository);
+            this.lazyClient = new Lazy<GitClient>(this.GetLocalGitClient);
             this.lazyVariables = new Lazy<Dictionary<RuntimeVariableName, string>>(this.ReadVariables);
             this.lazyCurrentTree = new Lazy<TreeDefinition>(this.GetCurrentTree);
         }
 
         public abstract string LocalRepositoryPath { get; }
+        public abstract GitRepositoryInfo RepositoryInfo { get; }
 
         [Required]
         [Persistent]
@@ -42,214 +53,255 @@ namespace Inedo.Extensions.Git.RaftRepositories
         [DisplayName("Read only")]
         public bool ReadOnly { get; set; }
 
-        public sealed override bool IsReadOnly => this.ReadOnly;
+        public sealed override bool IsReadOnly => this.ReadOnly || this.OpenOptions.HasFlag(OpenRaftOptions.ReadOnly);
         public sealed override bool SupportsVersioning => true;
 
-        private protected bool Dirty => this.dirty;
+        private protected bool Dirty { get; private set; }
         private protected Repository Repo => this.lazyRepository.Value;
+        private protected GitClient Client => this.lazyClient.Value;
+        private Dictionary<RuntimeVariableName, string> Variables => this.lazyVariables.Value;
+        private TreeDefinition CurrentTree  => this.lazyCurrentTree.Value;
 
-        private bool OptimizeLoadTime => (this.OpenOptions & OpenRaftOptions.OptimizeLoadTime) != 0;
+        private bool OptimizeLoadTime => this.OpenOptions.HasFlag(OpenRaftOptions.OptimizeLoadTime);
         private string RepositoryRoot { get; set; }
+
+        public void Log(IMessage message)
+        {
+#if !DEBUG
+            if (message.Level > MessageLevel.Debug)
+#endif
+            {
+                Logger.Log(message.Level, message.Message, $"'{this.RaftName}' Raft", message.Details);
+            }
+        }
 
         public sealed override Task<IEnumerable<RaftItem>> GetRaftItemsAsync()
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
 
-            return Task.FromResult(inner());
-
-            IEnumerable<RaftItem> inner()
-            {
-                var repo = this.lazyRepository.Value;
-                var tip = repo.Branches[this.BranchName]?.Tip;
-                if (tip == null)
-                    yield break;
-
-                Tree tipTree;
-                if (string.IsNullOrEmpty(this.RepositoryRoot))
-                {
-                    tipTree = tip.Tree;
-                }
-                else
-                {
-                    var rootItem = tip[this.RepositoryRoot];
-                    if (rootItem?.TargetType != TreeEntryTargetType.Tree)
-                        yield break;
-
-                    tipTree = (Tree)rootItem.Target;
-                }
-
-                foreach (var rootItem in tipTree)
-                {
-                    var itemType = TryParseStandardTypeName(rootItem.Name);
-                    if (itemType != null)
-                    {
-                        foreach (var item in (Tree)rootItem.Target)
-                        {
-                            if (item.TargetType != TreeEntryTargetType.Tree)
-                            {
-                                if (this.OptimizeLoadTime)
-                                {
-                                    yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
-                                }
-                                else
-                                {
-                                    var commits = repo.Commits.QueryBy(item.Path,
-                                        new CommitFilter {
-                                            IncludeReachableFrom = repo.Branches[this.BranchName],
-                                            FirstParentOnly = false,
-                                            SortBy = CommitSortStrategies.None, }
-                                        );
-                                    var commit = commits.FirstOrDefault();
-                                    if (commit != null)
-                                    {
-                                        var committer = commit.Commit.Committer;
-                                        yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
-                                    }
-                                    else
-                                    {
-                                        // Handles situations where the commits are empty, even though the
-                                        // file has been committed and pushed.  There is likely a root cause, but
-                                        // it is not known as of yet.
-                                        yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            return Task.FromResult(Enum.GetValues(typeof(RaftItemType)).Cast<RaftItemType>().SelectMany(this.GetRaftItems));
         }
 
-        public override Task<RaftItem> GetRaftItemAsync(RaftItemType type, string name, string version)
+        public override Task<IEnumerable<RaftItem>> GetRaftItemsAsync(RaftItemType type)
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
 
-            return Task.FromResult(inner());
+            return Task.FromResult(this.GetRaftItems(type));
+        }
+        private IEnumerable<RaftItem> GetRaftItems(RaftItemType type)
+        {
+            var branch = this.Repo.Branches[this.BranchName];
+            // If we don't have a branch, there are no items in it.
+            if (branch?.Tip?.Tree == null)
+                yield break;
 
-            RaftItem inner()
+            string typeName;
+            try
             {
-                var entry = this.FindEntry(type, name, version);
-                if (entry != null)
-                {
-                    long? size = null;
-                    if (entry.TargetType == TreeEntryTargetType.Blob)
-                    {
-                        var blob = (Blob)entry.Target;
-                        size = blob.Size;
-                    }
-                    Commit commit = null;
-                    if (string.IsNullOrEmpty(version))
-                    {
-                        commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
-                        {
-                            IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
-                            FirstParentOnly = false,
-                            SortBy = CommitSortStrategies.None
-                        }).FirstOrDefault()?.Commit;
-                    }
-                    else
-                    {
-                        commit = this.lazyRepository.Value.Lookup<Commit>(version);
-                    }
+                typeName = GetStandardTypeName(type);
+            }
+            catch
+            {
+                // Not supported by this product (for example, when called from GetRaftItemsAsync()).
+                yield break;
+            }
 
-                    if(commit != null)
-                    {
-                        return new RaftItem(type, name, commit.Committer?.When ?? DateTimeOffset.Now, commit.Committer?.Name ?? "NA", size, commit.Id?.ToString() ?? "NA");
-                    }
-                    else
-                    {
-                        // Handles situations where the commits are empty, even though the
-                        // file has been committed and pushed.  There is likely a root cause, but
-                        // it is not known as of yet.
-                        return new RaftItem(type, name, DateTimeOffset.Now);
-                    }
+            var itemType = branch.Tip.Tree[AH.ConcatNE(this.RepositoryRoot, "/") + typeName];
+            // If we don't have a directory, there are no items in it.
+            if (itemType?.TargetType != TreeEntryTargetType.Tree)
+                yield break;
+
+            foreach (var entry in (Tree)itemType.Target)
+            {
+                // If it's not a file, it's not an item.
+                if (entry.TargetType != TreeEntryTargetType.Blob)
+                    continue;
+
+                Commit commit = null;
+                if (!this.OptimizeLoadTime)
+                {
+                    // Commit may still be null if the repository is a shallow clone.
+                    commit = this.Repo.Commits.QueryBy(
+                        entry.Path,
+                        new CommitFilter { IncludeReachableFrom = branch }
+                    ).FirstOrDefault()?.Commit;
                 }
 
-                return null;
+                yield return MakeRaftItem(type, entry.Name, (Blob)entry.Target, commit);
             }
+        }
+
+        private RaftItem MakeRaftItem(RaftItemType type, string name, Blob blob, Commit commit = null)
+        {
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(nameof(name), "missing name for Git raft item");
+            if (blob == null)
+                throw new ArgumentNullException(nameof(blob), "cannot make Git raft item from nonexistent file");
+
+            return new RaftItem(type, name, commit?.Committer?.When ?? DateTimeOffset.MinValue, AH.CoalesceString(commit?.Committer?.Name, "(unknown)"), blob.Size, commit?.Sha);
+        }
+
+        private bool FindEntry(RaftItemType? type, string name, string version, out string path, out Blob blob, out Commit commit)
+        {
+            if (this.disposed)
+                throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(nameof(name), "raft item name is empty");
+
+            EnsureRelativePath(name);
+            if (PathEx.GetFileName(name) != name)
+                throw new NotSupportedException($"Git raft item names cannot contain directory separators: {name}");
+
+            var itemPath = name;
+            if (type.HasValue)
+                itemPath = PathEx.Combine('/', GetStandardTypeName(type.Value), itemPath);
+            if (!string.IsNullOrEmpty(this.RepositoryRoot))
+                itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
+
+            path = itemPath;
+            commit = null;
+            blob = null;
+
+            var branch = this.Repo.Branches[this.BranchName];
+            // If the branch doesn't exist, there are no items.
+            if (branch?.Tip?.Tree == null)
+                return false;
+
+            if (string.IsNullOrEmpty(version))
+            {
+                var currentEntry = branch.Tip.Tree[itemPath];
+                // Make sure the item exists in the latest version of the raft.
+                if (currentEntry?.TargetType != TreeEntryTargetType.Blob)
+                    return false;
+
+                if (!this.OptimizeLoadTime)
+                {
+                    // Commit can still be null if this is a shallow clone.
+                    commit = this.Repo.Commits.QueryBy(
+                        itemPath,
+                        new CommitFilter
+                        {
+                            IncludeReachableFrom = branch
+                        }
+                    ).FirstOrDefault()?.Commit;
+                }
+            }
+            else
+            {
+                commit = this.Repo.Lookup<Commit>(new ObjectId(version));
+                if (commit == null || !branch.Commits.Contains(commit))
+                    return false;
+            }
+
+            var entry = (commit ?? branch.Tip).Tree[itemPath];
+            // If the entry doesn't exist or is not a file, there is no raft item.
+            if (entry?.TargetType != TreeEntryTargetType.Blob)
+                return false;
+            blob = (Blob)entry.Target;
+
+            // Sanity check: make sure the commit actually changed the file.
+            if (commit != null && (commit.Parents.Any() && commit.Parents.All(p => p.Tree[itemPath]?.Equals(entry) ?? false)))
+                return false;
+
+            return true;
+        }
+
+        public override Task<RaftItem> GetRaftItemAsync(RaftItemType type, string name, string version)
+        {
+            if (this.FindEntry(type, name, version, out var _, out var blob, out var commit))
+            {
+                return Task.FromResult(MakeRaftItem(type, name, blob, commit));
+            }
+            return Task.FromResult<RaftItem>(null);
         }
 
         public sealed override Task<Stream> OpenRaftItemAsync(RaftItemType type, string name, FileMode fileMode, FileAccess fileAccess, string version)
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
-            if (this.ReadOnly && (fileAccess & FileAccess.Write) != 0)
-                throw new NotSupportedException();
+            if (this.ReadOnly && fileAccess.HasFlag(FileAccess.Write))
+                throw new NotSupportedException("Cannot open raft item for writing: Raft is read-only.");
+            if (!string.IsNullOrEmpty(version) && fileAccess.HasFlag(FileAccess.Write))
+                throw new NotSupportedException("Cannot write to specific version of Git raft item.");
 
-            EnsureRelativePath(name);
+            var exists = this.FindEntry(type, name, version, out var itemPath, out var blob, out var commit);
 
-            var itemPath = PathEx.Combine('/', GetStandardTypeName(type), name);
-            if (!string.IsNullOrEmpty(this.RepositoryRoot))
-                itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
-
-            var entry = this.FindEntry(type, name, version);
-
-            return Task.FromResult(inner());
-
-            Stream inner()
+            bool dirty = false;
+            Stream stream;
+            switch (fileMode)
             {
-                switch (fileMode)
-                {
-                    case FileMode.CreateNew:
-                        if (entry != null)
-                            throw new InvalidOperationException($"A {type} named \"{name}\" already exists in this raft.");
+                case FileMode.CreateNew:
+                    if (exists)
+                        throw new InvalidOperationException($"A {type} named \"{name}\" already exists in this raft.");
+                    goto case FileMode.Create;
+
+                case FileMode.Create:
+                    if (!fileAccess.HasFlag(FileAccess.Write))
+                        throw new ArgumentOutOfRangeException(nameof(fileAccess), fileAccess, "Cannot create a file without write access.");
+
+                    dirty = true;
+                    stream = new SlimMemoryStream();
+                    break;
+
+                case FileMode.Open:
+                    if (!exists)
+                        return Task.FromResult<Stream>(null);
+
+                    stream = this.OpenBlob(blob, itemPath);
+                    break;
+
+                case FileMode.OpenOrCreate:
+                    if (!exists)
                         goto case FileMode.Create;
 
-                    case FileMode.Create:
-                        if ((fileAccess & FileAccess.Write) == 0)
-                            throw new ArgumentOutOfRangeException(nameof(fileAccess));
-                        return new RaftItemStream(new SlimMemoryStream(), this, itemPath, fileAccess, dirty: entry == null);
+                    goto case FileMode.Open;
 
-                    case FileMode.Open:
-                        if (entry == null)
-                            return null;
-                        return new RaftItemStream(this.OpenEntry(entry), this, itemPath, fileAccess);
+                case FileMode.Truncate:
+                    if (!exists)
+                        return Task.FromResult<Stream>(null);
 
-                    case FileMode.OpenOrCreate:
-                        if (entry == null)
-                            return new RaftItemStream(new SlimMemoryStream(), this, itemPath, fileAccess);
-                        return new RaftItemStream(this.OpenEntry(entry), this, itemPath, fileAccess, dirty: entry == null);
+                    if (!fileAccess.HasFlag(FileAccess.Write))
+                        throw new ArgumentOutOfRangeException(nameof(fileAccess), fileAccess, "Cannot truncate a file without write access.");
 
-                    case FileMode.Truncate:
-                        if (entry == null)
-                            return null;
-                        if ((fileAccess & FileAccess.Write) == 0)
-                            throw new ArgumentOutOfRangeException(nameof(fileAccess));
-                        return new RaftItemStream(new SlimMemoryStream(), this, itemPath, fileAccess, dirty: true);
+                    dirty = true;
+                    stream = new SlimMemoryStream();
+                    break;
 
-                    case FileMode.Append:
-                        if ((fileAccess & FileAccess.Write) == 0)
-                            throw new ArgumentOutOfRangeException(nameof(fileAccess));
-                        var s = new RaftItemStream(this.OpenEntry(entry), this, itemPath, fileAccess);
-                        s.Seek(0, SeekOrigin.End);
-                        return s;
+                case FileMode.Append:
+                    if (!fileAccess.HasFlag(FileAccess.Write))
+                        throw new ArgumentOutOfRangeException(nameof(fileAccess), fileAccess, "Cannot append to a file without write access.");
 
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(fileMode));
-                }
+                    if (exists)
+                    {
+                        stream = this.OpenBlob(blob, itemPath);
+                        stream.Seek(0, SeekOrigin.End);
+                    }
+                    else
+                    {
+                        dirty = true;
+                        stream = new SlimMemoryStream();
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(fileMode), fileMode, "Unsupported FileMode: " + fileMode);
             }
+
+            return Task.FromResult<Stream>(new RaftItemStream(stream, this, itemPath, fileAccess, dirty));
         }
         public sealed override Task DeleteRaftItemAsync(RaftItemType type, string name)
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(name);
             if (this.ReadOnly)
-                throw new NotSupportedException();
+                throw new NotSupportedException("Cannot delete items from a read-only Git raft.");
 
-            EnsureRelativePath(name);
-
-            var entry = this.FindEntry(type, name);
-            if (entry != null)
+            if (this.FindEntry(type, name, null, out var itemPath, out var _, out var _))
             {
-                this.lazyCurrentTree.Value.Remove(entry.Path);
-                this.dirty = true;
+                this.CurrentTree.Remove(itemPath);
+                this.Dirty = true;
             }
 
             return InedoLib.NullTask;
@@ -259,30 +311,17 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(name);
 
-            return Task.FromResult(inner());
-
-            IEnumerable<RaftItemVersion> inner()
+            if (this.FindEntry(type, name, null, out var itemPath, out var _, out var _))
             {
-                var entry = this.FindEntry(type, name);
-                if (entry != null)
-                {
-                    var commits = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
-                    {
-                        IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
-                        FirstParentOnly = false,
-                        SortBy = CommitSortStrategies.None
-                    });
-                    foreach (var c in commits)
-                    {
-                        var commit = c.Commit;
-                        var committer = commit.Committer;
-                        yield return new RaftItemVersion(commit.Id.ToString(), committer.When, committer.Name);
-                    }
-                }
+                var branch = this.Repo.Branches[this.BranchName];
+                return Task.FromResult(from log in this.Repo.Commits.QueryBy(itemPath, new CommitFilter { IncludeReachableFrom = branch })
+                                       let commit = log.Commit
+                                       where commit != null
+                                       select new RaftItemVersion(commit.Sha, commit.Committer?.When, AH.CoalesceString(commit.Committer?.Name, "(unknown)")));
             }
+
+            return Task.FromResult(Enumerable.Empty<RaftItemVersion>());
         }
 
         public sealed override Task<IReadOnlyDictionary<RuntimeVariableName, string>> GetVariablesAsync()
@@ -290,7 +329,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
 
-            return Task.FromResult<IReadOnlyDictionary<RuntimeVariableName, string>>(new ReadOnlyDictionary<RuntimeVariableName, string>(this.lazyVariables.Value.ToDictionary(p => p.Key, p => p.Value)));
+            return Task.FromResult<IReadOnlyDictionary<RuntimeVariableName, string>>(new Dictionary<RuntimeVariableName, string>(this.Variables));
         }
         public sealed override Task SetVariableAsync(RuntimeVariableName name, string value)
         {
@@ -301,7 +340,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.ReadOnly)
                 throw new NotSupportedException();
 
-            var vars = this.lazyVariables.Value;
+            var vars = this.Variables;
             if (vars.TryGetValue(name, out var currentValue) && currentValue == value)
                 return InedoLib.NullTask;
 
@@ -318,7 +357,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.ReadOnly)
                 throw new NotSupportedException();
 
-            bool deleted = this.lazyVariables.Value.Remove(name);
+            bool deleted = this.Variables.Remove(name);
             this.variablesDirty = deleted;
             return Task.FromResult(deleted);
         }
@@ -335,26 +374,26 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.variablesDirty)
                 this.SaveVariables();
 
-            if (this.dirty)
+            if (this.Dirty)
             {
                 var signature = new Signature(AH.CoalesceString(user.DisplayName, user.Name), AH.CoalesceString(user.EmailAddress ?? "none@example.com"), DateTime.Now);
 
-                var repo = this.lazyRepository.Value;
-                var tree = repo.ObjectDatabase.CreateTree(this.lazyCurrentTree.Value);
+                var tree = this.Repo.ObjectDatabase.CreateTree(this.CurrentTree);
 
-                var branch = repo.Branches[this.BranchName];
+                var branch = this.Repo.Branches[this.BranchName];
+                var parentCommit = branch?.Tip ?? this.Repo.Head.Tip;
+                var parentTree = parentCommit?.Tree;
+
+                var message = GetCommitMessage(this.Repo.Diff.Compare<TreeChanges>(parentTree, tree));
+
+                var commit = this.Repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, new[] { parentCommit }.Where(c => c != null), false);
+
                 if (branch == null)
-                {
-                    var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, repo.Head.Tip == null ? Enumerable.Empty<Commit>() : new[] { repo.Head.Tip }, false);
-                    branch = repo.Branches.Add(this.BranchName, commit);
-
-                    repo.Refs.Add("refs/head", repo.Refs.Head);
-                }
+                    branch = this.Repo.Branches.Add(this.BranchName, commit);
                 else
-                {
-                    var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, new[] { branch.Tip }, false);
-                    repo.Refs.UpdateTarget(repo.Refs[branch.CanonicalName], commit.Id);
-                }
+                    this.Repo.Refs.UpdateTarget(branch.Reference, commit.Id);
+
+                this.Repo.Refs.UpdateTarget(this.Repo.Refs.Head, this.Repo.Refs["refs/heads/" + this.BranchName]);
             }
 
             return InedoLib.NullTask;
@@ -366,7 +405,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             IEnumerable<string> inner()
             {
-                var repo = this.lazyRepository.Value;
+                var repo = this.Repo;
 
                 var tip = repo.Branches[this.BranchName]?.Tip;
                 if (tip == null)
@@ -382,10 +421,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                     foreach (var subtree in (Tree)projectsEntry.Target)
                     {
+                        if (subtree.TargetType != TreeEntryTargetType.Tree)
+                            continue;
+
                         var current = string.IsNullOrEmpty(currentProject) ? subtree.Name : (currentProject + "/" + subtree.Name);
                         yield return current;
 
-                        if (recursive && subtree.TargetType == TreeEntryTargetType.Tree)
+                        if (recursive)
                         {
                             foreach (var subproject in getProjects((Tree)subtree.Target, current))
                                 yield return subproject;
@@ -417,7 +459,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 if (disposing)
                 {
                     if (this.lazyRepository.IsValueCreated)
-                        this.lazyRepository.Value.Dispose();
+                        this.Repo.Dispose();
                 }
 
                 this.disposed = true;
@@ -441,54 +483,53 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private Dictionary<RuntimeVariableName, string> ReadVariables()
         {
-            var repo = this.lazyRepository.Value;
-
-            var entry = this.FindEntry("variables");
-            if (entry == null)
-                return new Dictionary<RuntimeVariableName, string>();
-
-            var blob = entry.Target as Blob;
-            using (var stream = blob.GetContentStream())
-            using (var reader = new StreamReader(stream, InedoLib.UTF8Encoding))
+            if (this.FindEntry(null, "variables", null, out var itemPath, out var blob, out var _))
             {
-                return ReadStandardVariableData(reader).ToDictionary(p => p.Key, p => p.Value);
+                var variables = ReadStandardVariableData(new StringReader(blob.GetContentText(new FilteringOptions(itemPath), InedoLib.UTF8Encoding)));
+                return variables.ToDictionary(kv => kv.Key, kv => kv.Value);
             }
+            return new Dictionary<RuntimeVariableName, string>();
         }
         private void SaveVariables()
         {
-            var repo = this.lazyRepository.Value;
+            var repo = this.Repo;
 
             using (var buffer = new SlimMemoryStream())
             {
                 var writer = new StreamWriter(buffer, InedoLib.UTF8Encoding);
-                WriteStandardVariableData(this.lazyVariables.Value, writer);
+                WriteStandardVariableData(this.Variables, writer);
                 writer.Flush();
 
                 buffer.Position = 0;
 
                 var blob = repo.ObjectDatabase.CreateBlob(buffer, "variables");
 
-                this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
+                this.CurrentTree.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
 
-                this.dirty = true;
+                this.Dirty = true;
             }
         }
-        private Stream OpenEntry(TreeEntry entry)
+        private Stream OpenBlob(Blob blob, string itemPath)
         {
-            if (!(entry.Target is Blob blob))
-                return null;
-
-            using (var s = blob.GetContentStream())
+            using (var stream = blob.GetContentStream(new FilteringOptions(itemPath)))
             {
-                var buffer = new SlimMemoryStream();
-                s.CopyTo(buffer);
-                buffer.Position = 0;
-                return buffer;
+                var temp = TemporaryStream.Create(blob.Size);
+                try
+                {
+                    stream.CopyToAsync(temp);
+                    temp.Position = 0;
+                    return temp;
+                }
+                catch
+                {
+                    try { temp.Dispose(); } catch { }
+                    throw;
+                }
             }
         }
         private TreeDefinition GetCurrentTree()
         {
-            var repo = this.lazyRepository.Value;
+            var repo = this.Repo;
 
             var branch = repo.Branches[this.BranchName];
             if (branch?.Tip == null)
@@ -496,28 +537,88 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             return TreeDefinition.From(branch.Tip);
         }
-        private TreeEntry FindEntry(string name, string hash = null)
+
+        private GitClient GetLocalGitClient()
         {
-            var repo = this.lazyRepository.Value;
-            var path = string.IsNullOrEmpty(this.RepositoryRoot) ? name : PathEx.Combine('/', this.RepositoryRoot, name);
+            try
+            {
+                // Hopefully this will be added to the SDK so it's less hacky, but this works on BuildMaster, Otter, and Hedgehog currently.
+                var db = Type.GetType($"Inedo.{SDK.ProductName}.Data.DB,{SDK.ProductName}CoreEx") ?? Type.GetType($"Inedo.{SDK.ProductName}.Data.DB,{SDK.ProductName}");
+                var serversGetServers = db.GetMethod("Servers_GetServers", BindingFlags.Static | BindingFlags.Public, Type.DefaultBinder, new[] { typeof(YNIndicator) }, new ParameterModifier[0]);
 
-            Tree root;
+                var variablesGetVariablesAccessibleFromScope = db.GetMethod("Variables_GetVariablesAccessibleFromScope", BindingFlags.Static|BindingFlags.Public);
+                var serverIdParamIndex = variablesGetVariablesAccessibleFromScope.GetParameters().TakeWhile(p => p.Name != "Server_Id").Count();
+                var expandRolesAndEnvironmentsIndex = variablesGetVariablesAccessibleFromScope.GetParameters().TakeWhile(p => p.Name != "ExpandRolesAndEnvironments_Indicator").Count();
+                var includeSystemVariablesIndex = variablesGetVariablesAccessibleFromScope.GetParameters().TakeWhile(p => p.Name != "IncludeSystemVariables_Indicator").Count();
 
-            if (!string.IsNullOrEmpty(hash))
-                root = repo.Lookup<Commit>(hash)?.Tree;
-            else
-                root = repo.Branches[this.BranchName]?.Tip.Tree;
+                var servers = (IList)serversGetServers.Invoke(null, new object[] { (YNIndicator)false }); // IncludeInactive_Indicator
+                if (servers.Count != 0)
+                {
+                    var serverType = servers[0].GetType();
+                    var agentConfiguration = serverType.GetProperty("Agent_Configuration");
+                    var serverId = serverType.GetProperty("Server_Id");
+                    var localServer = servers.Cast<object>().Where(server =>
+                    {
+                        var configXml = (string)agentConfiguration.GetValue(server);
+                        return configXml.StartsWith($@"<Inedo.{SDK.ProductName}.Extensibility.Agents.Local.LocalAgent Assembly=""{SDK.ProductName}Extensions"">") ||
+                            configXml.StartsWith($@"<Inedo.{SDK.ProductName}.Extensions.Agents.Local.LocalAgent Assembly=""{SDK.ProductName}CoreEx"">");
+                    }).SingleOrDefault();
 
-            return root?[path];
+                    if (localServer != null)
+                    {
+                        var args = new object[variablesGetVariablesAccessibleFromScope.GetParameters().Length];
+                        args[serverIdParamIndex] = (int?)serverId.GetValue(localServer);
+                        args[expandRolesAndEnvironmentsIndex] = (YNIndicator)true;
+                        args[includeSystemVariablesIndex] = (YNIndicator)true;
+                        var variables = (IList)variablesGetVariablesAccessibleFromScope.Invoke(null, args);
+                        if (variables.Count != 0)
+                        {
+                            var variableType = variables[0].GetType();
+                            var variableName = variableType.GetProperty("Variable_Name");
+                            var variableValue = variableType.GetProperty("Variable_Value");
+                            var defaultGitExePath = variables.Cast<object>().FirstOrDefault(v => string.Equals((string)variableName.GetValue(v), "DefaultGitExePath", StringComparison.OrdinalIgnoreCase));
+                            if (defaultGitExePath != null)
+                            {
+                                var gitExePath = InedoLib.UTF8Encoding.GetString((byte[])variableValue.GetValue(defaultGitExePath));
+                                var localExecuter = new LocalExecuter();
+                                return new GitCommandLineClient(gitExePath, localExecuter, localExecuter, this.RepositoryInfo, this, CancellationToken.None);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogInformation("Exception thrown when attempting to find local server for Git raft", ex.ToString());
+
+                // use LibGit2Sharp as a safe fallback.
+            }
+
+            return new LibGitSharpClient(this.RepositoryInfo, this);
         }
-        private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
+        private sealed class LocalExecuter : LocalFileOperationsExecuter, IRemoteProcessExecuter
+        {
+            public override string GetBaseWorkingDirectory() => SDK.GetCommonTempPath();
+
+            IRemoteProcess IRemoteProcessExecuter.CreateProcess(RemoteProcessStartInfo startInfo) => new LocalProcess(startInfo);
+
+            Task<string> IRemoteProcessExecuter.GetEnvironmentVariableValueAsync(string name)
+            {
+                if (string.IsNullOrEmpty(name))
+                    throw new ArgumentNullException(nameof(name));
+
+                return Task.FromResult(Environment.GetEnvironmentVariable(name));
+            }
+        }
+        public abstract override RichDescription GetDescription();
+        public abstract override Task<ConfigurationTestResult> TestConfigurationAsync();
 
         private sealed class RaftItemStream : Stream
         {
-            private Stream wrapped;
-            private GitRaftRepositoryBase raft;
-            private string path;
-            private FileAccess access;
+            private readonly Stream wrapped;
+            private readonly GitRaftRepositoryBase raft;
+            private readonly string path;
+            private readonly FileAccess access;
             private bool disposed;
             private bool dirty;
 
@@ -530,9 +631,9 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 this.dirty = dirty;
             }
 
-            public override bool CanRead => (this.access & FileAccess.Read) != 0;
+            public override bool CanRead => this.access.HasFlag(FileAccess.Read);
             public override bool CanSeek => this.wrapped.CanSeek;
-            public override bool CanWrite => (this.access & FileAccess.Write) != 0;
+            public override bool CanWrite => this.access.HasFlag(FileAccess.Write);
             public override long Length => this.wrapped.Length;
             public override long Position
             {
@@ -614,8 +715,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         this.wrapped.Position = 0;
                         var repo = this.raft.lazyRepository.Value;
                         var blob = repo.ObjectDatabase.CreateBlob(this.wrapped);
-                        this.raft.lazyCurrentTree.Value.Add(this.path, blob, Mode.NonExecutableFile);
-                        this.raft.dirty = true;
+                        this.raft.CurrentTree.Add(this.path, blob, Mode.NonExecutableFile);
+                        this.raft.Dirty = true;
                     }
 
                     this.wrapped.Dispose();

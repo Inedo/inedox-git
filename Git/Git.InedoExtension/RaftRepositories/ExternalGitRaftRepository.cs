@@ -3,9 +3,11 @@ using System.ComponentModel;
 using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.UserDirectories;
+using Inedo.Extensions.Clients;
 using Inedo.IO;
 using Inedo.Serialization;
 using LibGit2Sharp;
@@ -18,7 +20,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [PersistFrom("Inedo.Otter.Extensions.RaftRepositories.ExternalGitRaftRepository,OtterCoreEx")]
     public sealed class ExternalGitRaftRepository : GitRaftRepositoryBase
     {
-        private Lazy<string> localRepoPath;
+        private readonly Lazy<string> localRepoPath;
 
         public ExternalGitRaftRepository()
         {
@@ -40,6 +42,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         public SecureString Password { get; set; }
 
         public override string LocalRepositoryPath => this.localRepoPath.Value;
+        public override GitRepositoryInfo RepositoryInfo => new GitRepositoryInfo(new WorkspacePath(this.LocalRepositoryPath), this.RemoteRepositoryUrl, this.UserName, this.Password);
 
         public override Task<ConfigurationTestResult> TestConfigurationAsync()
         {
@@ -48,6 +51,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             return Task.FromResult(ConfigurationTestResult.Success);
         }
+        public override RichDescription GetDescription()
+        {
+            return new RichDescription("External Git raft: ", new Hilite(this.RemoteRepositoryUrl));
+        }
 
         public override async Task CommitAsync(IUserDirectoryUser user)
         {
@@ -55,13 +62,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             this.Repo.Branches.Update(this.Repo.Branches[this.BranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.BranchName);
 
-            this.Repo.Network.Push(
-                this.Repo.Branches[this.BranchName],
-                new PushOptions
-                {
-                    CredentialsProvider = this.CredentialsHandler
-                }
-            );
+            await this.Client.PushAsync(new GitPushOptions { Ref = "refs/heads/" + this.BranchName }).ConfigureAwait(false);
         }
 
         protected override Repository OpenRepository()
@@ -74,15 +75,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                     if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                     {
-                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), 
-                            new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                        if (repository.Refs["refs/heads/" + this.BranchName] == null)
-                        {
-                            //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
-                            var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.BranchName].TargetIdentifier);
-                            repository.Refs.Add("refs/heads/" + this.BranchName, objId);
-                        }
-                        repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                        this.Client.UpdateAsync(new GitUpdateOptions { Branch = this.BranchName, IsBare = true }).WaitAndUnwrapExceptions();
                     }
 
                     return repository;
@@ -98,15 +91,11 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
             {
-                Repository.Clone(
-                    this.RemoteRepositoryUrl,
-                    this.LocalRepositoryPath,
-                    new CloneOptions
-                    {
-                        CredentialsProvider = this.CredentialsHandler,
-                        IsBare = true
-                    }
-                );
+                this.Client.CloneAsync(new GitCloneOptions
+                {
+                    Branch = this.BranchName,
+                    IsBare = true
+                }).WaitAndUnwrapExceptions();
             }
             else
             {
@@ -122,21 +111,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 throw new InvalidOperationException("The raft does not have a name.");
 
             return PathEx.Combine(SDK.GetCommonTempPath(), "GitRafts", this.RaftName);
-        }
-        private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
-        {
-            if (string.IsNullOrEmpty(this.UserName))
-            {
-                return new DefaultCredentials();
-            }
-            else
-            {
-                return new SecureUsernamePasswordCredentials
-                {
-                    Username = this.UserName,
-                    Password = this.Password
-                };
-            }
         }
 
         protected override GitRaftRepositoryBase CreateCopy()
