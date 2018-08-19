@@ -39,6 +39,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         this.repository.LocalRepositoryPath,
                         new CloneOptions
                         {
+                            IsBare = options.IsBare,
                             BranchName = options.Branch,
                             CredentialsProvider = this.CredentialsHandler,
                             RecurseSubmodules = options.RecurseSubmodules
@@ -213,14 +214,21 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     else if (options.Ref != null)
                         refName = options.Ref;
                     this.log.LogDebug($"Resetting the index and working tree to {refName}...");
-                    repository.Reset(ResetMode.Hard, refName);
-                    repository.RemoveUntrackedFiles();
-
-                    if (options.RecurseSubmodules)
+                    if (options.IsBare)
                     {
-                        foreach (var submodule in repository.Submodules)
+                        repository.Refs.UpdateTarget(repository.Head.Reference, refName);
+                    }
+                    else
+                    {
+                        repository.Reset(ResetMode.Hard, refName);
+                        repository.RemoveUntrackedFiles();
+
+                        if (options.RecurseSubmodules)
                         {
-                            repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = this.CredentialsHandler, Init = true });
+                            foreach (var submodule in repository.Submodules)
+                            {
+                                repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = this.CredentialsHandler, Init = true });
+                            }
                         }
                     }
 
@@ -248,7 +256,6 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             try
             {
                 this.BeginOperation();
-
 
                 this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
                 using (var repository = new Repository(this.repository.LocalRepositoryPath))

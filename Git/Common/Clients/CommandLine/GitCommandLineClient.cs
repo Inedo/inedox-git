@@ -52,6 +52,10 @@ namespace Inedo.Extensions.Clients.CommandLine
             {
                 args.Append("--recursive");
             }
+            if (options.IsBare)
+            {
+                args.Append("--bare");
+            }
 
             args.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
             args.AppendQuoted(this.repository.LocalRepositoryPath);
@@ -73,32 +77,80 @@ namespace Inedo.Extensions.Clients.CommandLine
             remoteArgs.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
             await this.ExecuteCommandLineAsync(remoteArgs, this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
+            await this.ExecuteCommandLineAsync(
+                new GitArgumentsBuilder("config --replace-all remote.origin.fetch \"+refs/heads/*:refs/remotes/origin/*\""),
+                this.repository.LocalRepositoryPath
+            ).ConfigureAwait(false);
+
             await this.ExecuteCommandLineAsync(new GitArgumentsBuilder("fetch origin"), this.repository.LocalRepositoryPath).ConfigureAwait(false);
 
-            var resetArgs = new GitArgumentsBuilder("reset --hard");
-            if (options.Ref != null)
-                resetArgs.AppendQuoted(options.Ref);
-            else if (options.Branch != null)
-                resetArgs.AppendQuoted("origin/" + options.Branch);
-            else
-                resetArgs.Append("FETCH_HEAD");
-
-            await this.ExecuteCommandLineAsync(
-                resetArgs,
-                this.repository.LocalRepositoryPath
-              ).ConfigureAwait(false);
-
-            await this.ExecuteCommandLineAsync(
-                new GitArgumentsBuilder("clean -dfq"),
-                this.repository.LocalRepositoryPath
-              ).ConfigureAwait(false);
-
-            if (options.RecurseSubmodules)
+            if (options.IsBare)
             {
+                var getHashArgs = new GitArgumentsBuilder("log -n 1 --format=%H");
+                getHashArgs.AppendQuoted(options.Ref ?? AH.ConcatNE("origin/", options.Branch) ?? "FETCH_HEAD");
+                var commitHash = await this.ExecuteCommandLineAsync(
+                    getHashArgs,
+                    this.repository.LocalRepositoryPath
+                ).ConfigureAwait(false);
+
+                var updateHeadArgs = new GitArgumentsBuilder("update-ref");
+                if (options.Branch != null)
+                {
+                    var createBranchArgs = new GitArgumentsBuilder("branch --force --track");
+                    createBranchArgs.AppendQuoted(options.Branch);
+                    createBranchArgs.AppendQuoted("origin/" + options.Branch);
+                    await this.ExecuteCommandLineAsync(
+                        createBranchArgs,
+                        this.repository.LocalRepositoryPath
+                    ).ConfigureAwait(false);
+
+                    var updateBranchArgs = new GitArgumentsBuilder("symbolic-ref HEAD");
+                    updateBranchArgs.AppendQuoted("refs/heads/" + options.Branch);
+
+                    await this.ExecuteCommandLineAsync(
+                        updateBranchArgs,
+                        this.repository.LocalRepositoryPath
+                    ).ConfigureAwait(false);
+                }
+                else
+                {
+                    updateHeadArgs.Append("--no-deref");
+                }
+
+                updateHeadArgs.Append("HEAD");
+                updateHeadArgs.AppendQuoted(string.Join(" ", commitHash.Output).Trim());
                 await this.ExecuteCommandLineAsync(
-                    new GitArgumentsBuilder("submodule update --init --recursive"),
+                    updateHeadArgs,
+                    this.repository.LocalRepositoryPath
+                ).ConfigureAwait(false);
+            }
+            else
+            {
+                var resetArgs = new GitArgumentsBuilder("reset --hard");
+                if (options.Ref != null)
+                    resetArgs.AppendQuoted(options.Ref);
+                else if (options.Branch != null)
+                    resetArgs.AppendQuoted("origin/" + options.Branch);
+                else
+                    resetArgs.Append("FETCH_HEAD");
+
+                await this.ExecuteCommandLineAsync(
+                    resetArgs,
+                    this.repository.LocalRepositoryPath
+                ).ConfigureAwait(false);
+
+                await this.ExecuteCommandLineAsync(
+                    new GitArgumentsBuilder("clean -dfq"),
                     this.repository.LocalRepositoryPath
                   ).ConfigureAwait(false);
+
+                if (options.RecurseSubmodules)
+                {
+                    await this.ExecuteCommandLineAsync(
+                        new GitArgumentsBuilder("submodule update --init --recursive"),
+                        this.repository.LocalRepositoryPath
+                      ).ConfigureAwait(false);
+                }
             }
 
             var results = await this.ExecuteCommandLineAsync(
