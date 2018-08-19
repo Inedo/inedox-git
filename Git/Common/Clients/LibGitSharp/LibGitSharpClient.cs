@@ -14,11 +14,6 @@ namespace Inedo.Extensions.Clients.LibGitSharp
         private static Task Complete => Task.FromResult<object>(null);
         private static readonly LfsFilter lfsFilter = new LfsFilter("lfs", new[] { new FilterAttributeEntry("lfs") });
 
-        static LibGitSharpClient()
-        {
-            GlobalSettings.RegisterFilter(lfsFilter);
-        }
-
         public LibGitSharpClient(GitRepositoryInfo repository, ILogSink log)
             : base(repository, log)
         {
@@ -203,6 +198,8 @@ namespace Inedo.Extensions.Clients.LibGitSharp
         {
             try
             {
+                this.BeginOperation();
+
                 this.log.LogDebug($"Using repository at '{this.repository.LocalRepositoryPath}'...");
                 using (var repository = new Repository(this.repository.LocalRepositoryPath))
                 {
