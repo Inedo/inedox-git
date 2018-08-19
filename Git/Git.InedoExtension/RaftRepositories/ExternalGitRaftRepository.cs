@@ -44,12 +44,21 @@ namespace Inedo.Extensions.Git.RaftRepositories
         public override string LocalRepositoryPath => this.localRepoPath.Value;
         public override GitRepositoryInfo RepositoryInfo => new GitRepositoryInfo(new WorkspacePath(this.LocalRepositoryPath), this.RemoteRepositoryUrl, this.UserName, this.Password);
 
-        public override Task<ConfigurationTestResult> TestConfigurationAsync()
+        public override async Task<ConfigurationTestResult> TestConfigurationAsync()
         {
             if (string.IsNullOrWhiteSpace(this.RemoteRepositoryUrl))
-                return Task.FromResult(ConfigurationTestResult.Failure("Remote repository URL is not specified."));
+                return ConfigurationTestResult.Failure("Remote repository URL is not specified.");
 
-            return Task.FromResult(ConfigurationTestResult.Success);
+            try
+            {
+                await this.Client.EnumerateRemoteBranchesAsync();
+                return ConfigurationTestResult.Success;
+            }
+            catch (Exception ex)
+            {
+                this.LogDebug("Git raft repository configuration test failed.", ex.ToString());
+                return ConfigurationTestResult.Failure("Could not list remote branches: " + ex.Message);
+            }
         }
         public override RichDescription GetDescription()
         {
