@@ -386,7 +386,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                 var message = GetCommitMessage(this.Repo.Diff.Compare<TreeChanges>(parentTree, tree));
 
-                var commit = this.Repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, new[] { parentCommit }.Where(c => c != null), false);
+                var commit = this.Repo.ObjectDatabase.CreateCommit(signature, signature, message, tree, new[] { parentCommit }.Where(c => c != null), false);
 
                 if (branch == null)
                     branch = this.Repo.Branches.Add(this.BranchName, commit);
@@ -397,6 +397,152 @@ namespace Inedo.Extensions.Git.RaftRepositories
             }
 
             return InedoLib.NullTask;
+        }
+
+        private static readonly ChangeKind[] interestingChanges = new[] { ChangeKind.Added, ChangeKind.Copied, ChangeKind.Deleted, ChangeKind.Modified, ChangeKind.Renamed };
+
+        private static string GetCommitMessage(TreeChanges treeChanges)
+        {
+            var changes = from tc in treeChanges
+                          group tc by tc.Status into status
+                          where interestingChanges.Contains(status.Key)
+                          select new
+                          {
+                              change = status.Key,
+                              files = from c in status
+                                      select new
+                                      {
+                                          oldPath = parsePath(c.OldPath),
+                                          newPath = parsePath(c.Path)
+                                      }
+                          };
+
+            switch (changes.Count())
+            {
+                case 0:
+                    return $"Updated by {SDK.ProductName}.\n";
+
+                case 1:
+                    var change = changes.First();
+                    if (change.files.Count() != 1)
+                        goto default;
+
+                    var file = change.files.First();
+                    return $"{formatChange(change.change, file.oldPath, file.newPath)} with {SDK.ProductName}\n";
+
+                default:
+                    return $"{summarizeChanges()} with {SDK.ProductName}\n\n{string.Join("\n", changes.SelectMany(c => c.files.Select(f => formatChange(c.change, f.oldPath, f.newPath))))}\n";
+            }
+
+            string formatChange(ChangeKind change, (string[] project, RaftItemType? type, string name) oldPath, (string[] project, RaftItemType? type, string name) newPath)
+            {
+                if (oldPath != (null, null, null) && newPath != (null, null, null)
+                    && ((oldPath.project == null ? newPath.project != null : newPath.project?.SequenceEqual(oldPath.project) ?? true)
+                    || oldPath.type != newPath.type || oldPath.name != newPath.name))
+                {
+                    return $"{change} {formatPath(oldPath, newPath)} to {formatPath(newPath, oldPath)}";
+                }
+
+                if (newPath == (null, null, null))
+                {
+                    newPath = oldPath;
+                }
+
+                return $"{change} {formatPath(newPath, (null, null, null))}";
+            }
+
+            string formatPath((string[] project, RaftItemType? type, string name) path, (string[] project, RaftItemType? type, string name) reference)
+            {
+                string formatted = path.name ?? "(unknown)";
+                if (path.project != null && (reference.project == null || !path.project.SequenceEqual(reference.project)))
+                    formatted = $"{formatted} (project {string.Join("/", path.project)})";
+                else if (path.project == null && reference.project != null)
+                    formatted = $"{formatted} (global)";
+
+                if (path.type != reference.type)
+                    formatted = $"{(path.type?.ToString() ?? "generic")} {formatted}";
+
+                return formatted;
+            }
+
+            string summarizeChanges()
+            {
+                var summaries = from c in changes
+                                let summary = from f in c.files
+                                              group f by (f.newPath.type ?? f.oldPath.type)?.ToString() ?? f.newPath.name ?? f.oldPath.name into ft
+                                              let count = ft.Count()
+                                              select count == 1 ? ft.Key : $"{ft.Key} \u00d7{count}"
+                                select $"{c.change} {formatList(summary)}";
+
+                return formatList(summaries.Take(1).Concat(summaries.Skip(1).Select(s => s.ToLowerInvariant())));
+            }
+
+            string formatList(IEnumerable<string> list)
+            {
+                switch (list.Count())
+                {
+                    case 0:
+                    case 1:
+                        return list.FirstOrDefault();
+                    case 2:
+                        return string.Join(" and ", list);
+                    default:
+                        var sep = list.Any(s => s.Contains(",")) ? "; " : ", ";
+                        return string.Join(sep, list.Take(list.Count() - 1).Concat(new[] { "and " + list.Last() }));
+                }
+            }
+
+            (string[] project, RaftItemType? type, string name) parsePath(string path)
+            {
+                if (string.IsNullOrEmpty(path))
+                    return (null, null, null);
+
+                path = path.Replace('\\', '/');
+                string[] project = null;
+                if (path.StartsWith("project/"))
+                {
+                    var parts = path.Substring("project/".Length).Split(new[] { "/project/" }, StringSplitOptions.None);
+                    project = new string[parts.Length];
+                    for (int i = 0; i < parts.Length - 1; i++)
+                    {
+                        // Invalid path.
+                        if (string.IsNullOrEmpty(parts[i]) || parts[i].Contains("/"))
+                            return (null, null, null);
+
+                        project[i] = parts[i];
+                    }
+                    path = parts[parts.Length - 1];
+
+                    // Invalid path.
+                    if (string.IsNullOrEmpty(path))
+                        return (null, null, null);
+
+                    var slash = path.IndexOf('/');
+                    if (slash == -1)
+                    {
+                        project[parts.Length - 1] = path;
+                        return (project, null, null);
+                    }
+
+                    project[parts.Length - 1] = path.Substring(0, slash);
+                    path = path.Substring(slash + 1);
+                }
+
+                var typeName = path.Split('/');
+                if (typeName.Length == 1)
+                    return (project, null, typeName[0]);
+
+                // Invalid path.
+                if (typeName.Length != 2)
+                    return (null, null, null);
+
+                var type = TryParseStandardTypeName(typeName[0]);
+                // Invalid path.
+                if (!type.HasValue)
+                    return (null, null, null);
+
+                return (project, type, typeName[1]);
+            }
         }
 
         public sealed override Task<IEnumerable<string>> GetProjectsAsync(bool recursive)
