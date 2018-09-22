@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitLab.Clients
 
         private string apiBaseUrl;
         private static readonly JavaScriptSerializer jsonSerializer = new JavaScriptSerializer();
-        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
+        private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());
 
         public GitLabClient(string apiBaseUrl, string userName, SecureString password, string groupName)
