@@ -148,7 +148,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                             IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                             FirstParentOnly = false,
                             SortBy = CommitSortStrategies.Time
-						}).FirstOrDefault()?.Commit;
+                        }).FirstOrDefault()?.Commit;
                     }
                     else
                     {
