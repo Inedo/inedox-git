@@ -98,7 +98,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                                         new CommitFilter {
                                             IncludeReachableFrom = repo.Branches[this.BranchName],
                                             FirstParentOnly = false,
-                                            SortBy = CommitSortStrategies.None, }
+                                            SortBy = CommitSortStrategies.Time, }
                                         );
                                     var commit = commits.FirstOrDefault();
                                     if (commit != null)
@@ -147,8 +147,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         {
                             IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                             FirstParentOnly = false,
-                            SortBy = CommitSortStrategies.None
-                        }).FirstOrDefault()?.Commit;
+                            SortBy = CommitSortStrategies.Time
+						}).FirstOrDefault()?.Commit;
                     }
                     else
                     {
@@ -273,7 +273,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     {
                         IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
                         FirstParentOnly = false,
-                        SortBy = CommitSortStrategies.None
+                        SortBy = CommitSortStrategies.Time
                     });
                     foreach (var c in commits)
                     {
