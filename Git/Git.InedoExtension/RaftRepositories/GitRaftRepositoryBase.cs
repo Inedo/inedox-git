@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
@@ -11,16 +12,18 @@ using Inedo.Extensibility.RaftRepositories;
 using Inedo.Extensibility.UserDirectories;
 using Inedo.IO;
 using Inedo.Serialization;
+using Inedo.Web;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
 {
-    public abstract class GitRaftRepositoryBase : RaftRepository
+    public abstract class GitRaftRepositoryBase : RaftRepository, IMultiEnvironmentRaft
     {
         private Lazy<Repository> lazyRepository;
-        private Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
+        private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
         private Lazy<TreeDefinition> lazyCurrentTree;
-        private bool dirty;
+        private readonly Lazy<Dictionary<string, string>> lazyEnvironmentBranches;
+        private string currentEnvironmentBranch;
         private bool variablesDirty;
         private bool disposed;
 
@@ -29,27 +32,55 @@ namespace Inedo.Extensions.Git.RaftRepositories
             this.lazyRepository = new Lazy<Repository>(this.OpenRepository);
             this.lazyVariables = new Lazy<Dictionary<RuntimeVariableName, string>>(this.ReadVariables);
             this.lazyCurrentTree = new Lazy<TreeDefinition>(this.GetCurrentTree);
+            this.lazyEnvironmentBranches = new Lazy<Dictionary<string, string>>(this.GetEnvironmentBranchMap);
         }
 
         public abstract string LocalRepositoryPath { get; }
 
         [Required]
         [Persistent]
-        [DisplayName("Branch")]
+        [DisplayName("Default branch")]
         public string BranchName { get; set; } = "master";
 
         [Persistent]
         [DisplayName("Read only")]
         public bool ReadOnly { get; set; }
 
+        [Persistent]
+        [FieldEditMode(FieldEditMode.Multiline)]
+        [DisplayName("Environment branches")]
+        [Description("When this raft is used with an Otter Configuration plan, the branch used by this raft may be selected by environment. Enter environment-branch mappings one per line in the format \"Environment:Branch\". If no match is found, or if the raft is used from an Orchestration job, the default branch is used.")]
+        [PlaceholderText("always use default branch")]
+        public string EnvironmentBranches { get; set; }
+
         public sealed override bool IsReadOnly => this.ReadOnly;
         public sealed override bool SupportsVersioning => true;
+        public bool HasMultipleEnvironments => this.GetEnvironmentBranchMap()?.Any() ?? false;
+        public string ActualEnvironment { get; private set; }
 
-        private protected bool Dirty => this.dirty;
+        private protected bool Dirty { get; private set; }
         private protected Repository Repo => this.lazyRepository.Value;
+        private protected string CurrentBranchName => this.currentEnvironmentBranch ?? this.BranchName;
 
         private bool OptimizeLoadTime => (this.OpenOptions & OpenRaftOptions.OptimizeLoadTime) != 0;
         private string RepositoryRoot { get; set; }
+
+        public Task<bool> SetEnvironmentAsync(string environmentName)
+        {
+            if (string.IsNullOrWhiteSpace(environmentName))
+                throw new ArgumentNullException(nameof(environmentName));
+            if (this.lazyRepository.IsValueCreated)
+                throw new InvalidOperationException("SetEnvironmentAsync cannot be called after the Raft repository has been used.");
+
+            var d = this.GetEnvironmentBranchMap();
+            if (d == null || !d.TryGetValue(environmentName, out var branch))
+                return Task.FromResult(false);
+
+            this.currentEnvironmentBranch = branch;
+            this.ActualEnvironment = environmentName;
+            return Task.FromResult(true);
+        }
+        public IEnumerable<string> GetEnvironments() => this.GetEnvironmentBranchMap()?.Keys ?? Enumerable.Empty<string>();
 
         public sealed override Task<IEnumerable<RaftItem>> GetRaftItemsAsync()
         {
@@ -61,7 +92,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             IEnumerable<RaftItem> inner()
             {
                 var repo = this.lazyRepository.Value;
-                var tip = repo.Branches[this.BranchName]?.Tip;
+                var tip = repo.Branches[this.CurrentBranchName]?.Tip;
                 if (tip == null)
                     yield break;
 
@@ -96,7 +127,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                                 {
                                     var commits = repo.Commits.QueryBy(item.Path,
                                         new CommitFilter {
-                                            IncludeReachableFrom = repo.Branches[this.BranchName],
+                                            IncludeReachableFrom = repo.Branches[this.CurrentBranchName],
                                             FirstParentOnly = false,
                                             SortBy = CommitSortStrategies.Time, }
                                         );
@@ -145,7 +176,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     {
                         commit = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
                         {
-                            IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
+                            IncludeReachableFrom = this.lazyRepository.Value.Branches[this.CurrentBranchName],
                             FirstParentOnly = false,
                             SortBy = CommitSortStrategies.Time
                         }).FirstOrDefault()?.Commit;
@@ -249,7 +280,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (entry != null)
             {
                 this.lazyCurrentTree.Value.Remove(entry.Path);
-                this.dirty = true;
+                this.Dirty = true;
             }
 
             return InedoLib.NullTask;
@@ -271,7 +302,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 {
                     var commits = this.lazyRepository.Value.Commits.QueryBy(entry.Path, new CommitFilter
                     {
-                        IncludeReachableFrom = this.lazyRepository.Value.Branches[this.BranchName],
+                        IncludeReachableFrom = this.lazyRepository.Value.Branches[this.CurrentBranchName],
                         FirstParentOnly = false,
                         SortBy = CommitSortStrategies.Time
                     });
@@ -335,18 +366,18 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.variablesDirty)
                 this.SaveVariables();
 
-            if (this.dirty)
+            if (this.Dirty)
             {
                 var signature = new Signature(AH.CoalesceString(user.DisplayName, user.Name), AH.CoalesceString(user.EmailAddress ?? "none@example.com"), DateTime.Now);
 
                 var repo = this.lazyRepository.Value;
                 var tree = repo.ObjectDatabase.CreateTree(this.lazyCurrentTree.Value);
 
-                var branch = repo.Branches[this.BranchName];
+                var branch = repo.Branches[this.CurrentBranchName];
                 if (branch == null)
                 {
                     var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, repo.Head.Tip == null ? Enumerable.Empty<Commit>() : new[] { repo.Head.Tip }, false);
-                    branch = repo.Branches.Add(this.BranchName, commit);
+                    branch = repo.Branches.Add(this.CurrentBranchName, commit);
 
                     repo.Refs.Add("refs/head", repo.Refs.Head);
                 }
@@ -368,7 +399,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             {
                 var repo = this.lazyRepository.Value;
 
-                var tip = repo.Branches[this.BranchName]?.Tip;
+                var tip = repo.Branches[this.CurrentBranchName]?.Tip;
                 if (tip == null)
                     return Enumerable.Empty<string>();
 
@@ -470,7 +501,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                 this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
 
-                this.dirty = true;
+                this.Dirty = true;
             }
         }
         private Stream OpenEntry(TreeEntry entry)
@@ -490,7 +521,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             var repo = this.lazyRepository.Value;
 
-            var branch = repo.Branches[this.BranchName];
+            var branch = repo.Branches[this.CurrentBranchName];
             if (branch?.Tip == null)
                 return new TreeDefinition();
 
@@ -506,11 +537,39 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (!string.IsNullOrEmpty(hash))
                 root = repo.Lookup<Commit>(hash)?.Tree;
             else
-                root = repo.Branches[this.BranchName]?.Tip.Tree;
+                root = repo.Branches[this.CurrentBranchName]?.Tip.Tree;
 
             return root?[path];
         }
         private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
+        private Dictionary<string, string> GetEnvironmentBranchMap()
+        {
+            if (string.IsNullOrWhiteSpace(this.EnvironmentBranches))
+                return null;
+
+            var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in Regex.Split(this.EnvironmentBranches, @"\r?\n"))
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                var parts = line.Trim().Split(new[] { ':' }, 2);
+                if (parts.Length != 2)
+                    continue;
+
+                var environmentName = parts[0].Trim();
+                if (string.IsNullOrEmpty(environmentName))
+                    continue;
+
+                var branchName = parts[1].Trim();
+                if (string.IsNullOrEmpty(branchName))
+                    continue;
+
+                d[environmentName] = branchName;
+            }
+
+            return d;
+        }
 
         private sealed class RaftItemStream : Stream
         {
@@ -615,7 +674,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         var repo = this.raft.lazyRepository.Value;
                         var blob = repo.ObjectDatabase.CreateBlob(this.wrapped);
                         this.raft.lazyCurrentTree.Value.Add(this.path, blob, Mode.NonExecutableFile);
-                        this.raft.dirty = true;
+                        this.raft.Dirty = true;
                     }
 
                     this.wrapped.Dispose();
