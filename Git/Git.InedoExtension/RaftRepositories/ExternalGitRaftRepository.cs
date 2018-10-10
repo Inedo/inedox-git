@@ -53,10 +53,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             await base.CommitAsync(user).ConfigureAwait(false);
 
-            this.Repo.Branches.Update(this.Repo.Branches[this.BranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.BranchName);
+            this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
 
             this.Repo.Network.Push(
-                this.Repo.Branches[this.BranchName],
+                this.Repo.Branches[this.CurrentBranchName],
                 new PushOptions
                 {
                     CredentialsProvider = this.CredentialsHandler
@@ -76,13 +76,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     {
                         Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), 
                             new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                        if (repository.Refs["refs/heads/" + this.BranchName] == null)
+                        if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
                         {
                             //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
-                            var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.BranchName].TargetIdentifier);
-                            repository.Refs.Add("refs/heads/" + this.BranchName, objId);
+                            var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
+                            repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
                         }
-                        repository.Refs.UpdateTarget("refs/heads/" + this.BranchName, "refs/remotes/origin/" + this.BranchName);
+                        repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
                     }
 
                     return repository;
