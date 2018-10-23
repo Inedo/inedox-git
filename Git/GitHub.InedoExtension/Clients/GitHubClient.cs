@@ -53,7 +53,7 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             string url;
             if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
+                url = $"{this.apiBaseUrl}/orgs/{Esc(this.OrganizationName)}/repos?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
