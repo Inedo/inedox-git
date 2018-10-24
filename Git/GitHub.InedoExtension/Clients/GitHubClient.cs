@@ -53,11 +53,20 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             string url;
             if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
+                url = $"{this.apiBaseUrl}/orgs/{Esc(this.OrganizationName)}/repos?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
-            var results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
+            IEnumerable<object> results;
+            try
+            {
+                results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
+            }
+            catch when (!string.IsNullOrEmpty(this.OrganizationName))
+            {
+                url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
+                results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
+            }
             return results.Cast<Dictionary<string, object>>().ToList();
         }
 
