@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
@@ -12,7 +11,6 @@ using Inedo.Extensibility.RaftRepositories;
 using Inedo.Extensibility.UserDirectories;
 using Inedo.IO;
 using Inedo.Serialization;
-using Inedo.Web;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
@@ -22,8 +20,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
         private Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
         private Lazy<TreeDefinition> lazyCurrentTree;
-        private readonly Lazy<Dictionary<string, string>> lazyEnvironmentBranches;
-        private string currentEnvironmentBranch;
         private bool variablesDirty;
         private bool disposed;
 
@@ -32,55 +28,28 @@ namespace Inedo.Extensions.Git.RaftRepositories
             this.lazyRepository = new Lazy<Repository>(this.OpenRepository);
             this.lazyVariables = new Lazy<Dictionary<RuntimeVariableName, string>>(this.ReadVariables);
             this.lazyCurrentTree = new Lazy<TreeDefinition>(this.GetCurrentTree);
-            this.lazyEnvironmentBranches = new Lazy<Dictionary<string, string>>(this.GetEnvironmentBranchMap);
         }
 
         public abstract string LocalRepositoryPath { get; }
 
         [Required]
         [Persistent]
-        [DisplayName("Default branch")]
+        [DisplayName("Branch")]
         public string BranchName { get; set; } = "master";
 
         [Persistent]
         [DisplayName("Read only")]
         public bool ReadOnly { get; set; }
 
-        [Persistent]
-        [FieldEditMode(FieldEditMode.Multiline)]
-        [DisplayName("Environment branches")]
-        [Description("When this raft is used with an Otter Configuration plan, the branch used by this raft may be selected by environment. Enter environment-branch mappings one per line in the format \"Environment:Branch\". If no match is found, or if the raft is used from an Orchestration job, the default branch is used.")]
-        [PlaceholderText("always use default branch")]
-        public string EnvironmentBranches { get; set; }
-
         public sealed override bool IsReadOnly => this.ReadOnly;
         public sealed override bool SupportsVersioning => true;
-        public bool HasMultipleEnvironments => this.GetEnvironmentBranchMap()?.Any() ?? false;
-        public string ActualEnvironment { get; private set; }
 
         private protected bool Dirty { get; private set; }
         private protected Repository Repo => this.lazyRepository.Value;
-        private protected string CurrentBranchName => this.currentEnvironmentBranch ?? this.BranchName;
+        private protected string CurrentBranchName => this.BranchName;
 
         private bool OptimizeLoadTime => (this.OpenOptions & OpenRaftOptions.OptimizeLoadTime) != 0;
         private string RepositoryRoot { get; set; }
-
-        public Task<bool> SetEnvironmentAsync(string environmentName)
-        {
-            if (string.IsNullOrWhiteSpace(environmentName))
-                throw new ArgumentNullException(nameof(environmentName));
-            if (this.lazyRepository.IsValueCreated)
-                throw new InvalidOperationException("SetEnvironmentAsync cannot be called after the Raft repository has been used.");
-
-            var d = this.GetEnvironmentBranchMap();
-            if (d == null || !d.TryGetValue(environmentName, out var branch))
-                return Task.FromResult(false);
-
-            this.currentEnvironmentBranch = branch;
-            this.ActualEnvironment = environmentName;
-            return Task.FromResult(true);
-        }
-        public IEnumerable<string> GetEnvironments() => this.GetEnvironmentBranchMap()?.Keys ?? Enumerable.Empty<string>();
 
         public sealed override Task<IEnumerable<RaftItem>> GetRaftItemsAsync()
         {
@@ -542,34 +511,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
             return root?[path];
         }
         private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
-        private Dictionary<string, string> GetEnvironmentBranchMap()
-        {
-            if (string.IsNullOrWhiteSpace(this.EnvironmentBranches))
-                return null;
-
-            var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var line in Regex.Split(this.EnvironmentBranches, @"\r?\n"))
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                var parts = line.Trim().Split(new[] { ':' }, 2);
-                if (parts.Length != 2)
-                    continue;
-
-                var environmentName = parts[0].Trim();
-                if (string.IsNullOrEmpty(environmentName))
-                    continue;
-
-                var branchName = parts[1].Trim();
-                if (string.IsNullOrEmpty(branchName))
-                    continue;
-
-                d[environmentName] = branchName;
-            }
-
-            return d;
-        }
 
         private sealed class RaftItemStream : Stream
         {
