@@ -43,7 +43,7 @@
       <HintPath>..\packages\Inedo.SDK.1.0.5\lib\net452\Inedo.Agents.Client.dll</HintPath>
     </Reference>
     <Reference Include="Inedo.ExecutionEngine, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.0.5\lib\net452\Inedo.ExecutionEngine.dll</HintPath>
+      <HintPath>..\packages\Inedo.ExecutionEngine.64.0.0\lib\net45\Inedo.ExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="Inedo.SDK, Version=1.0.5.0, Culture=neutral, PublicKeyToken=29fae5dec3001603, processorArchitecture=MSIL">
       <HintPath>..\packages\Inedo.SDK.1.0.5\lib\net452\Inedo.SDK.dll</HintPath>
