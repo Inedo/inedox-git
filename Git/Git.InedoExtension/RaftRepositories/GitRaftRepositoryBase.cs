@@ -17,7 +17,7 @@ using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
 {
-    public abstract class GitRaftRepositoryBase : RaftRepository, IMultiEnvironmentRaft
+    public abstract class GitRaftRepositoryBase : RaftRepository
     {
         private Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
