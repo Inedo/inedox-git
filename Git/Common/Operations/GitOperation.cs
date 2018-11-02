@@ -61,7 +61,7 @@ namespace Inedo.Extensions.Operations
         {
             if (!string.IsNullOrEmpty(this.GitExePath))
             {
-                this.LogDebug($"Executable path specified, using Git command line client at '{this.GitExePath}'...");
+                this.LogDebug($"Executable path specified, using Git command line client at \"{this.GitExePath}\"...");
                 return new GitCommandLineClient(
                     this.GitExePath,
                     context.Agent.GetService<IRemoteProcessExecuter>(),

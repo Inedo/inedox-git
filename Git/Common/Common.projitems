@@ -23,6 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\RemoteLibGitSharpJob.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\LibGitSharp\Remote\ClientCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Clients\RemoteBranchInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\WorkspacePath.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentialsBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Editors\DateEditor.cs" />

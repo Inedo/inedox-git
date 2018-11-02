@@ -59,18 +59,19 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
         }
 
-        public override Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()
+        public override Task<IEnumerable<RemoteBranchInfo>> EnumerateRemoteBranchesAsync()
         {
+            bool endOperation = false;
             try
             {
-                this.BeginOperation();
-
                 this.log.LogDebug("Enumerating remote branches...");
 
-                if (!Repository.IsValid(this.repository.LocalRepositoryPath))
+                if (!this.repository.HasLocalRepository || !Repository.IsValid(this.repository.LocalRepositoryPath))
                 {
-                    this.log.LogDebug($"Repository not found at '{this.repository.LocalRepositoryPath}'...");
-                    if (DirectoryEx.Exists(this.repository.LocalRepositoryPath))
+                    if (this.repository.HasLocalRepository)
+                        this.log.LogDebug($"Repository not found at '{this.repository.LocalRepositoryPath}'...");
+
+                    if (this.repository.HasLocalRepository && DirectoryEx.Exists(this.repository.LocalRepositoryPath))
                     {
                         var contents = DirectoryEx.GetFileSystemInfos(this.repository.LocalRepositoryPath, MaskingContext.Default);
                         if (contents.Count > 0)
@@ -78,29 +79,20 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     }
 
                     var refs = Repository.ListRemoteReferences(this.repository.RemoteRepositoryUrl, this.CredentialsHandler);
-
-                    var trimmedRefs = (from r in refs
-                                       where r.CanonicalName.StartsWith("refs/heads/")
-                                       let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
-                                       select trimmed).ToList();
-
-                    return Task.FromResult(trimmedRefs.AsEnumerable());
+                    return Task.FromResult(getBranches(refs));
                 }
                 else
                 {
+                    this.BeginOperation();
+                    endOperation = true;
+
                     this.log.LogDebug($"Repository found at '{this.repository.LocalRepositoryPath}'...");
                     using (var repository = new Repository(this.repository.LocalRepositoryPath))
                     {
                         var origin = repository.Network.Remotes["origin"];
                         this.log.LogDebug($"Using remote: origin, '{origin.Name}'.");
                         var refs = repository.Network.ListReferences(origin);
-
-                        var trimmedRefs = (from r in refs
-                                           where r.CanonicalName.StartsWith("refs/heads/")
-                                           let trimmed = r.CanonicalName.Substring("refs/heads/".Length)
-                                           select trimmed).ToList();
-
-                        return Task.FromResult(trimmedRefs.AsEnumerable());
+                        return Task.FromResult(getBranches(refs));
                     }
                 }
             }
@@ -111,7 +103,22 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             }
             finally
             {
-                this.EndOperation();
+                if (endOperation)
+                    this.EndOperation();
+            }
+
+            IEnumerable<RemoteBranchInfo> getBranches(IEnumerable<Reference> refs)
+            {
+                var branches = new HashSet<RemoteBranchInfo>();
+
+                foreach (var r in refs)
+                {
+                    var direct = r.ResolveToDirectReference();
+                    if (direct.CanonicalName.StartsWith("refs/heads/"))
+                        branches.Add(new RemoteBranchInfo(direct.CanonicalName.Substring("refs/heads/".Length), direct.TargetIdentifier));
+                }
+
+                return branches.ToArray();
             }
         }
 

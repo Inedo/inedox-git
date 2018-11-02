@@ -6,6 +6,8 @@ namespace Inedo.Extensions.Clients
 {
     public sealed class GitRepositoryInfo
     {
+        private readonly string localRepositoryPath;
+
         public GitRepositoryInfo(WorkspacePath localRepositoryPath, string remoteRepositoryUrl, string userName, SecureString password)
         {
             if (string.IsNullOrEmpty(localRepositoryPath?.FullPath))
@@ -13,13 +15,23 @@ namespace Inedo.Extensions.Clients
             if (string.IsNullOrEmpty(remoteRepositoryUrl))
                 throw new ArgumentNullException(nameof(remoteRepositoryUrl));
 
-            this.LocalRepositoryPath = PathEx.EnsureTrailingDirectorySeparator(localRepositoryPath.FullPath);
+            this.localRepositoryPath = PathEx.EnsureTrailingDirectorySeparator(localRepositoryPath.FullPath);
+            this.RemoteRepositoryUrl = remoteRepositoryUrl;
+            this.UserName = userName;
+            this.Password = password;
+        }
+        public GitRepositoryInfo(string remoteRepositoryUrl, string userName, SecureString password)
+        {
+            if (string.IsNullOrEmpty(remoteRepositoryUrl))
+                throw new ArgumentNullException(nameof(remoteRepositoryUrl));
+
             this.RemoteRepositoryUrl = remoteRepositoryUrl;
             this.UserName = userName;
             this.Password = password;
         }
 
-        public string LocalRepositoryPath { get; }
+        public bool HasLocalRepository => this.localRepositoryPath != null;
+        public string LocalRepositoryPath => this.localRepositoryPath ?? throw new InvalidOperationException("This operation requires a local repository path.");
         public string RemoteRepositoryUrl { get; }
         public string UserName { get; }
         public SecureString Password { get; }

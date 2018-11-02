@@ -18,7 +18,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             : base(repository, log)
         {
             this.jobExecuter = jobExecuter ?? throw new NotSupportedException("A hosted agent must be used with the built-in LibGitSharp git client.");
-            this.workingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
+            this.workingDirectory = workingDirectory;
             this.simulation = simulation;
             this.cancellationToken = cancellationToken;
         }
@@ -39,14 +39,14 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             );
         }
 
-        public async override Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()
+        public async override Task<IEnumerable<RemoteBranchInfo>> EnumerateRemoteBranchesAsync()
         {
             var result = await this.ExecuteRemoteAsync(
                 ClientCommand.EnumerateRemoteBranches,
                 new RemoteLibGitSharpContext()
             ).ConfigureAwait(false);
 
-            return (IEnumerable<string>)result;
+            return (IEnumerable<RemoteBranchInfo>)result;
         }
 
         public async override Task<bool> IsRepositoryValidAsync()
@@ -79,7 +79,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         {
             context.WorkingDirectory = this.workingDirectory;
             context.Simulation = this.simulation;
-            context.LocalRepositoryPath = this.repository.LocalRepositoryPath;
+            context.LocalRepositoryPath = this.repository.HasLocalRepository ? this.repository.LocalRepositoryPath : null;
             context.RemoteRepositoryUrl = this.repository.RemoteRepositoryUrl;
             context.UserName = this.repository.UserName;
             context.Password = AH.Unprotect(this.repository.Password);

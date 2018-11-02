@@ -12,26 +12,19 @@ namespace Inedo.Extensions.Clients.CommandLine
 {
     public sealed class GitCommandLineClient : GitClient
     {
-        private static readonly LazyRegex BranchParsingRegex = new LazyRegex(@"refs/heads/(?<branch>.*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.Multiline);
+        private static readonly LazyRegex BranchParsingRegex = new LazyRegex(@"^(?<1>[0-9a-fA-F]+)\s+refs/heads/(?<2>.+)$", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
-        private string gitExePath;
-        private IRemoteProcessExecuter processExecuter;
-        private IFileOperationsExecuter fileOps;
-        private CancellationToken cancellationToken;
+        private readonly string gitExePath;
+        private readonly IRemoteProcessExecuter processExecuter;
+        private readonly IFileOperationsExecuter fileOps;
+        private readonly CancellationToken cancellationToken;
 
         public GitCommandLineClient(string gitExePath, IRemoteProcessExecuter processExecuter, IFileOperationsExecuter fileOps, GitRepositoryInfo repository, ILogSink log, CancellationToken cancellationToken)
             : base(repository, log)
         {
-            if (gitExePath == null)
-                throw new ArgumentNullException(nameof(gitExePath));
-            if (processExecuter == null)
-                throw new ArgumentNullException(nameof(processExecuter));
-            if (fileOps == null)
-                throw new ArgumentNullException(nameof(fileOps));
-
-            this.gitExePath = gitExePath;
-            this.processExecuter = processExecuter;
-            this.fileOps = fileOps;
+            this.gitExePath = gitExePath ?? throw new ArgumentNullException(nameof(gitExePath));
+            this.processExecuter = processExecuter ?? throw new ArgumentNullException(nameof(processExecuter));
+            this.fileOps = fileOps ?? throw new ArgumentNullException(nameof(fileOps));
             this.cancellationToken = cancellationToken;
         }
 
@@ -116,17 +109,21 @@ namespace Inedo.Extensions.Clients.CommandLine
             return string.Join(" ", results.Output).Trim();
         }
 
-        public override async Task<IEnumerable<string>> EnumerateRemoteBranchesAsync()
+        public override async Task<IEnumerable<RemoteBranchInfo>> EnumerateRemoteBranchesAsync()
         {
             var args = new GitArgumentsBuilder("ls-remote --refs --heads");
             args.AppendSensitive(this.repository.GetRemoteUrlWithCredentials());
 
-            var result = await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath, false).ConfigureAwait(false);
+            var result = await this.ExecuteCommandLineAsync(args, null, false).ConfigureAwait(false);
 
-            var branches = from o in result.Output
-                           let value = BranchParsingRegex.Match(o).Groups["branch"].Value
-                           where !string.IsNullOrEmpty(value)
-                           select value;
+            var branches = new List<RemoteBranchInfo>();
+
+            foreach (var o in result.Output)
+            {
+                var match = BranchParsingRegex.Match(o);
+                if (match.Success)
+                    branches.Add(new RemoteBranchInfo(match.Groups[2].Value, match.Groups[1].Value));
+            }
 
             return branches;
         }
@@ -177,11 +174,14 @@ namespace Inedo.Extensions.Clients.CommandLine
             {
                 FileName = this.gitExePath,
                 Arguments = args.ToString(),
-                WorkingDirectory = workingDirectory
+                WorkingDirectory = workingDirectory ?? await this.fileOps.GetBaseWorkingDirectoryAsync()
             };
 
-            this.log.LogDebug("Ensuring local repository path exists...");
-            await this.fileOps.CreateDirectoryAsync(this.repository.LocalRepositoryPath).ConfigureAwait(false);
+            if (this.repository.HasLocalRepository)
+            {
+                this.log.LogDebug("Ensuring local repository path exists...");
+                await this.fileOps.CreateDirectoryAsync(this.repository.LocalRepositoryPath).ConfigureAwait(false);
+            }
 
             this.log.LogDebug("Working directory: " + startInfo.WorkingDirectory);
             this.log.LogDebug("Executing: " + startInfo.FileName + " " + args.ToSensitiveString());

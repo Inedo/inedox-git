@@ -20,12 +20,25 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 
         public async override Task<object> ExecuteAsync(CancellationToken cancellationToken)
         {
-            var repo = new GitRepositoryInfo(
-                new WorkspacePath(this.Context.LocalRepositoryPath),
-                this.Context.RemoteRepositoryUrl,
-                this.Context.UserName,
-                AH.CreateSecureString(this.Context.Password)
-            );
+            GitRepositoryInfo repo;
+
+            if (!string.IsNullOrEmpty(this.Context.LocalRepositoryPath))
+            {
+                repo = new GitRepositoryInfo(
+                    new WorkspacePath(this.Context.LocalRepositoryPath),
+                    this.Context.RemoteRepositoryUrl,
+                    this.Context.UserName,
+                    AH.CreateSecureString(this.Context.Password)
+                );
+            }
+            else
+            {
+                repo = new GitRepositoryInfo(
+                    this.Context.RemoteRepositoryUrl,
+                    this.Context.UserName,
+                    AH.CreateSecureString(this.Context.Password)
+                );
+            }
 
             var client = new LibGitSharpClient(repo, this);
             
