@@ -180,7 +180,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             if (this.repository.HasLocalRepository)
             {
                 this.log.LogDebug("Ensuring local repository path exists...");
-                await this.fileOps.CreateDirectoryAsync(this.repository.LocalRepositoryPath).ConfigureAwait(false);
+                await this.fileOps.CreateDirectoryAsync(startInfo.WorkingDirectory).ConfigureAwait(false);
             }
 
             this.log.LogDebug("Working directory: " + startInfo.WorkingDirectory);

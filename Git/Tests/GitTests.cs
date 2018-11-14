@@ -201,7 +201,7 @@ namespace Tests
             string fullWorkingDirectory = PathEx.Combine(this.rootDir, workingDirectory);
             var client = this.CreateClient(type, fullWorkingDirectory);
 
-            var branches = client.EnumerateRemoteBranchesAsync().GetAwaiter().GetResult().ToList();
+            var branches = client.EnumerateRemoteBranchesAsync().GetAwaiter().GetResult().Select(b => b.Name).ToList();
 
             CollectionAssert.Contains(branches, "master");
             CollectionAssert.Contains(branches, "branch1");
