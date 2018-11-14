@@ -42,6 +42,7 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
 
         [Persistent]
         [DisplayName("Credentials")]
+        [Category("Connection/Identity")]
         public string CredentialName { get; set; }
 
         [Persistent]
