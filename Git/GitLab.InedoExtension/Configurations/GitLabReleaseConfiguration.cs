@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Security;
+using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
@@ -90,18 +92,18 @@ namespace Inedo.Extensions.GitLab.Configurations
         [Persistent]
         public bool Exists { get; set; } = true;
 
-        public override ComparisonResult Compare(PersistedConfiguration other)
+        public override Task<ComparisonResult> CompareAsync(PersistedConfiguration other, IOperationCollectionContext context)
         {
             if (other == null)
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            if (!(other is GitLabReleaseConfiguration))
+            if (!(other is GitLabReleaseConfiguration c))
             {
                 throw new InvalidOperationException("Cannot compare configurations of different types.");
             }
 
-            return Compare((GitLabReleaseConfiguration)other);
+            return Task.FromResult(this.Compare(c));
         }
 
         private ComparisonResult Compare(GitLabReleaseConfiguration other)
