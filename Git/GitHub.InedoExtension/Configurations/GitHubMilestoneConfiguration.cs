@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Security;
+using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Editors;
 using Inedo.Extensions.GitHub.Clients;
@@ -97,18 +99,18 @@ namespace Inedo.Extensions.GitHub.Configurations
         [Persistent]
         public bool Exists { get; set; } = true;
 
-        public override ComparisonResult Compare(PersistedConfiguration other)
+        public override Task<ComparisonResult> CompareAsync(PersistedConfiguration other, IOperationCollectionContext context)
         {
             if (other == null)
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            if (!(other is GitHubMilestoneConfiguration))
+            if (!(other is GitHubMilestoneConfiguration c))
             {
                 throw new InvalidOperationException("Cannot compare configurations of different types.");
             }
 
-            return Compare((GitHubMilestoneConfiguration)other);
+            return Task.FromResult(this.Compare(c));
         }
 
         private ComparisonResult Compare(GitHubMilestoneConfiguration other)
