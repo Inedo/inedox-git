@@ -5,6 +5,7 @@ using System.Security;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.RaftRepositories;
 using Inedo.Extensibility.UserDirectories;
 using Inedo.IO;
 using Inedo.Serialization;
@@ -13,12 +14,12 @@ using LibGit2Sharp;
 namespace Inedo.Extensions.Git.RaftRepositories
 {
     [DisplayName("Git")]
-    [Description("The raft is persisted as a Git repository that is automatically synchronized with an external Git repository.")]
+    [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
     [PersistFrom("Inedo.Extensions.RaftRepositories.ExternalGitRaftRepository,Git")]
     [PersistFrom("Inedo.Otter.Extensions.RaftRepositories.ExternalGitRaftRepository,OtterCoreEx")]
     public sealed class ExternalGitRaftRepository : GitRaftRepositoryBase
     {
-        private Lazy<string> localRepoPath;
+        private readonly Lazy<string> localRepoPath;
 
         public ExternalGitRaftRepository()
         {
@@ -41,6 +42,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override string LocalRepositoryPath => this.localRepoPath.Value;
 
+        private bool AutoSync => (this.OpenOptions & OpenRaftOptions.NoAutoSync) == 0;
+
         public override Task<ConfigurationTestResult> TestConfigurationAsync()
         {
             if (string.IsNullOrWhiteSpace(this.RemoteRepositoryUrl))
@@ -53,15 +56,18 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             await base.CommitAsync(user).ConfigureAwait(false);
 
-            this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
+            if (this.AutoSync)
+            {
+                this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
 
-            this.Repo.Network.Push(
-                this.Repo.Branches[this.CurrentBranchName],
-                new PushOptions
-                {
-                    CredentialsProvider = this.CredentialsHandler
-                }
-            );
+                this.Repo.Network.Push(
+                    this.Repo.Branches[this.CurrentBranchName],
+                    new PushOptions
+                    {
+                        CredentialsProvider = this.CredentialsHandler
+                    }
+                );
+            }
         }
 
         protected override Repository OpenRepository()
@@ -72,16 +78,16 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 {
                     var repository = new Repository(this.LocalRepositoryPath);
 
-                    if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
+                    if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl) && this.AutoSync)
                     {
-                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), 
-                            new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
                         if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
                         {
                             //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
                             var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
                             repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
                         }
+
                         repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
                     }
 
