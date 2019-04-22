@@ -13,6 +13,12 @@ using Inedo.IO;
 
 namespace Inedo.Extensions.GitHub.Clients
 {
+    public enum RefType
+    {
+        Branch,
+        Tag
+    }
+
     internal sealed class GitHubClient
     {
         static GitHubClient()
@@ -153,6 +159,30 @@ namespace Inedo.Extensions.GitHub.Clients
             catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
+            }
+        }
+
+        public async Task<IEnumerable<string>> ListRefsAsync(string ownerName, string repositoryName, RefType? type, CancellationToken cancellationToken)
+        {
+            var prefix = AH.Switch<RefType?, string>(type)
+                .Case(null, "refs")
+                .Case(RefType.Branch, "refs/heads")
+                .Case(RefType.Tag, "refs/tags")
+                .End();
+
+            var refs = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/git/{prefix}", cancellationToken).ConfigureAwait(false);
+
+            return refs.Cast<Dictionary<string, object>>().Select(r => trim((string)r["ref"]));
+
+            string trim(string s)
+            {
+                if (s.StartsWith(prefix))
+                    s = s.Substring(prefix.Length);
+
+                if (s.StartsWith("/"))
+                    s = s.Substring(1);
+
+                return s;
             }
         }
 

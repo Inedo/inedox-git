@@ -75,6 +75,7 @@
     <Compile Include="Credentials\GitHubCredentials.cs" />
     <Compile Include="IssueSources\GitHubIssue.cs" />
     <Compile Include="IssueSources\GitHubIssueSource.cs" />
+    <Compile Include="ListVariableSources\RefListVariableSource.cs" />
     <Compile Include="Operations\Issues\GitHubCloseIssueOperation.cs" />
     <Compile Include="Operations\Issues\GitHubCreateIssueCommentOperation.cs" />
     <Compile Include="Operations\Issues\GitHubCreateIssueOperation.cs" />
