@@ -16,19 +16,14 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.ListVariableSources
 {
-    [DisplayName("GitHub Repository Reference")]
-    [Description("Branches, tags, or generic references from a GitHub repository.")]
-    public sealed class RefListVariableSource : ListVariableSource, IHasCredentials<GitHubCredentials>
+    [DisplayName("GitHub Branches")]
+    [Description("Branches from a GitHub repository.")]
+    public sealed class BranchListVariableSource : ListVariableSource, IHasCredentials<GitHubCredentials>
     {
         [Persistent]
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
         public string CredentialName { get; set; }
-
-        [Persistent]
-        [ScriptAlias("Type")]
-        [DisplayName("Type")]
-        public RefType? Type { get; set; }
 
         [Persistent]
         [Category("Connection/Identity")]
@@ -77,13 +72,13 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
         {
             var client = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
-            return client.ListRefsAsync(this.OrganizationName, this.RepositoryName, this.Type, CancellationToken.None);
+            return client.ListRefsAsync(this.OrganizationName, this.RepositoryName, RefType.Branch, CancellationToken.None);
         }
 
         public override RichDescription GetDescription()
         {
             var repoName = AH.CoalesceString(this.OrganizationName, this.UserName) + "/" + this.RepositoryName;
-            return new RichDescription("GitHub (", new Hilite(repoName), ") ", this.Type?.ToString() ?? "Reference", " list");
+            return new RichDescription("GitHub (", new Hilite(repoName), ") branches.");
         }
     }
 }
