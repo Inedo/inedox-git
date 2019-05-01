@@ -172,6 +172,22 @@ namespace Inedo.Extensions.GitLab.Clients
             }
         }
 
+        public async Task<IList<string>> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
+                return branchData
+                    .Cast<Dictionary<string, object>>()
+                    .Select(b => b["name"] as string)
+                    .ToList();
+            }
+            catch (Exception ex) when (ex.Message == @"{""message"":""404 Tag Not Found""}")
+            {
+                return null;
+            }
+        }
+
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)

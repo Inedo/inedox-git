@@ -75,6 +75,7 @@
     <Compile Include="Credentials\GitLabCredentials.cs" />
     <Compile Include="IssueSources\GitLabIssue.cs" />
     <Compile Include="IssueSources\GitLabIssueSource.cs" />
+    <Compile Include="ListVariableSources\BranchListVariableSource.cs" />
     <Compile Include="Operations\GitLabEnsureReleaseOperation.cs" />
     <Compile Include="Operations\GitLabGetSourceOperation.cs" />
     <Compile Include="Operations\GitLabTagOperation.cs" />
