@@ -13,6 +13,7 @@ namespace Inedo.Extensions.GitLab.Credentials
     [ScriptAlias("GitLab")]
     [DisplayName("GitLab")]
     [Description("Credentials for GitLab.")]
+    [PersistFrom("Inedo.Extensions.Credentials.GitLabCredentials,GitLab")]
     public sealed class GitLabCredentials : GitCredentialsBase
     {
         [Persistent]
