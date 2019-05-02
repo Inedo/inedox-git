@@ -70,6 +70,8 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
         public override async Task<IEnumerable<string>> EnumerateValuesAsync(ValueEnumerationContext context)
         {
+            this.SetValues();
+
             var client = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
 
             return await client.GetBranchesAsync(this.ProjectName, CancellationToken.None);

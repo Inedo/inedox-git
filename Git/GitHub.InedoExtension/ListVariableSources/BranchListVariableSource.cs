@@ -70,6 +70,8 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
 
         public override Task<IEnumerable<string>> EnumerateValuesAsync(ValueEnumerationContext context)
         {
+            this.SetValues();
+
             var client = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
             return client.ListRefsAsync(this.OrganizationName, this.RepositoryName, RefType.Branch, CancellationToken.None);

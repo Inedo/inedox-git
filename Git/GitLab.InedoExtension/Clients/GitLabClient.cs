@@ -16,6 +16,12 @@ namespace Inedo.Extensions.GitLab.Clients
     {
         public const string GitLabComUrl = "https://gitlab.com/api";
 
+        static GitLabClient()
+        {
+            // Ensure TLS 1.2 is supported. See https://about.gitlab.com/2018/10/15/gitlab-to-deprecate-older-tls/
+            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
+        }
+
         private string apiBaseUrl;
         private static readonly JavaScriptSerializer jsonSerializer = new JavaScriptSerializer();
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
@@ -174,18 +180,11 @@ namespace Inedo.Extensions.GitLab.Clients
 
         public async Task<IList<string>> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
         {
-            try
-            {
-                var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
-                return branchData
-                    .Cast<Dictionary<string, object>>()
-                    .Select(b => b["name"] as string)
-                    .ToList();
-            }
-            catch (Exception ex) when (ex.Message == @"{""message"":""404 Tag Not Found""}")
-            {
-                return null;
-            }
+            var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
+            return branchData
+                .Cast<Dictionary<string, object>>()
+                .Select(b => b["name"] as string)
+                .ToList();
         }
 
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
