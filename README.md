@@ -1,12 +1,45 @@
-# inedox-git
+# Inedo Git Extensions
 
 [![Build status](https://buildmaster.inedo.com/api/ci-badges/image?API_Key=badges&$ApplicationId=5)](https://buildmaster.inedo.com/api/ci-badges/link?API_Key=badges&$ApplicationId=5)
 
-Source control operations for Git.
+This repository has code for three Git extensionsthat enable BuildMaster and Otter to interact with Git repositories:
 
-Source control, release management, and issue tracking integration for GitHub.
+## Git Extension
 
-Source control and issue tracking integration for GitLab.
+ - Cloning/export Git repositories
+ - Tagging source in Git repositories
+ - Git-based rafts (Otter only)
+
+Each extension in this repository also contains the above operations. The following extensions add functionality specific to the hosting provider:
+
+## GitHub Extension
+ 
+ - Issue synchronization (BuildMaster only)
+ - Creating and uploading assets to GitHub releases
+ - Setting CI status
+ - Creating milestones
+ - Creating issues & adding comments
+ - Closing issues
+
+## GitLab Extension
+
+ - Issue synchronization (BuildMaster only)
+ - Creating releases in GitLab
+ - Creating milestones
+ - Creating issues & notes
+ - Closing issues
+
+## Documentation
+
+Documentation for specific operations is available within BuildMaster or Otter once the desired extension is installed. Browse the Documentation page under the User Icon for more information.
+
+### Tutorials
+
+The following tutorials apply to BuildMaster v6.1 or later.
+
+ - [Configuring GitHub Hooks in BuildMaster](https://github.com/Inedo/inedox-git/wiki/Configuring-GitHub-Hooks)
+ - [Configuring GitLab Hooks in BuildMaster](https://github.com/Inedo/inedox-git/wiki/Configuring-GitLab-Hooks)
+
 
 ## Installation Instructions
 
