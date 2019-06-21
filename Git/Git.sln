@@ -5,8 +5,6 @@ VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common", "Common\Common.shproj", "{E7439368-9A13-487F-934F-78C67F9CEE2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Git.InedoExtension", "Git.InedoExtension\Git.InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.InedoExtension", "GitHub.InedoExtension\GitHub.InedoExtension.csproj", "{AA553FE9-1918-4B8A-846A-1821F3485C04}"
@@ -25,10 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4B2BC9C5-EE00-4422-841C-ADCB1F39E69E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
