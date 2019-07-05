@@ -7,7 +7,7 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.Credentials
 {
-    public abstract class GitCredentialsBase : ResourceCredentials
+    public abstract class GitCredentialsBase : CascadedResourceCredentials
     {
         [Persistent]
         [DisplayName("Repository URL")]
