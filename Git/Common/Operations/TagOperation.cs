@@ -9,7 +9,7 @@ using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class TagOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentialsBase, new()
+    public abstract class TagOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentials, new()
     {
         [Required]
         [ScriptAlias("Tag")]

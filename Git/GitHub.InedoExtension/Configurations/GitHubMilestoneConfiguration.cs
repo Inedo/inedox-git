@@ -32,7 +32,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
         [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [MappedCredential(nameof(GitCredentials.UserName))]
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
@@ -40,7 +40,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [ScriptAlias("Password")]
         [DisplayName("Password")]
         [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [MappedCredential(nameof(GitCredentials.Password))]
         public SecureString Password { get; set; }
 
         [Persistent]

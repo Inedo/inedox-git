@@ -1,5 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Security;
+using System.Threading;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensions.Credentials;
@@ -14,7 +16,7 @@ namespace Inedo.Extensions.GitLab.Credentials
     [DisplayName("GitLab")]
     [Description("Credentials for GitLab.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitLabCredentials,GitLab")]
-    public sealed class GitLabCredentials : GitCredentialsBase
+    public sealed class GitLabCredentials : GitCredentials
     {
         [Persistent]
         [DisplayName("API URL")]
@@ -38,7 +40,23 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Undisclosed]
         [Browsable(false)]
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public override string RepositoryUrl { get; set; }
+        public override string RepositoryUrl
+        {
+            get
+            {
+                var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+
+                var project = gitlab.GetProjectAsync(this.ProjectName, CancellationToken.None).Result();
+
+                if (project == null)
+                    throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
+
+                return (string)project["http_url_to_repo"];
+            }
+            set
+            {
+            }
+        }
 
         [Persistent]
         [DisplayName("User name")]

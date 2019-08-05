@@ -6,7 +6,6 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.Git.Credentials;
 using Inedo.Extensions.Operations;
 
 namespace Inedo.Extensions.Git.Operations
@@ -25,7 +24,7 @@ Git::Get-Source(
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GeneralGetSourceOperation : GetSourceOperation<GeneralGitCredentials>
+    public sealed class GeneralGetSourceOperation : GetSourceOperation<GitCredentials>
     {
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
@@ -34,7 +33,7 @@ Git::Get-Source(
         [ScriptAlias("RepositoryUrl")]
         [DisplayName("Repository URL")]
         [PlaceholderText("Use repository from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.RepositoryUrl))]
+        [MappedCredential(nameof(GitCredentials.RepositoryUrl))]
         public string RepositoryUrl { get; set; }
 
         protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)

@@ -11,7 +11,7 @@ using Inedo.Web.Plans.ArgumentEditors;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GetSourceOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentialsBase, new()
+    public abstract class GetSourceOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentials, new()
     {
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]

@@ -1,13 +1,25 @@
 ﻿using System.ComponentModel;
 using System.Security;
 using Inedo.Documentation;
+using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Serialization;
 using Inedo.Web;
 
 namespace Inedo.Extensions.Credentials
 {
-    public abstract class GitCredentialsBase : CascadedResourceCredentials
+    [ScriptAlias("Git")]
+    [DisplayName("Git")]
+    [Description("Generic credentials for Git.")]
+    [PersistFrom("Inedo.Extensions.Credentials.GeneralGitCredentials,Git")]
+    [PersistFrom("Inedo.Extensions.Git.Credentials.GeneralGitCredentials,Git")]
+    [PersistFrom("Inedo.Extensions.Credentials.GitCredentials,Git")]
+    [PersistFrom("Inedo.Extensions.Credentials.GitCredentials,GitHub")]
+    public
+#if !Git
+    abstract
+#endif
+    class GitCredentials : CascadedResourceCredentials
     {
         [Persistent]
         [DisplayName("Repository URL")]

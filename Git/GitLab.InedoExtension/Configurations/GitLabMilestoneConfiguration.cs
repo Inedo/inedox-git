@@ -33,7 +33,7 @@ namespace Inedo.Extensions.GitLab.Configurations
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
         [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [MappedCredential(nameof(GitCredentials.UserName))]
         [IgnoreConfigurationDrift]
         public string UserName { get; set; }
 
@@ -42,7 +42,7 @@ namespace Inedo.Extensions.GitLab.Configurations
         [ScriptAlias("Password")]
         [DisplayName("Password")]
         [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [MappedCredential(nameof(GitCredentials.Password))]
         [IgnoreConfigurationDrift]
         public SecureString Password { get; set; }
 

@@ -1,4 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensions.Credentials;
@@ -13,7 +16,7 @@ namespace Inedo.Extensions.GitHub.Credentials
     [DisplayName("GitHub")]
     [Description("Credentials for GitHub.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitHubCredentials,GitHub")]
-    public sealed class GitHubCredentials : GitCredentialsBase
+    public sealed class GitHubCredentials : GitCredentials
     {
         [Persistent]
         [DisplayName("API URL")]
@@ -37,7 +40,25 @@ namespace Inedo.Extensions.GitHub.Credentials
         [Undisclosed]
         [Browsable(false)]
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public override string RepositoryUrl { get; set; }
+        public override string RepositoryUrl
+        {
+            get
+            {
+                var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+
+                var repo = (from r in github.GetRepositoriesAsync(CancellationToken.None).Result()
+                            where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
+                            select r).FirstOrDefault();
+
+                if (repo == null)
+                    throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
+
+                return (string)repo["clone_url"];
+            }
+            set
+            {
+            }
+        }
 
         public override RichDescription GetDescription()
         {

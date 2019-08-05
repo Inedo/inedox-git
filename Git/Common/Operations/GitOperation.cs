@@ -15,7 +15,7 @@ using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GitOperation<TCredentials> : ExecuteOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
+    public abstract class GitOperation<TCredentials> : ExecuteOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentials, new()
     {
         public abstract string CredentialName { get; set; }
 
@@ -23,14 +23,14 @@ namespace Inedo.Extensions.Operations
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
         [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [MappedCredential(nameof(GitCredentials.UserName))]
         public string UserName { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
         [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [MappedCredential(nameof(GitCredentials.Password))]
         public SecureString Password { get; set; }
 
         [Category("Advanced")]

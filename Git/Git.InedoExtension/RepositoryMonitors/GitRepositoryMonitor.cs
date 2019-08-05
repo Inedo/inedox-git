@@ -11,33 +11,32 @@ using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Extensions.Clients.LibGitSharp.Remote;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.Git.Credentials;
 using Inedo.Serialization;
 
 namespace Inedo.Extensions.Git.RepositoryMonitors
 {
     [DisplayName("Git")]
     [Description("Monitors a Git repository for new commits.")]
-    public sealed class GitRepositoryMonitor : RepositoryMonitor, IHasCredentials<GeneralGitCredentials>
+    public sealed class GitRepositoryMonitor : RepositoryMonitor, IHasCredentials<GitCredentials>
     {
         [Persistent]
         [DisplayName("Repository URL")]
         [PlaceholderText("Use repository from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.RepositoryUrl))]
+        [MappedCredential(nameof(GitCredentials.RepositoryUrl))]
         public string RepositoryUrl { get; set; }
 
         [Persistent]
         [DisplayName("User name")]
         [Category("Connection/Identity")]
         [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [MappedCredential(nameof(GitCredentials.UserName))]
         public string UserName { get; set; }
 
         [Persistent]
         [DisplayName("Password")]
         [Category("Connection/Identity")]
         [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [MappedCredential(nameof(GitCredentials.Password))]
         public SecureString Password { get; set; }
 
         [Persistent]
