@@ -16,7 +16,10 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
         static LibGitSharpClient()
         {
-            GlobalSettings.RegisterFilter(lfsFilter);
+            if (!GlobalSettings.GetRegisteredFilters().Any(f => f.Name == "lfs"))
+            {
+                GlobalSettings.RegisterFilter(lfsFilter);
+            }
         }
 
         public LibGitSharpClient(GitRepositoryInfo repository, ILogSink log)
