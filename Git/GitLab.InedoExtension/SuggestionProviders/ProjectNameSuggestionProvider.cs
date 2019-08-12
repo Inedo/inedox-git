@@ -19,7 +19,9 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
             if (string.IsNullOrEmpty(credentialName))
                 return Enumerable.Empty<string>();
 
-            var credentials = ResourceCredentials.Create<GitLabCredentials>(credentialName);
+            var credentials = GitLabCredentials.TryCreate(credentialName, config);
+            if (credentials == null)
+                return Enumerable.Empty<string>();
 
             string ownerName = AH.CoalesceString(credentials.GroupName, credentials.UserName);
 

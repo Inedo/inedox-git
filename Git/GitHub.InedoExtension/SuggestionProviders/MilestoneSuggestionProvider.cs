@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Web;
@@ -19,7 +18,9 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
             if (string.IsNullOrEmpty(credentialName))
                 return Enumerable.Empty<string>();
 
-            var credentials = ResourceCredentials.Create<GitHubCredentials>(credentialName);
+            var credentials = GitHubCredentials.TryCreate(credentialName, config);
+            if (credentials == null)
+                return Enumerable.Empty<string>();
 
             string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
             string repositoryName = AH.CoalesceString(config["RepositoryName"], credentials.RepositoryName);

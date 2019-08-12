@@ -124,7 +124,7 @@ GitHub::Set-Status (
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            var credentials = string.IsNullOrEmpty(config[nameof(CredentialName)]) ? null : ResourceCredentials.Create<GitHubCredentials>(config[nameof(CredentialName)]);
+            var credentials = string.IsNullOrEmpty(config[nameof(CredentialName)]) ? null : GitHubCredentials.TryCreate(config[nameof(CredentialName)], config);
             var repositoryOwner = AH.CoalesceString(config[nameof(OrganizationName)], credentials?.OrganizationName, config[nameof(UserName)], credentials?.UserName, "(unknown)");
             var repositoryName = AH.CoalesceString(config[nameof(RepositoryName)], credentials?.RepositoryName, "(unknown)");
             return new ExtendedRichDescription(

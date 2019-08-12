@@ -19,7 +19,9 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
             if (string.IsNullOrEmpty(credentialName))
                 return Enumerable.Empty<string>();
 
-            var credentials = ResourceCredentials.Create<GitHubCredentials>(credentialName);
+            var credentials = GitHubCredentials.TryCreate(credentialName, config);
+            if (credentials == null)
+                return Enumerable.Empty<string>();
 
             string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
 
