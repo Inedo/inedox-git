@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
+using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensions.GitHub.Clients;
@@ -54,7 +55,12 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            var credentials = this.TryGetCredentials<GitHubCredentials>();
+            GitHubCredentials credentials = null;
+            if (context is IStandardContext stdcontext)
+                 credentials = this.TryGetCredentials(stdcontext.EnvironmentId, stdcontext.ProjectId) as GitHubCredentials;
+            else
+                credentials = this.TryGetCredentials();
+
             if (credentials == null)
                 throw new InvalidOperationException("Credentials must be supplied to enumerate GitHub issues.");
 
