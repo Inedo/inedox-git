@@ -34,6 +34,7 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
             var names = from m in groups
                         let name = m["full_path"]?.ToString()
                         where !string.IsNullOrEmpty(name)
+                        orderby name
                         select name;
 
             return names;

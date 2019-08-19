@@ -70,7 +70,7 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
         public override async Task<IEnumerable<string>> EnumerateValuesAsync(ValueEnumerationContext context)
         {
-            this.SetValues();
+            this.SetValues(environmentId: null, applicationId: context.ProjectId);
 
             var client = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
 

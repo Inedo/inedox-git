@@ -8,7 +8,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.Clients
 {
@@ -23,9 +24,17 @@ namespace Inedo.Extensions.GitLab.Clients
         }
 
         private string apiBaseUrl;
-        private static readonly JavaScriptSerializer jsonSerializer = new JavaScriptSerializer();
+
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());
+
+        private string EscapeFullProjectPath(string project)
+        {
+            if (!string.IsNullOrEmpty(this.GroupName))
+                return Uri.EscapeDataString(this.GroupName + "/" + project);
+            else
+                return Uri.EscapeDataString(project ?? string.Empty);
+        }
 
         public GitLabClient(string apiBaseUrl, string userName, SecureString password, string groupName)
         {
@@ -42,13 +51,13 @@ namespace Inedo.Extensions.GitLab.Clients
         public string UserName { get; }
         public SecureString Password { get; }
 
-        public async Task<IList<Dictionary<string, object>>> GetGroupsAsync(CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetGroupsAsync(CancellationToken cancellationToken)
         {
             var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/groups?per_page=100", cancellationToken).ConfigureAwait(false);
-            return results.Cast<Dictionary<string, object>>().ToList();
+            return results.Cast<JObject>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetProjectsAsync(CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetProjectsAsync(CancellationToken cancellationToken)
         {
             string uri;
             if (!string.IsNullOrEmpty(this.GroupName))
@@ -57,17 +66,17 @@ namespace Inedo.Extensions.GitLab.Clients
                 uri = $"{this.apiBaseUrl}/v4/projects?owned=true&per_page=100";
 
             var results = await this.InvokePagesAsync("GET", uri, cancellationToken).ConfigureAwait(false);
-            return results.Cast<Dictionary<string, object>>().ToList();
+            return results.Cast<JObject>().ToList();
         }
 
-        public async Task<Dictionary<string, object>> GetProjectAsync(string projectName, CancellationToken cancellationToken)
+        public async Task<JObject> GetProjectAsync(string projectName, CancellationToken cancellationToken)
         {
             try
             {
-                var project = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(projectName)}", cancellationToken).ConfigureAwait(false);
-                return (Dictionary<string, object>)project;
+                var project = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(projectName)}", cancellationToken).ConfigureAwait(false);
+                return (JObject)project;
             }
-            catch (Exception ex) when (ex.Message == @"{""message"":""404 Project Not Found""}")
+            catch (GitLabRestException ex) when (ex.StatusCode == 404)
             {
                 return null;
             }
@@ -76,28 +85,23 @@ namespace Inedo.Extensions.GitLab.Clients
         public async Task<int?> FindUserAsync(string name, CancellationToken cancellationToken)
         {
             var users = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/users?username={Esc(name)}", cancellationToken).ConfigureAwait(false);
-            return (int?)users.Cast<Dictionary<string, object>>().FirstOrDefault()?["id"];
+            return (int?)users.Cast<JObject>().FirstOrDefault()?["id"];
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string repositoryName, GitLabIssueFilter filter, CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetIssuesAsync(string repositoryName, GitLabIssueFilter filter, CancellationToken cancellationToken)
         {
-            var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
-            return issues.Cast<Dictionary<string, object>>().ToList();
+            var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
+            return issues.Cast<JObject>().ToList();
         }
 
-        public async Task<Dictionary<string, object>> GetIssueAsync(string issueId, string repositoryName, CancellationToken cancellationToken)
-        {
-            var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{Esc(issueId)}", cancellationToken).ConfigureAwait(false);
-            return (Dictionary<string, object>)issue;
-        }
         public async Task<int> CreateIssueAsync(string repositoryName, object data, CancellationToken cancellationToken)
         {
-            var issue = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues", data, cancellationToken);
+            var issue = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues", data, cancellationToken);
             return (int)issue["iid"];
         }
         public Task UpdateIssueAsync(int issueId, string repositoryName, object update, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{issueId}", update, cancellationToken);
+            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues/{issueId}", update, cancellationToken);
         }
 
         public async Task<int> CreateMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
@@ -106,7 +110,7 @@ namespace Inedo.Extensions.GitLab.Clients
             if (milestoneId.HasValue)
                 return milestoneId.Value;
 
-            var data = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            var data = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
             return (int)data["id"];
         }
         public async Task CloseMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
@@ -115,16 +119,16 @@ namespace Inedo.Extensions.GitLab.Clients
             if (milestoneId == null)
                 return;
 
-            await this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones/{milestoneId}", new { state_event = "close" }, cancellationToken).ConfigureAwait(false);
+            await this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones/{milestoneId}", new { state_event = "close" }, cancellationToken).ConfigureAwait(false);
         }
         public Task UpdateMilestoneAsync(int milestoneId, string repositoryName, object data, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones/{milestoneId}", data, cancellationToken);
+            return this.InvokeAsync("PUT", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones/{milestoneId}", data, cancellationToken);
         }
 
         public Task CreateCommentAsync(int issueId, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/issues/{Esc(issueId)}/notes", new { body = commentText }, cancellationToken);
+            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues/{issueId}/notes", new { body = commentText }, cancellationToken);
         }
 
         public async Task<int?> FindMilestoneAsync(string title, string repositoryName, CancellationToken cancellationToken)
@@ -133,27 +137,27 @@ namespace Inedo.Extensions.GitLab.Clients
 
             return milestones
                 .Where(m => string.Equals(m["title"]?.ToString() ?? string.Empty, title, StringComparison.OrdinalIgnoreCase))
-                .Select(m => m["id"] as int?)
+                .Select(m => m.Value<int?>("id"))
                 .FirstOrDefault();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string repositoryName, string state, CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetMilestonesAsync(string repositoryName, string state, CancellationToken cancellationToken)
         {
-            var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/milestones?per_page=100{(string.IsNullOrEmpty(state) ? string.Empty : "&state=" + Uri.EscapeDataString(state))}", cancellationToken).ConfigureAwait(false);
+            var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones?per_page=100{(string.IsNullOrEmpty(state) ? string.Empty : "&state=" + Uri.EscapeDataString(state))}", cancellationToken).ConfigureAwait(false);
             if (milestones == null)
-                return new Dictionary<string, object>[0];
+                return new JObject[0];
 
-            return milestones.Cast<Dictionary<string, object>>().ToList();
+            return milestones.Cast<JObject>().ToList();
         }
 
-        public async Task<Dictionary<string, object>> GetTagAsync(string repositoryName, string tag, CancellationToken cancellationToken)
+        public async Task<JObject> GetTagAsync(string repositoryName, string tag, CancellationToken cancellationToken)
         {
             try
             {
-                var tagData = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/tags/{Esc(tag)}", cancellationToken).ConfigureAwait(false);
-                return (Dictionary<string, object>)tagData;
+                var tagData = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/tags/{Esc(tag)}", cancellationToken).ConfigureAwait(false);
+                return (JObject)tagData;
             }
-            catch (Exception ex) when (ex.Message == @"{""message"":""404 Tag Not Found""}")
+            catch (GitLabRestException ex) when (ex.StatusCode == 404)
             {
                 return null;
             }
@@ -161,7 +165,7 @@ namespace Inedo.Extensions.GitLab.Clients
 
         public async Task EnsureReleaseAsync(string repositoryName, string tag, string description, CancellationToken cancellationToken)
         {
-            var uri = $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/tags/{Esc(tag)}/release";
+            var uri = $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/tags/{Esc(tag)}/release";
             var data = new
             {
                 tag_name = tag,
@@ -180,14 +184,15 @@ namespace Inedo.Extensions.GitLab.Clients
 
         public async Task<IList<string>> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
         {
-            var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{Esc(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
+            var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
             return branchData
-                .Cast<Dictionary<string, object>>()
-                .Select(b => b["name"] as string)
+                .Cast<JObject>()
+                .Select(b => b["name"].ToString())
+                .OrderBy(b => b)
                 .ToList();
         }
 
-        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
         {
@@ -217,7 +222,7 @@ namespace Inedo.Extensions.GitLab.Clients
                     using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
                     using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
                     {
-                        await writer.WriteAsync(jsonSerializer.Serialize(data)).ConfigureAwait(false);
+                        JsonSerializer.CreateDefault().Serialize(writer, data);
                     }
                 }
 
@@ -226,9 +231,9 @@ namespace Inedo.Extensions.GitLab.Clients
                     using (var response = await request.GetResponseAsync().ConfigureAwait(false))
                     using (var responseStream = response.GetResponseStream())
                     using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    using (var jsonReader = new JsonTextReader(reader))
                     {
-                        string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        var responseJson = jsonSerializer.DeserializeObject(responseText);
+                        var responseJson = JsonSerializer.CreateDefault().Deserialize(jsonReader);
                         if (allPages)
                         {
                             var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? "");
@@ -247,12 +252,7 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
                 catch (WebException ex) when (ex.Response != null)
                 {
-                    using (var responseStream = ex.Response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                    {
-                        string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        throw new Exception(message, ex);
-                    }
+                    throw GitLabRestException.Wrap(ex, uri);
                 }
             }
         }
@@ -276,6 +276,45 @@ namespace Inedo.Extensions.GitLab.Clients
                 buffer.Append("&labels=").Append(Uri.EscapeDataString(this.Labels));
 
             return buffer.ToString();
+        }
+    }
+
+    internal sealed class GitLabRestException : Exception
+    {
+        public GitLabRestException(int statusCode, string message, Exception inner)
+            : base(message, inner)
+        {
+            this.StatusCode = statusCode;
+        }
+
+        public int StatusCode { get; }
+
+        public string FullMessage => $"The server returned an error ({this.StatusCode}): {this.Message}";
+
+        public static GitLabRestException Wrap(WebException ex, string url)
+        {
+            var response = (HttpWebResponse)ex.Response;
+
+            using (var responseStream = ex.Response.GetResponseStream())
+            using (var reader = new StreamReader(responseStream))
+            using (var jsonReader = new JsonTextReader(reader))
+            {
+                try
+                {
+                    var obj = JObject.ReadFrom(jsonReader);
+                    string errorText = obj["message"].ToString();
+                    return new GitLabRestException((int)response.StatusCode, errorText, ex);
+                }
+                catch
+                {
+                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                        return new GitLabRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.", ex);
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                        return new GitLabRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to '{url}').", ex);
+
+                    throw ex;
+                }
+            }            
         }
     }
 }

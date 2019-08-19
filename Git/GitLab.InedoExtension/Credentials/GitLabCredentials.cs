@@ -10,6 +10,7 @@ using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
+using Inedo.Web.Plans;
 
 namespace Inedo.Extensions.GitLab.Credentials
 {
@@ -70,7 +71,7 @@ namespace Inedo.Extensions.GitLab.Credentials
 
         internal static GitLabCredentials TryCreate(string name, IComponentConfiguration config)
         {
-            int? projectId = AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
+            int? projectId = (config.EditorContext as IOperationEditorContext)?.ProjectId ?? AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
             int? environmentId = AH.ParseInt(config["EnvironmentId"]);
 
             return (GitLabCredentials)ResourceCredentials.TryCreate(GitLabCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);

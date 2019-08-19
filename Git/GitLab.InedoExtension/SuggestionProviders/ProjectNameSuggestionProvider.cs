@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Web;
@@ -33,13 +32,14 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
 
 
             var names = from m in repos
-                        let name = m["path_with_namespace"]?.ToString()
+                        let name = m["path"]?.ToString()
                         where !string.IsNullOrEmpty(name)
+                        orderby name
                         select name;
 
             if (SDK.ProductName == "BuildMaster")
             {
-                names = new[] { $"{ownerName}/$ApplicationName" }.Concat(names);
+                names = new[] { $"$ApplicationName" }.Concat(names);
             }
             return names;
         }

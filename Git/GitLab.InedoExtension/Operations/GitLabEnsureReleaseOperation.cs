@@ -7,6 +7,7 @@ using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Configurations;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.Operations
 {
@@ -29,11 +30,11 @@ namespace Inedo.Extensions.GitLab.Operations
                 return new GitLabReleaseConfiguration { Exists = false };
             }
 
-            var release = (Dictionary<string, object>)tag["release"];
+            var release = (JObject)tag["release"];
             return new GitLabReleaseConfiguration
             {
-                Tag = (string)release["tag_name"],
-                Description = (string)release["description"]
+                Tag = release.Value<string>("tag_name"),
+                Description = release.Value<string>("description")
             };
         }
 

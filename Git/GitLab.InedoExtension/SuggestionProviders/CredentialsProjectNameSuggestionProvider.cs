@@ -32,8 +32,9 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
             var repos = await client.GetProjectsAsync(CancellationToken.None).ConfigureAwait(false);
 
             var names = from m in repos
-                        let name = m["path_with_namespace"]?.ToString()
+                        let name = m["path"]?.ToString()
                         where !string.IsNullOrEmpty(name)
+                        orderby name
                         select name;
 
             return names;

@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Web;
@@ -35,7 +34,9 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
 
             var titles = from m in milestones
                          let title = m["title"]?.ToString()
-                         where !string.IsNullOrEmpty(title)
+                         let iid = m.Value<int?>("iid")
+                         where !string.IsNullOrEmpty(title) && iid.HasValue
+                         orderby iid descending
                          select title;
 
             if (SDK.ProductName == "BuildMaster")

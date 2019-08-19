@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using Inedo.Extensibility.IssueSources;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.IssueSources
 {
     public sealed class GitLabIssue : IIssueTrackerIssue
     {
-        public GitLabIssue(Dictionary<string, object> issue)
+        public GitLabIssue(JObject issue)
         {
             this.Id = issue["iid"].ToString();
             this.Title = issue["title"].ToString();
@@ -18,7 +19,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
             this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
             this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
-            if (issue["author"] is Dictionary<string, object> author)
+            if (issue["author"] is JObject author)
                 this.Submitter = author["username"].ToString();
             this.Url = issue["web_url"].ToString();
         }
