@@ -8,6 +8,8 @@
         EnumerateRemoteBranches,
         IsRepositoryValid,
         Tag,
-        Update
+        Update,
+        ListRepoFiles,
+        GetFileLastModified
     }
 }

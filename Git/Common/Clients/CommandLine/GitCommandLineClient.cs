@@ -168,6 +168,26 @@ namespace Inedo.Extensions.Clients.CommandLine
             return CopyFilesAsync(this.fileOps, this.repository.LocalRepositoryPath, targetDirectory, keepInternals);
         }
 
+        public override async Task<IReadOnlyList<string>> ListRepoFilesAsync()
+        {
+            var args = new GitArgumentsBuilder("ls-files --recurse-submodules");
+            var results = await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
+            return results.Output.ToArray();
+        }
+
+        public override async Task<DateTimeOffset?> GetFileLastModifiedAsync(string fileName)
+        {
+            var args = new GitArgumentsBuilder("log --max-count=1 --pretty=format:%aI --");
+            args.AppendQuoted(fileName);
+            var results = await this.ExecuteCommandLineAsync(args, this.repository.LocalRepositoryPath).ConfigureAwait(false);
+
+            var timestamp = results.Output.FirstOrDefault()?.Trim();
+            if (string.IsNullOrEmpty(timestamp))
+                return null;
+
+            return DateTimeOffset.Parse(timestamp);
+        }
+
         private async Task<ProcessResults> ExecuteCommandLineAsync(GitArgumentsBuilder args, string workingDirectory, bool throwOnFailure = true)
         {
             var startInfo = new RemoteProcessStartInfo

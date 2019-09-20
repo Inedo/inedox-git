@@ -24,6 +24,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         public string Commit { get; set; }
         public string TagMessage { get; set; }
         public GitUpdateOptions UpdateOptions { get; set; }
+        public string FileName { get; set; }
         public bool Force { get; set; }
     }
 }

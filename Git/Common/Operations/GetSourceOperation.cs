@@ -37,6 +37,12 @@ namespace Inedo.Extensions.Operations
         public string CommitHash { get; set; }
 
         [Category("Advanced")]
+        [ScriptAlias("PreserveLastModified")]
+        [DisplayName("Preserve Last Modified Date")]
+        [Description("By default, Git will not set the Last Modified date of files when checking out. Selecting this option may take additional time, depending on the number of files in the repository.")]
+        public bool PreserveLastModified { get; set; }
+
+        [Category("Advanced")]
         [ScriptAlias("KeepInternals")]
         [DisplayName("Copy internal Git files")]
         [Description("When exporting the repository, also export .git* files.")]
@@ -88,7 +94,23 @@ namespace Inedo.Extensions.Operations
 
             this.LogDebug($"Current commit is {this.CommitHash}.");
 
-            await client.ArchiveAsync(context.ResolvePath(this.DiskPath), this.KeepInternals).ConfigureAwait(false);
+            var diskPath = context.ResolvePath(this.DiskPath);
+            await client.ArchiveAsync(diskPath, this.KeepInternals).ConfigureAwait(false);
+
+            if (this.PreserveLastModified)
+            {
+                var fileOps = await context.Agent.GetServiceAsync<IFileOperationsExecuter>().ConfigureAwait(false);
+                var files = await client.ListRepoFilesAsync().ConfigureAwait(false);
+
+                foreach (var file in files)
+                {
+                    var modTime = await client.GetFileLastModifiedAsync(file).ConfigureAwait(false);
+                    if (modTime.HasValue)
+                    {
+                        await fileOps.SetLastWriteTimeAsync(fileOps.CombinePath(diskPath), modTime.Value.UtcDateTime).ConfigureAwait(false);
+                    }
+                }
+            }
 
             this.LogInformation("Get source complete.");
         }
