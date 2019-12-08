@@ -9,66 +9,54 @@ namespace Inedo.Extensions.Git.RaftRepositories
 {
     internal sealed class GitRaftItem2 : RaftItem2
     {
-        private readonly TreeEntry treeEntry;
-        private readonly Lazy<Commit> latestCommit;
-        private readonly GitRaftRepository2 raft;
-        private readonly Commit explicitCommit;
-
         public GitRaftItem2(RaftItemType type, TreeEntry treeEntry, GitRaftRepository2 raft, Commit commit = null)
             : base(type, treeEntry.Name)
         {
-            this.latestCommit = new Lazy<Commit>(this.GetLatestCommit);
-            this.treeEntry = treeEntry;
-            this.raft = raft;
-            this.explicitCommit = commit;
-        }
-
-        public override DateTimeOffset LastWriteTime => this.Commit?.Committer?.When ?? DateTimeOffset.Now;
-        public override string ItemVersion => this.Commit?.Sha;
-        public override string ModifiedByUser => this.Commit?.Committer?.Name;
-        public override long? ItemSize => this.raft.Repo.ObjectDatabase.RetrieveObjectMetadata(this.treeEntry.Target.Id)?.Size;
-
-        private Commit Commit => this.explicitCommit ?? this.latestCommit.Value;
-
-        public override Stream OpenRead()
-        {
-            var blob = this.GetBlob();
-            return blob?.GetContentStream();
-        }
-        public override TextReader OpenTextReader() => new StringReader(this.ReadAllText() ?? string.Empty);
-        public override byte[] ReadAllBytes()
-        {
-            using (var stream = this.OpenRead())
+            if (commit == null)
             {
-                if (stream == null)
-                    return null;
+                var commits = raft.Repo.Commits.QueryBy(treeEntry.Path,
+                    new CommitFilter
+                    {
+                        IncludeReachableFrom = raft.Repo.Branches[raft.CurrentBranchName],
+                        FirstParentOnly = false,
+                        SortBy = CommitSortStrategies.Time,
+                    }
+                );
 
-                using (var buffer = new MemoryStream())
+                commit = commits.FirstOrDefault()?.Commit;
+            }
+
+            this.LastWriteTime = commit.Committer?.When ?? DateTimeOffset.Now;
+            this.ItemVersion = commit.Sha;
+            this.ModifiedByUser = commit.Committer?.Name;
+            this.ItemSize = raft.Repo.ObjectDatabase.RetrieveObjectMetadata(treeEntry.Target.Id)?.Size;
+
+            if (treeEntry.TargetType == TreeEntryTargetType.Blob)
+            {
+                var blob = (Blob)treeEntry.Target;
+
+                using (var temp = new MemoryStream((int)blob.Size))
                 {
-                    stream.CopyTo(buffer);
-                    return buffer.ToArray();
+                    using (var stream = blob.GetContentStream())
+                    {
+                        stream.CopyTo(temp);
+                    }
+
+                    this.Data = temp.ToArray();
                 }
             }
         }
-        public override string ReadAllText()
-        {
-            var blob = this.GetBlob();
-            return blob?.GetContentText(Encoding.UTF8);
-        }
 
-        private Commit GetLatestCommit()
-        {
-            var commits = this.raft.Repo.Commits.QueryBy(this.treeEntry.Path,
-                new CommitFilter
-                {
-                    IncludeReachableFrom = this.raft.Repo.Branches[this.raft.CurrentBranchName],
-                    FirstParentOnly = false,
-                    SortBy = CommitSortStrategies.Time,
-                }
-            );
+        public override DateTimeOffset LastWriteTime { get; }
+        public override string ItemVersion { get; }
+        public override string ModifiedByUser { get; }
+        public override long? ItemSize { get; }
 
-            return commits.FirstOrDefault()?.Commit;
-        }
-        private Blob GetBlob() => this.treeEntry.TargetType == TreeEntryTargetType.Blob ? (Blob)this.treeEntry.Target : null;
+        private byte[] Data { get; }
+
+        public override Stream OpenRead() => new MemoryStream(this.Data, false);
+        public override TextReader OpenTextReader() => new StringReader(this.ReadAllText());
+        public override byte[] ReadAllBytes() => (byte[])this.Data?.Clone();
+        public override string ReadAllText() => Encoding.UTF8.GetString(this.Data);
     }
 }
