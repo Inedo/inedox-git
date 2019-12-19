@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Inedo.Extensibility;
+
+[assembly: AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
 
 [assembly: AssemblyTitle("GitHub")]
 [assembly: AssemblyDescription("Source control and issue tracking integration for GitHub.")]
