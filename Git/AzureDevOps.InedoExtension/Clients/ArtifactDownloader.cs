@@ -16,7 +16,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients
         {
             if (connectionInfo == null)
                 throw new ArgumentNullException(nameof(connectionInfo));
-            if (string.IsNullOrEmpty(connectionInfo.ProjectUrl))
+            if (string.IsNullOrEmpty(connectionInfo.InstanceUrl))
                 throw new InvalidOperationException("The base URL property of the AzureDevOps credentials or the Url property of the Import/Download Azure DevOps Artifact operation must be set.");
 
             this.connectionInfo = connectionInfo;

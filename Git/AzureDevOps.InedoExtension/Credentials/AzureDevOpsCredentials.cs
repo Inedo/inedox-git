@@ -16,27 +16,18 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [Required]
         [Persistent]
         [DisplayName("Instance URL")]
-        [Description("The instance URL (with optional team project); follows the format: https://dev.azure.com/{organization}[/{team-project}]")]
+        [Description("The instance URL, follows the format: https://dev.azure.com/{organization}")]
         public string InstanceUrl { get; set; }
 
         [Persistent(Encrypted = true)]
         [DisplayName("Access token")]
         [FieldEditMode(FieldEditMode.Password)]
+        [Description("A generated personal access token")]
         public SecureString Token { get; set; }
 
-        [Persistent]
-        [DisplayName("Domain")]
-        public string Domain { get; set; }
+        public override RichDescription GetDescription() => new RichDescription(this.UserName);
 
-        public override RichDescription GetDescription()
-        {
-            var desc = new RichDescription(this.UserName);
-            if (!string.IsNullOrEmpty(this.Domain))
-                desc.AppendContent("@", this.Domain);
-            return desc;
-        }
-
-        string IAzureDevOpsConnectionInfo.ProjectUrl => this.InstanceUrl;
-        string IAzureDevOpsConnectionInfo.Token => AH.Unprotect(this.Token);
+        string IAzureDevOpsConnectionInfo.InstanceUrl => this.InstanceUrl;
+        string IAzureDevOpsConnectionInfo.Password => AH.Unprotect(this.Token);
     }
 }

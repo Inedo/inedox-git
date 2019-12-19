@@ -95,13 +95,15 @@
     <Compile Include="ListVariableSources\BuildDefinitionNameVariableSource.cs" />
     <Compile Include="ListVariableSources\ProjectNameVariableSource.cs" />
     <Compile Include="ListVariableSources\AzureDevOpsBuildNumberVariableSource.cs" />
-    <Compile Include="Operations\CreateWorkItemOperation.cs" />
-    <Compile Include="Operations\DownloadAzureDevOpsArtifactOperation.cs" />
-    <Compile Include="Operations\ImportAzureDevOpsArtifactOperation.cs" />
-    <Compile Include="Operations\QueueAzureDevOpsBuildOperation.cs" />
-    <Compile Include="Operations\RemoteTfsOperation.cs" />
+    <Compile Include="Operations\Source\AzureDevOpsGetSourceOperation.cs" />
+    <Compile Include="Operations\Source\AzureDevOpsTagOperation.cs" />
+    <Compile Include="Operations\Issues\CreateWorkItemOperation.cs" />
+    <Compile Include="Operations\Builds\DownloadAzureDevOpsArtifactOperation.cs" />
+    <Compile Include="Operations\Builds\ImportAzureDevOpsArtifactOperation.cs" />
+    <Compile Include="Operations\Builds\QueueAzureDevOpsBuildOperation.cs" />
+    <Compile Include="Operations\RemoteAzureDevOpsOperation.cs" />
     <Compile Include="Operations\AzureDevOpsOperation.cs" />
-    <Compile Include="Operations\UpdateWorkItemOperation.cs" />
+    <Compile Include="Operations\Issues\UpdateWorkItemOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SuggestionProviders\ArtifactNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\BuildDefinitionNameSuggestionProvider.cs" />
@@ -109,7 +111,7 @@
     <Compile Include="SuggestionProviders\IterationPathSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\ProjectNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\WorkItemTypeSuggestionProvider.cs" />
-    <Compile Include="VariableFunctions\TfsDefaultServerNameVariableFunction.cs" />
+    <Compile Include="VariableFunctions\AzureDevOpsDefaultServerNameVariableFunction.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

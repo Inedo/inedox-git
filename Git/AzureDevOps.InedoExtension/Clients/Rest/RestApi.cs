@@ -275,9 +275,9 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         {
             string apiBaseUrl;
             if (string.IsNullOrEmpty(project))
-                apiBaseUrl = $"{this.connectionInfo.ProjectUrl}/_apis/";
+                apiBaseUrl = $"{this.connectionInfo.InstanceUrl}/_apis/";
             else
-                apiBaseUrl = $"{this.connectionInfo.ProjectUrl}/{Uri.EscapeUriString(project)}/_apis/";
+                apiBaseUrl = $"{this.connectionInfo.InstanceUrl}/{Uri.EscapeUriString(project)}/_apis/";
 
             string url = apiBaseUrl + relativeUrl + query.ToString();
 
@@ -328,14 +328,13 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         {
             if (!string.IsNullOrEmpty(this.connectionInfo.UserName))
             {
-                string fullName = string.IsNullOrEmpty(this.connectionInfo.Domain) ? this.connectionInfo.UserName : $"{this.connectionInfo.Domain}\\{this.connectionInfo.UserName}";
-                this.log?.LogDebug($"Authenticating as '{fullName}'...");
-                request.Credentials = new NetworkCredential(fullName, this.connectionInfo.Token);
+                this.log?.LogDebug($"Authenticating as '{this.connectionInfo.UserName}'...");
+                request.Credentials = new NetworkCredential(this.connectionInfo.UserName, this.connectionInfo.Password);
 
                 // local installations can return file:/// URLs which result in FileWebRequest instances that do not allow headers
                 if (request is HttpWebRequest)
                 {
-                    request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(fullName + ":" + this.connectionInfo.Token));
+                    request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.connectionInfo.UserName + ":" + this.connectionInfo.Password));
                 }
             }
             else

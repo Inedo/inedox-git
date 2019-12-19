@@ -22,7 +22,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         [DisplayName("Project collection URL")]
         [PlaceholderText("Use team project from credentials")]
         [MappedCredential(nameof(AzureDevOpsCredentials.InstanceUrl))]
-        public string ProjectUrl { get; set; }
+        public string InstanceUrl { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
@@ -32,17 +32,10 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         public string UserName { get; set; }
 
         [Category("Connection/Identity")]
-        [ScriptAlias("Password")]
-        [DisplayName("Password / token")]
-        [PlaceholderText("Use password/token from credentials")]
+        [ScriptAlias("Token")]
+        [DisplayName("Personal access token")]
+        [PlaceholderText("Use access token from credentials")]
         [MappedCredential(nameof(AzureDevOpsCredentials.Token))]
-        public string Token { get; set; }
-
-        [Category("Connection/Identity")]
-        [ScriptAlias("Domain")]
-        [DisplayName("Domain name")]
-        [PlaceholderText("Use domain from credentials")]
-        [MappedCredential(nameof(AzureDevOpsCredentials.Domain))]
-        public string Domain { get; set; }
+        public string Password { get; set; }
     }
 }

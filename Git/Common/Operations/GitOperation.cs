@@ -28,8 +28,9 @@ namespace Inedo.Extensions.Operations
 
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
+        [ScriptAlias("Token")]
         [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
+        [PlaceholderText("Use password/token from credentials")]
         [MappedCredential(nameof(GitCredentialsBase.Password))]
         public SecureString Password { get; set; }
 
