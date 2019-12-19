@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.InedoExtension", "Gi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.InedoExtension", "GitLab.InedoExtension\GitLab.InedoExtension.csproj", "{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureDevOps.InedoExtension", "AzureDevOps.InedoExtension\AzureDevOps.InedoExtension\AzureDevOps.InedoExtension.csproj", "{5CEBA506-1CC9-455F-8C47-865E8C11818F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureDevOps.InedoExtension", "AzureDevOps.InedoExtension\AzureDevOps.InedoExtension.csproj", "{5CEBA506-1CC9-455F-8C47-865E8C11818F}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
