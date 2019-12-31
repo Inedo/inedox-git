@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
@@ -36,6 +37,6 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         [DisplayName("Personal access token")]
         [PlaceholderText("Use access token from credentials")]
         [MappedCredential(nameof(AzureDevOpsCredentials.Token))]
-        public string Password { get; set; }
+        public SecureString Token { get; set; }
     }
 }

@@ -25,9 +25,24 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [Description("A generated personal access token")]
         public SecureString Token { get; set; }
 
-        public override RichDescription GetDescription() => new RichDescription(this.UserName);
+        [Persistent]
+        [Undisclosed]
+        [Browsable(false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override string RepositoryUrl { get; set; }
 
-        string IAzureDevOpsConnectionInfo.InstanceUrl => this.InstanceUrl;
-        string IAzureDevOpsConnectionInfo.Password => AH.Unprotect(this.Token);
+        [Persistent]
+        [Undisclosed]
+        [Browsable(false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override string UserName { get; set; }
+
+        [Persistent]
+        [Undisclosed]
+        [Browsable(false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public override SecureString Password => this.Token;
+
+        public override RichDescription GetDescription() => new RichDescription(this.InstanceUrl);
     }
 }

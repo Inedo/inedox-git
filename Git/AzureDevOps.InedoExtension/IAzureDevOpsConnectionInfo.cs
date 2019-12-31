@@ -1,9 +1,10 @@
-﻿namespace Inedo.Extensions.AzureDevOps
+﻿using System.Security;
+
+namespace Inedo.Extensions.AzureDevOps
 {
     internal interface IAzureDevOpsConnectionInfo
     {
-        string UserName { get; }
-        string Password { get; }
         string InstanceUrl { get; }
+        SecureString Token { get; }
     }
 }

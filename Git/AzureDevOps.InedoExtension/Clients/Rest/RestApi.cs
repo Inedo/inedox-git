@@ -234,7 +234,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         private async Task<Stream> DownloadStreamAsync(string url)
         {
-            var request = WebRequest.Create(url);
+            var request = WebRequest.CreateHttp(url);
             var httpRequest = request as HttpWebRequest;
             if (httpRequest != null)
                 httpRequest.UserAgent = "BuildMasterAzureDevOpsExtension/" + typeof(RestApi).Assembly.GetName().Version.ToString();
@@ -281,7 +281,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
             string url = apiBaseUrl + relativeUrl + query.ToString();
 
-            var request = WebRequest.Create(url);
+            var request = WebRequest.CreateHttp(url);
             var httpRequest = request as HttpWebRequest;
             if (httpRequest != null)
                 httpRequest.UserAgent = "BuildMasterAzureDevOpsExtension/" + typeof(RestApi).Assembly.GetName().Version.ToString();
@@ -305,6 +305,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             {
                 using (var response = await request.GetResponseAsync().ConfigureAwait(false))
                 {
+                    
                     return DeserializeJson<T>(response);
                 }
             }
@@ -320,26 +321,29 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             using (var reader = new StreamReader(responseStream))
             using (var jsonReader = new JsonTextReader(reader))
             {
-                return JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+                try
+                {
+                    return JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+                }
+                catch (JsonReaderException ex)
+                {
+                    int code = (int?)(response as HttpWebResponse)?.StatusCode ?? 500;
+                    throw new AzureDevOpsRestException(code, "Unable to parse API response, this is likely due to authentication " +
+                        $"redirects. Ensure a valid personal access token is configured in the resource credentials. Status code: {code}", ex);
+                }
             }
         }
 
-        private void SetCredentials(WebRequest request)
+        private void SetCredentials(HttpWebRequest request)
         {
-            if (!string.IsNullOrEmpty(this.connectionInfo.UserName))
+            if (this.connectionInfo.Token != null)
             {
-                this.log?.LogDebug($"Authenticating as '{this.connectionInfo.UserName}'...");
-                request.Credentials = new NetworkCredential(this.connectionInfo.UserName, this.connectionInfo.Password);
-
-                // local installations can return file:/// URLs which result in FileWebRequest instances that do not allow headers
-                if (request is HttpWebRequest)
-                {
-                    request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.connectionInfo.UserName + ":" + this.connectionInfo.Password));
-                }
+                this.log?.LogDebug($"Setting Authorization header to token value...");
+                request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(":" + AH.Unprotect(this.connectionInfo.Token)));
             }
             else
             {
-                this.log?.LogDebug("No username specified, no authorization header will be sent.");
+                this.log?.LogDebug("No personal access token specified, no authorization header will be sent.");
             }
         }
     }
