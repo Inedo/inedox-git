@@ -2,7 +2,7 @@
 
 [![Build status](https://buildmaster.inedo.com/api/ci-badges/image?API_Key=badges&$ApplicationId=5)](https://buildmaster.inedo.com/api/ci-badges/link?API_Key=badges&$ApplicationId=5)
 
-This repository has code for three Git extensionsthat enable BuildMaster and Otter to interact with Git repositories:
+This repository has code for four Git extensions that enable BuildMaster and/or Otter to interact with Git repositories:
 
 ## Git Extension
 
@@ -20,6 +20,8 @@ Each extension in this repository also contains the above operations. The follow
  - Creating milestones
  - Creating issues & adding comments
  - Closing issues
+ 
+Refer to the [GitHub BuildMaster documentation](https://docs.inedo.com/docs/buildmaster/integrations/github) for more information.
 
 ## GitLab Extension
 
@@ -28,18 +30,21 @@ Each extension in this repository also contains the above operations. The follow
  - Creating milestones
  - Creating issues & notes
  - Closing issues
+ 
+Refer to the [GitLab BuildMaster documentation](https://docs.inedo.com/docs/buildmaster/integrations/gitlab for more information.
+ 
+## Azure DevOps Extension
+
+ - Issue (work item) synchronization (BuildMaster only)
+ - Creating work items
+ - Download/import build artifacts
+ - Queue builds
+ 
+Refer to the [Azure DevOps BuildMaster documentation](https://docs.inedo.com/docs/buildmaster/integrations/azure-devops) for more information.
 
 ## Documentation
 
 Documentation for specific operations is available within BuildMaster or Otter once the desired extension is installed. Browse the Documentation page under the User Icon for more information.
-
-### Tutorials
-
-The following tutorials apply to BuildMaster v6.1 or later.
-
- - [Configuring GitHub Hooks in BuildMaster](https://github.com/Inedo/inedox-git/wiki/Configuring-GitHub-Hooks)
- - [Configuring GitLab Hooks in BuildMaster](https://github.com/Inedo/inedox-git/wiki/Configuring-GitLab-Hooks)
-
 
 ## Installation Instructions
 

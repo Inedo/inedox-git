@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common", "Common\Common.shproj", "{E7439368-9A13-487F-934F-78C67F9CEE2F}"
 EndProject
@@ -11,8 +11,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHub.InedoExtension", "Gi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitLab.InedoExtension", "GitLab.InedoExtension\GitLab.InedoExtension.csproj", "{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureDevOps.InedoExtension", "AzureDevOps.InedoExtension\AzureDevOps.InedoExtension.csproj", "{5CEBA506-1CC9-455F-8C47-865E8C11818F}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Common\Common.projitems*{5ceba506-1cc9-455f-8c47-865e8c11818f}*SharedItemsImports = 4
 		Common\Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 4
 		Common\Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 4
 		Common\Common.projitems*{e7439368-9a13-487f-934f-78c67f9cee2f}*SharedItemsImports = 13
@@ -35,6 +38,10 @@ Global
 		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
