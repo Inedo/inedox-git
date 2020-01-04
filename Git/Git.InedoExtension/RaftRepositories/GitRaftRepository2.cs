@@ -62,7 +62,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         private string LocalRepositoryPath => this.localRepoPath.Value;
         private bool Dirty { get; set; }
-        private bool AutoSync => (this.OpenOptions & OpenRaftOptions.NoAutoSync) == 0;
         private string RepositoryRoot { get; set; }
 
         public override RichDescription GetDescription()
@@ -287,18 +286,15 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     repo.Refs.UpdateTarget(repo.Refs[branch.CanonicalName], commit.Id);
                 }
 
-                if (this.AutoSync)
-                {
-                    this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
+                this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
 
-                    this.Repo.Network.Push(
-                        this.Repo.Branches[this.CurrentBranchName],
-                        new PushOptions
-                        {
-                            CredentialsProvider = this.CredentialsHandler
-                        }
-                    );
-                }
+                this.Repo.Network.Push(
+                    this.Repo.Branches[this.CurrentBranchName],
+                    new PushOptions
+                    {
+                        CredentialsProvider = this.CredentialsHandler
+                    }
+                );
             }
         }
 
@@ -341,7 +337,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 {
                     var repository = new Repository(this.LocalRepositoryPath);
 
-                    if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl) && this.AutoSync)
+                    if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                     {
                         Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
                         if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
@@ -461,7 +457,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         private IEnumerable<RaftItem2> GetRaftItemsInternal(RaftItemType? type)
         {
             if (this.disposed)
-                throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
+                throw new ObjectDisposedException(nameof(GitRaftRepository2));
 
             var repo = this.lazyRepository.Value;
             var tip = repo.Branches[this.CurrentBranchName]?.Tip;
@@ -506,8 +502,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 ReadOnly = this.ReadOnly,
                 RepositoryRoot = this.RepositoryRoot,
                 RaftId = this.RaftId,
-                RaftName = this.RaftName,
-                OpenOptions = this.OpenOptions
+                RaftName = this.RaftName
             };
         }
     }
