@@ -75,7 +75,7 @@ GitLab::Get-Source(
 
             return new ExtendedRichDescription(
                new RichDescription("Get GitLab Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new Hilite(config[nameof(this.DiskPath)]))
+               new RichDescription("from ", new Hilite(source), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }
