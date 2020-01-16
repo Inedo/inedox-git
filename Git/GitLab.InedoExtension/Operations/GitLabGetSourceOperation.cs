@@ -85,7 +85,7 @@ GitLab::Get-Source(
 
                 if (resource != null)
                 {
-                    var gitlab = new GitLabClient(resource, this.conte);
+                    var gitlab = new GitLabClient(resource);
                     project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
                 }
             }
