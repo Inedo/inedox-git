@@ -55,11 +55,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            GitHubCredentials credentials = null;
-            if (context is IStandardContext stdcontext)
-                 credentials = this.TryGetCredentials(stdcontext.EnvironmentId, stdcontext.ProjectId) as GitHubCredentials;
-            else
-                credentials = this.TryGetCredentials();
+            var credentials = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitHubCredentials;
 
             if (credentials == null)
                 throw new InvalidOperationException("Credentials must be supplied to enumerate GitHub issues.");

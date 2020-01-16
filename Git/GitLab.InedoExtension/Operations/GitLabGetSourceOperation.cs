@@ -9,7 +9,9 @@ using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
+using Inedo.Serialization;
 using Inedo.Web;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.Operations
 {
@@ -29,11 +31,17 @@ GitLab::Get-Source(
 ")]
     public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
+        [DisplayName("Legacy Credentials")]
         public override string CredentialName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Group")]
         [DisplayName("Group name")]
         [MappedCredential(nameof(GitLabCredentials.GroupName))]
@@ -41,7 +49,7 @@ GitLab::Get-Source(
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
         [MappedCredential(nameof(GitLabCredentials.ProjectName))]
@@ -49,7 +57,7 @@ GitLab::Get-Source(
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
         [PlaceholderText(GitLabClient.GitLabComUrl)]
@@ -59,9 +67,33 @@ GitLab::Get-Source(
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
         {
-            var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+            JObject project = null;
+            if (string.IsNullOrEmpty(this.ProjectName)) // not mapped credential
+            {
+                var resName = AH.CoalesceString(this.CredentialName, this.ResourceName);
+                GitLabSecureResource resource = null;
+                foreach (var info in SDK.GetSecureResources())
+                {
+                    try
+                    {
+                        resource = Persistence.DeserializeFromPersistedObjectXml(info.Configuration) as GitLabSecureResource;
+                        if (resource != null)
+                            break;
+                    }
+                    catch { continue; }
+                }
 
-            var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
+                if (resource != null)
+                {
+                    var gitlab = new GitLabClient(resource, this.conte);
+                    project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+                project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
+            }
 
             if (project == null)
                 throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");

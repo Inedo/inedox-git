@@ -5,6 +5,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -16,7 +17,7 @@ namespace Inedo.Extensions.GitLab.Credentials
 {
     [ScriptAlias(GitLabCredentials.TypeName)]
     [DisplayName("GitLab")]
-    [Description("Credentials for GitLab.")]
+    [Description("(Legacy) Resource Credentials for GitLab.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitLabCredentials,GitLab")]
     public sealed class GitLabCredentials : GitCredentialsBase
     {
@@ -83,5 +84,17 @@ namespace Inedo.Extensions.GitLab.Credentials
 
             return (GitLabCredentials)ResourceCredentials.TryCreate(GitLabCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
         }
+
+        public override SecureResource ToSecureResource() => new GitLabSecureResource
+        {
+            ApiUrl = this.ApiUrl,
+            GroupName = this.GroupName,
+            ProjectName = this.ProjectName
+        };
+        public override SecureCredentials ToSecureCredentials() => new GitLabSecureCredentials
+        {
+            UserName = this.UserName,
+            PersonalAccessToken = this.Password
+        };
     }
 }

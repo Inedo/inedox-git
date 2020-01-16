@@ -55,11 +55,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            GitLabCredentials credentials = null;
-            if (context is IStandardContext stdcontext)
-                 credentials = this.TryGetCredentials(stdcontext.EnvironmentId, stdcontext.ProjectId) as GitLabCredentials;
-            else
-                credentials = this.TryGetCredentials();
+            var credentials = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitLabCredentials;
 
             if (credentials == null)
                 throw new InvalidOperationException("Credentials must be supplied to enumerate GitLab issues.");
