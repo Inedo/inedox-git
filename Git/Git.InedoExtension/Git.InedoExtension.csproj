@@ -65,6 +65,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Credentials\GeneralGitCredentials.cs" />
+    <Compile Include="Credentials\GitSecureResource.cs" />
+    <Compile Include="IGitConfiguration.cs" />
     <Compile Include="Operations\GeneralGetSourceOperation.cs" />
     <Compile Include="Operations\GeneralTagOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -74,6 +76,7 @@
     <Compile Include="RaftRepositories\GitRaftRepositoryBase.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryCommit.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryMonitor.cs" />
+    <Compile Include="SuggestionProviders\GitSecureResourceSuggestionProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">

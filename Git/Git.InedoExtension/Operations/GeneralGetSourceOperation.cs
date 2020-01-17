@@ -7,7 +7,9 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Git.Credentials;
+using Inedo.Extensions.Git.SuggestionProviders;
 using Inedo.Extensions.Operations;
+using Inedo.Web;
 
 namespace Inedo.Extensions.Git.Operations
 {
@@ -25,8 +27,13 @@ Git::Get-Source(
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GeneralGetSourceOperation : GetSourceOperation<GeneralGitCredentials>
+    public sealed class GeneralGetSourceOperation : GetSourceOperation<GeneralGitCredentials>, IGitConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
         public override string CredentialName { get; set; }
@@ -39,7 +46,9 @@ Git::Get-Source(
 
         protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            return Task.FromResult(this.RepositoryUrl);
+            var (credentials, resource) = this.GetCredentialsAndResource(context);
+            var url = AH.CoalesceString(resource.RepositoryUrl, this.RepositoryUrl);
+            return Task.FromResult(url);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
