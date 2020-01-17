@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Configurations;
@@ -21,9 +22,10 @@ namespace Inedo.Extensions.GitLab.Operations
     {
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
-            var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
 
-            var tag = await gitlab.GetTagAsync(this.Template.ProjectName, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
+            var tag = await gitlab.GetTagAsync(resource.ProjectName, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
 
             if (tag == null || !tag.ContainsKey("release") || tag["release"] == null)
             {

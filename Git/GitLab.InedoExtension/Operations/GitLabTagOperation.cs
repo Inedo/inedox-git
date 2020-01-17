@@ -58,7 +58,7 @@ GitLab::Tag(
         [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
             var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
 

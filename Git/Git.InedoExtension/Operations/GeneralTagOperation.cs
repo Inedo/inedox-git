@@ -37,7 +37,7 @@ Git::Tag(
         [MappedCredential(nameof(GitCredentialsBase.RepositoryUrl))]
         public string RepositoryUrl { get; set; }
 
-        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
+        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
             return Task.FromResult(this.RepositoryUrl);
         }

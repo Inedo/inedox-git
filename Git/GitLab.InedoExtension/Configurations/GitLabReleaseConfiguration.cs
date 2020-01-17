@@ -11,6 +11,7 @@ using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
+using Inedo.Extensions.GitLab.Operations;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -19,9 +20,15 @@ namespace Inedo.Extensions.GitLab.Configurations
 {
     [Serializable]
     [DisplayName("GitLab Release")]
-    public sealed class GitLabReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>
+    public sealed class GitLabReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>, IGitLabConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [Persistent]
+        [Category("Connection/Identity")]
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
         [IgnoreConfigurationDrift]
@@ -66,7 +73,7 @@ namespace Inedo.Extensions.GitLab.Configurations
         public string ProjectName { get; set; }
 
         [Persistent]
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
         [PlaceholderText(GitLabClient.GitLabComUrl)]

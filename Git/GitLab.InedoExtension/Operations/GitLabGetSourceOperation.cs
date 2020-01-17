@@ -30,7 +30,7 @@ GitLab::Get-Source(
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>, IGitLabOperation
+    public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>, IGitLabConfiguration
     {
         [ScriptAlias("From")]
         [DisplayName("From resource")]
@@ -42,7 +42,7 @@ GitLab::Get-Source(
         [DisplayName("Legacy Credentials")]
         public override string CredentialName { get; set; }
 
-        [Category("Connection/Identity")]
+        [Category("GitLab")]
         [ScriptAlias("Group")]
         [DisplayName("Group name")]
         [MappedCredential(nameof(GitLabCredentials.GroupName))]
@@ -50,7 +50,7 @@ GitLab::Get-Source(
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
-        [Category("Connection/Identity")]
+        [Category("GitLab")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
         [MappedCredential(nameof(GitLabCredentials.ProjectName))]
@@ -66,38 +66,11 @@ GitLab::Get-Source(
         [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-#warning use GitLabClient.TryCreate(this, applicationId, environmentId);
-            //var gitlab = GitLabClient.TryCreate(this, applicationId, environmentId);
-            JObject project = null;
-            if (string.IsNullOrEmpty(this.ProjectName)) // not mapped credential
-            {
-                var resName = AH.CoalesceString(this.CredentialName, this.ResourceName);
-                GitLabSecureResource resource = null;
-                foreach (var info in SDK.GetSecureResources())
-                {
-                    try
-                    {
-                        resource = Persistence.DeserializeFromPersistedObjectXml(info.Configuration) as GitLabSecureResource;
-                        if (resource != null)
-                            break;
-                    }
-                    catch { continue; }
-                }
-
-                if (resource != null)
-                {
-                    var gitlab = new GitLabClient(resource, environmentId, applicationId);
-                    project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
-                project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
-            }
-
+            var (credentials, resource) = this.GetCredentialsAndResource(context);
+            var gitlab = new GitLabClient(credentials, resource);
+            var project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
             if (project == null)
                 throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
 

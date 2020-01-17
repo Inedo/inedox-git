@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
@@ -40,7 +41,7 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken).ConfigureAwait(false);
+            string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken, context as ICredentialResolutionContext).ConfigureAwait(false);
             if (string.IsNullOrEmpty(repositoryUrl))
             {
                 this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");

@@ -92,6 +92,6 @@ namespace Inedo.Extensions.Operations
             }
         }
 
-        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId = null, int? applicationId = null);
+        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context);
     }
 }
