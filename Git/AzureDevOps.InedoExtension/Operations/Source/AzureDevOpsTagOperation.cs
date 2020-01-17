@@ -50,7 +50,7 @@ AzureDevOps::Tag
         [PlaceholderText("Use instance URL from credentials")]
         public string InstanceUrl { get; set; }
 
-        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
+        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
         {
             string url = $"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName)}";
             return Task.FromResult(url);

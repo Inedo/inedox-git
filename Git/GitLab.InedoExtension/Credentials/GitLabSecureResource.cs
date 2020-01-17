@@ -1,4 +1,5 @@
-﻿using Inedo.Documentation;
+﻿using Inedo.Diagnostics;
+using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
@@ -38,6 +39,19 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Required]
         public string ProjectName { get; set; }
 
-        public new SecureCredentials GetCredentials(int? environmentId, int? applicationId) => base.GetCredentials(environmentId, applicationId);
+        public override RichDescription GetDescription()
+        {
+            var host = "GitLab.com";
+            if (!string.IsNullOrWhiteSpace(this.ApiUrl))
+            {
+                if (Uri.TryCreate(this.ApiUrl, UriKind.Absolute, out var uri))
+                    host = uri.Host;
+                else
+                    host = "(unknown)";
+            }
+
+            var group = string.IsNullOrEmpty(this.GroupName) ? "" : $"{this.GroupName}\\";
+            return new RichDescription($"{group}{this.ProjectName} @ {host}");
+        }
     }
 }

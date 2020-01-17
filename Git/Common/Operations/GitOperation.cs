@@ -17,6 +17,12 @@ namespace Inedo.Extensions.Operations
 {
     public abstract class GitOperation<TCredentials> : ExecuteOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
     {
+        string IHasCredentials.CredentialName
+        {
+            get => this.CredentialName;
+            set => this.CredentialName = value;
+        }
+
         public abstract string CredentialName { get; set; }
 
         [Category("Connection/Identity")]
@@ -86,6 +92,6 @@ namespace Inedo.Extensions.Operations
             }
         }
 
-        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken);
+        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId = null, int? applicationId = null);
     }
 }

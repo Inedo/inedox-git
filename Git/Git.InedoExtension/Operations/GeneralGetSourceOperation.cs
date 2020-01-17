@@ -37,7 +37,7 @@ Git::Get-Source(
         [MappedCredential(nameof(GitCredentialsBase.RepositoryUrl))]
         public string RepositoryUrl { get; set; }
 
-        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
+        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
         {
             return Task.FromResult(this.RepositoryUrl);
         }

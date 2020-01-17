@@ -1,4 +1,9 @@
-﻿using System;
+﻿using Inedo.Extensibility.SecureResources;
+using Inedo.Extensions.GitLab.Credentials;
+using Inedo.Extensions.GitLab.Operations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,10 +13,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitLab.Credentials;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.Clients
 {
@@ -37,7 +38,21 @@ namespace Inedo.Extensions.GitLab.Clients
             else
                 return Uri.EscapeDataString(project ?? string.Empty);
         }
-
+        public static GitLabClient TryCreate(IGitLabOperation operation, int? applicationId, int? environmentId)
+        {
+            // ProjectName could be set directly (via OtterScript) or indirectly (via legacy ResourceCredential)
+            if (string.IsNullOrEmpty(operation.ProjectName))
+            {
+                // for backwards-compatibility, treat the LegacyResourceCredentialName as a ResourceName
+                var resourcename = AH.CoalesceString(operation.CredentialName, operation.ResourceName);
+                var resource = SecureResource.TryCreate(resourcename, applicationId) as GitLabSecureResource;
+                return new GitLabClient(resource, environmentId, applicationId);
+            }
+            else
+            {
+                return new GitLabClient(operation.ApiUrl, operation.UserName, operation.Password, operation.GroupName);
+            }
+        }
         public GitLabClient(string apiBaseUrl, string userName, SecureString password, string groupName)
         {
             if (!string.IsNullOrEmpty(userName) && password == null)
@@ -49,10 +64,9 @@ namespace Inedo.Extensions.GitLab.Clients
             this.GroupName = AH.NullIf(groupName, string.Empty);
         }
 
-        public GitLabClient(GitLabSecureResource resource)
+        public GitLabClient(GitLabSecureResource resource, int? environmentId = null, int? applicationId = null)
         {
-#warning this should take into consideration environment and application
-            var creds = resource.GetCredentials(null, null) as GitLabSecureCredentials;
+            var creds = resource.GetCredentials(environmentId, applicationId) as GitLabSecureCredentials;
             this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
             this.UserName = creds?.UserName;
             this.Password = creds?.PersonalAccessToken;

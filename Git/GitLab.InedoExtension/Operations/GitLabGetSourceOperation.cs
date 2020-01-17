@@ -8,6 +8,7 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
+using Inedo.Extensions.GitLab.Operations;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -29,7 +30,7 @@ GitLab::Get-Source(
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>
+    public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>, IGitLabOperation
     {
         [ScriptAlias("From")]
         [DisplayName("From resource")]
@@ -65,8 +66,10 @@ GitLab::Get-Source(
         [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
         {
+#warning use GitLabClient.TryCreate(this, applicationId, environmentId);
+            //var gitlab = GitLabClient.TryCreate(this, applicationId, environmentId);
             JObject project = null;
             if (string.IsNullOrEmpty(this.ProjectName)) // not mapped credential
             {
@@ -85,7 +88,7 @@ GitLab::Get-Source(
 
                 if (resource != null)
                 {
-                    var gitlab = new GitLabClient(resource);
+                    var gitlab = new GitLabClient(resource, environmentId, applicationId);
                     project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
                 }
             }

@@ -59,7 +59,7 @@ GitHub::Get-Source(
         [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
         public string ApiUrl { get; set; }
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
+        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, int? environmentId, int? applicationId)
         {
             var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
