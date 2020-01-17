@@ -85,6 +85,8 @@
     <Compile Include="Clients\Rest\AzureDevOpsWorkItem.cs" />
     <Compile Include="Clients\ArtifactImporter.cs" />
     <Compile Include="Credentials\AzureDevOpsCredentials.cs" />
+    <Compile Include="Credentials\AzureDevOpsSecureCredentials.cs" />
+    <Compile Include="Credentials\AzureDevOpsSecureResource.cs" />
     <Compile Include="IssueSources\AzureDevOpsIssueSource.cs" />
     <Compile Include="IAzureDevOpsConnectionInfo.cs" />
     <Compile Include="ListVariableSources\BuildDefinitionNameVariableSource.cs" />
@@ -103,6 +105,7 @@
     <Compile Include="SuggestionProviders\ArtifactNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\BuildDefinitionNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\BuildNumberSuggestionProvider.cs" />
+    <Compile Include="SuggestionProviders\AzureDevOpsSecureResourceSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\IterationPathSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\ProjectNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\WorkItemTypeSuggestionProvider.cs" />

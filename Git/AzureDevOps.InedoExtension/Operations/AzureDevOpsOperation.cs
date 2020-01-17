@@ -5,14 +5,21 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Credentials;
+using Inedo.Extensions.AzureDevOps.SuggestionProviders;
+using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
-    public abstract class AzureDevOpsOperation : ExecuteOperation, IHasCredentials<AzureDevOpsCredentials>, IAzureDevOpsConnectionInfo
+    public abstract class AzureDevOpsOperation : ExecuteOperation, IHasCredentials<AzureDevOpsCredentials>, IAzureDevOpsConfiguration
     {
         private protected AzureDevOpsOperation()
         {
         }
+
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(AzureDevOpsSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
 
         public abstract string CredentialName { get; set; }
 
