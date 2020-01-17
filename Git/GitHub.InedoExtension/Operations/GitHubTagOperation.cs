@@ -29,8 +29,13 @@ GitHub::Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GitHubTagOperation : TagOperation<GitHubCredentials>
+    public sealed class GitHubTagOperation : TagOperation<GitHubCredentials>, IGitHubConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitHubSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
         public override string CredentialName { get; set; }
@@ -61,7 +66,8 @@ GitHub::Tag(
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context);
+            var github = new GitHubClient(credentials, resource);
 
             var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
                         where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)

@@ -42,7 +42,8 @@ namespace Inedo.Extensions.GitLab.Operations
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
-            var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
 
             await gitlab.EnsureReleaseAsync(this.Template.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
         }

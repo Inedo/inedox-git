@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -49,7 +50,8 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
             var data = new Dictionary<string, object> { ["title"] = this.Title };
             if (this.AdditionalProperties != null)
                 foreach (var p in this.AdditionalProperties)

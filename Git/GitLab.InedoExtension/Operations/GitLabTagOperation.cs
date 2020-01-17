@@ -28,8 +28,13 @@ GitLab::Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GitLabTagOperation : TagOperation<GitLabCredentials>
+    public sealed class GitLabTagOperation : TagOperation<GitLabCredentials>, IGitLabConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]
         public override string CredentialName { get; set; }
@@ -60,7 +65,8 @@ GitLab::Tag(
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context);
+            var gitlab = new GitLabClient(credentials, resource);
 
             var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
 

@@ -89,7 +89,8 @@ GitHub::Set-Status (
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var client = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var client = new GitHubClient(credentials, resource);
 
             var url = $"{SDK.BaseUrl.TrimEnd('/')}/executions/execution-in-progress?executionId={context.ExecutionId}";
             var statusContext = "ci/" + SDK.ProductName.ToLower() + AH.ConcatNE("/", this.AdditionalContext);

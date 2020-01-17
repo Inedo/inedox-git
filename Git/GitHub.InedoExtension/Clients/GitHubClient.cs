@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using Inedo.Extensions.GitHub.Credentials;
 using Inedo.IO;
 
 namespace Inedo.Extensions.GitHub.Clients
@@ -43,6 +44,14 @@ namespace Inedo.Extensions.GitHub.Clients
             this.UserName = userName;
             this.Password = password;
             this.OrganizationName = AH.NullIf(organizationName, string.Empty);
+        }
+
+        public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
+        {
+            this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
+            this.UserName = credentials.UserName;
+            this.Password = credentials.Password;
+            this.OrganizationName = AH.NullIf(resource.OrganizationName, string.Empty);
         }
 
         public string OrganizationName { get; }

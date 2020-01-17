@@ -12,8 +12,13 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.Operations
 {
-    public abstract class GitHubOperationBase : ExecuteOperation, IHasCredentials<GitHubCredentials>
+    public abstract class GitHubOperationBase : ExecuteOperation, IHasCredentials<GitHubCredentials>, IGitHubConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitHubSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [DisplayName("Credentials")]
         [ScriptAlias("Credentials")]
         public string CredentialName { get; set; }

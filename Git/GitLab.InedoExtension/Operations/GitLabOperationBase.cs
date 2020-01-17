@@ -12,10 +12,16 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.Operations
 {
-    public abstract class GitLabOperationBase : ExecuteOperation, IHasCredentials<GitLabCredentials>
+    public abstract class GitLabOperationBase : ExecuteOperation, IHasCredentials<GitLabCredentials>, IGitLabConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
+        [DisplayName("Legacy credentials")]
         public string CredentialName { get; set; }
 
         [Category("Connection/Identity")]

@@ -6,6 +6,7 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.IO;
@@ -62,7 +63,8 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
                 return;
             }
 
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
 
             var ownerName = AH.CoalesceString(this.OrganizationName, this.UserName);
 

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Configurations;
@@ -21,7 +22,8 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
     {
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
-            var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
             var milestones = await github.GetMilestonesAsync(AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName), this.Template.RepositoryName, null, context.CancellationToken).ConfigureAwait(false);
             var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
             if (milestone == null)
@@ -44,7 +46,8 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
-            var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
             var number = await github.CreateMilestoneAsync(this.Template.Title, AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName), this.Template.RepositoryName, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };

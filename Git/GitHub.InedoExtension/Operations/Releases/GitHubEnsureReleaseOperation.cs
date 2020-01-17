@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Configurations;
@@ -19,7 +20,8 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
     {
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
-            var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
 
             var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
 
@@ -43,7 +45,8 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
-            var github = new GitHubClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.OrganizationName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
 
             var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
 

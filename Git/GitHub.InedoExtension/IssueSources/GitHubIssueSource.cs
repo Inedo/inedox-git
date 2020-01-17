@@ -8,6 +8,7 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -20,10 +21,16 @@ namespace Inedo.Extensions.GitHub.IssueSources
     [Description("Issue source for GitHub.")]
     public sealed class GitHubIssueSource : IssueSource, IHasCredentials<GitHubCredentials>
     {
+        string IHasCredentials.CredentialName { get; set; }
+
         [Required]
         [Persistent]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
+        [DisplayName("Resource name")]
+        public string CredentialName
+        {
+            get => this.ResourceName;
+            set => this.ResourceName = value;
+        }
 
         [Persistent]
         [DisplayName("Repository name")]
@@ -55,18 +62,21 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            var credentials = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitHubCredentials;
+            var rc = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitHubCredentials;
+            var credContext = new CredentialResolutionContext(context.ProjectId, null);
+            var resource = (GitHubSecureResource)(rc?.ToSecureResource() ?? SecureResource.TryCreate(this.ResourceName, credContext));
+            var credentials = (GitHubSecureCredentials)(rc?.ToSecureCredentials() ?? SecureCredentials.TryCreate(this.CredentialName, credContext));
 
             if (credentials == null)
                 throw new InvalidOperationException("Credentials must be supplied to enumerate GitHub issues.");
 
-            string repositoryName = AH.CoalesceString(this.RepositoryName, credentials.RepositoryName);
+            string repositoryName = AH.CoalesceString(this.RepositoryName, resource.RepositoryName);
             if (string.IsNullOrEmpty(repositoryName))
                 throw new InvalidOperationException("A repository name must be defined in either the issue source or associated GitHub credentials in order to enumerate GitHub issues.");
 
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
-            
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
+            var client = new GitHubClient(credentials, resource);
+
+            string ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 
             var filter = new GitHubIssueFilter
             {

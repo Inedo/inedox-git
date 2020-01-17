@@ -19,8 +19,13 @@ namespace Inedo.Extensions.GitHub.Configurations
 {
     [Serializable]
     [DisplayName("GitHub Release")]
-    public sealed class GitHubReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>
+    public sealed class GitHubReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>, IGitHubConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitHubSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [Persistent]
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]

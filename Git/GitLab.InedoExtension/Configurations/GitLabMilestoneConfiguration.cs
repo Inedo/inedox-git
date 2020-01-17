@@ -12,6 +12,7 @@ using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Editors;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
+using Inedo.Extensions.GitLab.Operations;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -20,8 +21,13 @@ namespace Inedo.Extensions.GitLab.Configurations
 {
     [Serializable]
     [DisplayName("GitLab Milestone")]
-    public sealed class GitLabMilestoneConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>
+    public sealed class GitLabMilestoneConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>, IGitLabConfiguration
     {
+        [ScriptAlias("From")]
+        [DisplayName("From resource")]
+        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        public string ResourceName { get; set; }
+
         [Persistent]
         [ScriptAlias("Credentials")]
         [DisplayName("Credentials")]

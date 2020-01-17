@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Configurations;
@@ -21,7 +22,8 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
     {
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
-            var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
             var milestones = await gitlab.GetMilestonesAsync(this.Template.ProjectName, null, context.CancellationToken).ConfigureAwait(false);
             var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
             if (milestone == null)
@@ -45,7 +47,8 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
 
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
-            var gitlab = new GitLabClient(this.Template.ApiUrl, this.Template.UserName, this.Template.Password, this.Template.GroupName);
+            var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
             var id = await gitlab.CreateMilestoneAsync(this.Template.Title, this.Template.ProjectName, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };
