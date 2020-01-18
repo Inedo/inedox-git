@@ -57,7 +57,7 @@ Git::Get-Source(
 
             return new ExtendedRichDescription(
                new RichDescription("Get Git Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new DirectoryHilite(config[nameof(this.DiskPath)]))
+               new RichDescription("from ", new Hilite(source), " to ", new DirectoryHilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }
