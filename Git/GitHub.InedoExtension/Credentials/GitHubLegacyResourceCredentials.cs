@@ -13,11 +13,12 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.Credentials
 {
-    [ScriptAlias(GitHubCredentials.TypeName)]
+    [ScriptAlias(GitHubLegacyResourceCredentials.TypeName)]
     [DisplayName("GitHub")]
     [Description("Credentials for GitHub.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitHubCredentials,GitHub")]
-    public sealed class GitHubCredentials : GitCredentialsBase
+    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubCredentials,GitHub")]
+    public sealed class GitHubLegacyResourceCredentials : GitCredentialsBase
     {
         public const string TypeName = "GitHub";
 
@@ -30,13 +31,11 @@ namespace Inedo.Extensions.GitHub.Credentials
         [Persistent]
         [DisplayName("Organization name")]
         [PlaceholderText("e.g. apache")]
-        [SuggestableValue(typeof(CredentialsOrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Persistent]
         [DisplayName("Repository")]
         [PlaceholderText("e.g. log4net")]
-        [SuggestableValue(typeof(CredentialsRepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
         
         [Persistent]
@@ -54,27 +53,27 @@ namespace Inedo.Extensions.GitHub.Credentials
             return desc;            
         }
 
-        internal static GitHubCredentials TryCreate(string name, ValueEnumerationContext context)
+        internal static GitHubLegacyResourceCredentials TryCreate(string name, ValueEnumerationContext context)
         {
-            return (GitHubCredentials)ResourceCredentials.TryCreate(GitHubCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
+            return (GitHubLegacyResourceCredentials)ResourceCredentials.TryCreate(GitHubLegacyResourceCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
         }
 
-        internal static GitHubCredentials TryCreate(string name, IComponentConfiguration config)
-        {
-            int? projectId = AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
-            int? environmentId = AH.ParseInt(config["EnvironmentId"]);
-
-            return (GitHubCredentials)ResourceCredentials.TryCreate(GitHubCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
-        }
-        internal static GitHubCredentials TryCreate(string name, IOperationConfiguration config)
+        internal static GitHubLegacyResourceCredentials TryCreate(string name, IComponentConfiguration config)
         {
             int? projectId = AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
             int? environmentId = AH.ParseInt(config["EnvironmentId"]);
 
-            return (GitHubCredentials)ResourceCredentials.TryCreate(GitHubCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
+            return (GitHubLegacyResourceCredentials)ResourceCredentials.TryCreate(GitHubLegacyResourceCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
+        }
+        internal static GitHubLegacyResourceCredentials TryCreate(string name, IOperationConfiguration config)
+        {
+            int? projectId = AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
+            int? environmentId = AH.ParseInt(config["EnvironmentId"]);
+
+            return (GitHubLegacyResourceCredentials)ResourceCredentials.TryCreate(GitHubLegacyResourceCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
         }
 
-        public override SecureCredentials ToSecureCredentials() => new GitHubSecureCredentials
+        public override SecureCredentials ToSecureCredentials() => this.UserName == null ? null : new GitHubSecureCredentials
         {
             UserName = this.UserName,
             Password = this.Password

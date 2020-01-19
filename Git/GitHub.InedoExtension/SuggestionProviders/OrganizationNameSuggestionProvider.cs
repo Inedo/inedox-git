@@ -14,24 +14,12 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
     {
         public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
-            var credentialName = config[nameof(IHasCredentials.CredentialName)];
-
-            if (string.IsNullOrEmpty(credentialName))
+            var (credentials, resource) = config.GetCredentialsAndResource();
+            if (resource == null)
                 return Enumerable.Empty<string>();
 
-            var credentials = GitHubCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
-
-            if (string.IsNullOrEmpty(ownerName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
-
+            var client = new GitHubClient(resource.ApiUrl, credentials?.UserName, credentials?.Password, resource.OrganizationName);
             var orgs = await client.GetOrganizationsAsync(CancellationToken.None).ConfigureAwait(false);
-
             var names = from m in orgs
                         let name = m["login"]?.ToString()
                         where !string.IsNullOrEmpty(name)

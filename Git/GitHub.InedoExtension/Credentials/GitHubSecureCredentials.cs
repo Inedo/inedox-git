@@ -17,7 +17,7 @@ namespace Inedo.Extensions.GitHub.Credentials
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
-        [DisplayName("Personal access token")]
+        [DisplayName("Password or Personal access token")]
         [FieldEditMode(FieldEditMode.Password)]
         [Required]
         public SecureString Password { get; set; }

@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using Inedo.Extensibility;
+using Inedo.Extensions.GitHub.Clients;
+using Inedo.Web;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
-using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
@@ -14,28 +12,17 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
     {
         public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
-            var credentialName = config[nameof(IHasCredentials.CredentialName)];
-
-            if (string.IsNullOrEmpty(credentialName))
+            var (credentials, resource) = config.GetCredentialsAndResource();
+            if (resource == null || credentials == null)
                 return Enumerable.Empty<string>();
 
-            var credentials = GitHubCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
+            var client = new GitHubClient(resource.ApiUrl, credentials?.UserName, credentials?.Password, resource.OrganizationName);
 
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
-
-            if (string.IsNullOrEmpty(ownerName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
             var repos = await client.GetRepositoriesAsync(CancellationToken.None).ConfigureAwait(false);
-
             var names = from m in repos
                         let name = m["name"]?.ToString()
                         where !string.IsNullOrEmpty(name)
                         select name;
-
             return names;
         }
     }

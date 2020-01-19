@@ -29,39 +29,33 @@ GitHub::Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GitHubTagOperation : TagOperation<GitHubCredentials>, IGitHubConfiguration
+    public sealed class GitHubTagOperation : TagOperation, IGitHubConfiguration
     {
         [ScriptAlias("From")]
-        [DisplayName("From resource")]
-        [SuggestableValue(typeof(GitHubSecureResourceSuggestionProvider))]
+        [ScriptAlias("Credentials")]
+        [DisplayName("From GitHub resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
         public string ResourceName { get; set; }
 
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Organization")]
         [DisplayName("Organization name")]
-        [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
-        [PlaceholderText("Use organization from credentials")]
+        [PlaceholderText("Use organization from Github resource")]
         [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Repository")]
         [DisplayName("Repository name")]
-        [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
-        [PlaceholderText("Use repository from credentials")]
+        [PlaceholderText("Use repository from Github resource")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
         [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
+        [Description("Use URL from Github resource.")]
         public string ApiUrl { get; set; }
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)

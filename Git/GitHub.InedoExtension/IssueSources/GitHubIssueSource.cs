@@ -19,19 +19,8 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Issue Source")]
     [Description("Issue source for GitHub.")]
-    public sealed class GitHubIssueSource : IssueSource, IHasCredentials<GitHubCredentials>
+    public sealed class GitHubIssueSource : IssueSource, IMissingPersistentPropertyHandler
     {
-        string IHasCredentials.CredentialName { get; set; }
-
-        [Required]
-        [Persistent]
-        [DisplayName("Resource name")]
-        public string CredentialName
-        {
-            get => this.ResourceName;
-            set => this.ResourceName = value;
-        }
-
         [Persistent]
         [DisplayName("Repository name")]
         [PlaceholderText("Use repository name from credentials")]
@@ -60,15 +49,27 @@ namespace Inedo.Extensions.GitHub.IssueSources
             + "<pre>milestone=none&amp;assignee=BuildMasterUser&amp;state=all</pre>")]
         public string CustomFilterQueryString { get; set; }
 
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
+
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            var rc = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitHubCredentials;
-            var credContext = new CredentialResolutionContext(context.ProjectId, null);
-            var resource = (GitHubSecureResource)(rc?.ToSecureResource() ?? SecureResource.TryCreate(this.ResourceName, credContext));
-            var credentials = (GitHubSecureCredentials)(rc?.ToSecureCredentials() ?? SecureCredentials.TryCreate(this.CredentialName, credContext));
-
-            if (credentials == null)
-                throw new InvalidOperationException("Credentials must be supplied to enumerate GitHub issues.");
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
+                if (rc != null)
+                {
+                    resource = (GitHubSecureResource)rc.ToSecureResource();
+                    credentials = (GitHubSecureCredentials)rc.ToSecureCredentials();
+                }
+            }
+            if (resource == null)
+                throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");
 
             string repositoryName = AH.CoalesceString(this.RepositoryName, resource.RepositoryName);
             if (string.IsNullOrEmpty(repositoryName))

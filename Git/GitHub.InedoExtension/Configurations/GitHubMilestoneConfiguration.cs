@@ -20,59 +20,57 @@ namespace Inedo.Extensions.GitHub.Configurations
 {
     [Serializable]
     [DisplayName("GitHub Milestone")]
-    public sealed class GitHubMilestoneConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>, IGitHubConfiguration
+    public sealed class GitHubMilestoneConfiguration : PersistedConfiguration, IExistential, IGitHubConfiguration, IMissingPersistentPropertyHandler
     {
+        [Persistent]
         [ScriptAlias("From")]
-        [DisplayName("From resource")]
-        [SuggestableValue(typeof(GitHubSecureResourceSuggestionProvider))]
+        [ScriptAlias("Credentials")]
+        [DisplayName("From GitHub resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
         public string ResourceName { get; set; }
 
-        [Persistent]
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
 
         [Persistent]
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [PlaceholderText("Use user name from GitHub resource's credentials")]
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [PlaceholderText("Use password from GitHub resource's credentials")]
         public SecureString Password { get; set; }
 
         [Persistent]
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Organization")]
         [DisplayName("Organization name")]
-        [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
-        [PlaceholderText("Use organization from credentials")]
+        [PlaceholderText("Use organization from Github resource")]
         [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Persistent]
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Repository")]
         [DisplayName("Repository name")]
-        [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
-        [PlaceholderText("Use repository from credentials")]
+        [PlaceholderText("Use repository from Github resource")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         [Persistent]
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
         [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
+        [Description("Use URL from Github resource.")]
         public string ApiUrl { get; set; }
 
         [Required]

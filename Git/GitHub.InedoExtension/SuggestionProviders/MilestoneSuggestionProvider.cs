@@ -13,24 +13,16 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
     {
         public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
-            var credentialName = config["CredentialName"];
+            var (credentials, resource) = config.GetCredentialsAndResource();
+            if (resource == null)
+                return Enumerable.Empty<string>();
+            var client = new GitHubClient(resource.ApiUrl, credentials?.UserName, credentials?.Password, resource.OrganizationName);
 
-            if (string.IsNullOrEmpty(credentialName))
+            string ownerName = AH.CoalesceString(resource.OrganizationName, credentials?.UserName);
+            if (string.IsNullOrEmpty(ownerName))
                 return Enumerable.Empty<string>();
 
-            var credentials = GitHubCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
-            string repositoryName = AH.CoalesceString(config["RepositoryName"], credentials.RepositoryName);
-
-            if (string.IsNullOrEmpty(ownerName) || string.IsNullOrEmpty(repositoryName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
-
-            var milestones = await client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
+            var milestones = await client.GetMilestonesAsync(ownerName, resource.RepositoryName, "open", CancellationToken.None).ConfigureAwait(false);
 
             var titles = from m in milestones
                          let title = m["title"]?.ToString()

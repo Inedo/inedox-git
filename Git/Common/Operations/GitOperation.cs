@@ -15,16 +15,12 @@ using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GitOperation<TCredentials> : ExecuteOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
+    public abstract class GitOperation<TCredentials> : GitOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
     {
-        string IHasCredentials.CredentialName
-        {
-            get => this.CredentialName;
-            set => this.CredentialName = value;
-        }
-
         public abstract string CredentialName { get; set; }
-
+    }
+    public abstract class GitOperation : ExecuteOperation
+    {
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
         [DisplayName("User name")]

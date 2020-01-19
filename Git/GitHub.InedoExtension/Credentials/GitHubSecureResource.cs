@@ -29,13 +29,13 @@ namespace Inedo.Extensions.GitHub.Credentials
         [Persistent]
         [DisplayName("Organization name")]
         [PlaceholderText("e.g. apache")]
-        [SuggestableValue(typeof(CredentialsOrganizationNameSuggestionProvider))]
+        [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
         [Persistent]
         [DisplayName("Repository")]
         [PlaceholderText("e.g. log4net")]
-        [SuggestableValue(typeof(CredentialsRepositoryNameSuggestionProvider))]
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         public override RichDescription GetDescription()
