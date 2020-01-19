@@ -49,8 +49,8 @@ namespace Inedo.Extensions.GitHub.Clients
         public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
         {
             this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
-            this.UserName = credentials.UserName;
-            this.Password = credentials.Password;
+            this.UserName = credentials?.UserName;
+            this.Password = credentials?.Password;
             this.OrganizationName = AH.NullIf(resource.OrganizationName, string.Empty);
         }
 
