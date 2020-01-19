@@ -24,14 +24,14 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var github = new GitHubClient(credentials, resource);
-            await github.UpdateIssueAsync(this.IssueNumber, AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, new { state = "closed" }, context.CancellationToken).ConfigureAwait(false);
+            await github.UpdateIssueAsync(this.IssueNumber, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, new { state = "closed" }, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Close GitHub issue #", new Hilite(config[nameof(IssueNumber)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(RepositoryName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

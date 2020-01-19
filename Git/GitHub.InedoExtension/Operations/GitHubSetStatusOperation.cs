@@ -120,17 +120,14 @@ GitHub::Set-Status (
             }
 
             this.LogInformation($"Assigning '{this.Status}' status to the commit on GitHub...");
-            await client.CreateStatusAsync(AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, this.CommitHash, this.Status.ToString(), url, this.Description, statusContext, context.CancellationToken).ConfigureAwait(false);
+            await client.CreateStatusAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, this.CommitHash, this.Status.ToString(), url, this.Description, statusContext, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            var credentials = string.IsNullOrEmpty(config[nameof(CredentialName)]) ? null : GitHubCredentials.TryCreate(config[nameof(CredentialName)], config);
-            var repositoryOwner = AH.CoalesceString(config[nameof(OrganizationName)], credentials?.OrganizationName, config[nameof(UserName)], credentials?.UserName, "(unknown)");
-            var repositoryName = AH.CoalesceString(config[nameof(RepositoryName)], credentials?.RepositoryName, "(unknown)");
             return new ExtendedRichDescription(
                 new RichDescription("Set build status on GitHub commit ", new Hilite(config[nameof(CommitHash)]), " to ", new Hilite(config[nameof(Status)])),
-                new RichDescription("in repository ", new Hilite(repositoryOwner), "/", new Hilite(repositoryName))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

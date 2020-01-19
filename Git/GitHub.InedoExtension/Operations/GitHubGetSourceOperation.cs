@@ -70,22 +70,20 @@ GitHub::Get-Source(
             var github = new GitHubClient(credentials, resource);
 
             var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                       where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
+                       where string.Equals((string)r["name"], resource.RepositoryName, StringComparison.OrdinalIgnoreCase)
                        select r).FirstOrDefault();
 
             if (repo == null)
-                throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
+                throw new InvalidOperationException($"Repository '{resource.RepositoryName}' not found on GitHub.");
 
             return (string)repo["clone_url"];
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Get GitHub Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
+               new RichDescription("from ", new Hilite(config.DescribeSource()), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }

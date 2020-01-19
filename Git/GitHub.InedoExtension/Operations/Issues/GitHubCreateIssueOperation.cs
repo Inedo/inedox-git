@@ -52,15 +52,15 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
             if (this.Assignees != null)
                 data.Add("assignees", this.Assignees);
             if (!string.IsNullOrEmpty(this.Milestone))
-                data.Add("milestone", await github.CreateMilestoneAsync(this.Milestone, AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, context.CancellationToken));
-            this.IssueNumber = await github.CreateIssueAsync(AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, data, context.CancellationToken).ConfigureAwait(false);
+                data.Add("milestone", await github.CreateMilestoneAsync(this.Milestone, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, context.CancellationToken));
+            this.IssueNumber = await github.CreateIssueAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Create issue titled ", new Hilite(config[nameof(Title)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(RepositoryName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", config.DescribeSource())
             );
         }
     }

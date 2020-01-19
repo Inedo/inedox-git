@@ -30,7 +30,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var github = new GitHubClient(credentials, resource);
-            await github.CreateCommentAsync(this.IssueNumber, AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, this.Body, context.CancellationToken).ConfigureAwait(false);
+            await github.CreateCommentAsync(this.IssueNumber, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, this.Body, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
@@ -38,7 +38,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
             return new ExtendedRichDescription(
                 new RichDescription("Add comment to GitHub issue #", new Hilite(config[nameof(IssueNumber)])),
                 new RichDescription(
-                    "in ", new Hilite(AH.CoalesceString(config[nameof(RepositoryName)], config[nameof(CredentialName)])),
+                    "in ", new Hilite(config.DescribeSource()),
                     " starting with ", new Hilite(config[nameof(Body)])
                 )
             );

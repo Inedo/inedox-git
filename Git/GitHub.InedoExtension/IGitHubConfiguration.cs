@@ -5,6 +5,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Credentials;
 
@@ -23,6 +24,14 @@ namespace Inedo.Extensions.GitHub
 
     internal static class GitHubOperationExtensions
     {
+        public static string DescribeSource(this IOperationConfiguration config)
+        {
+            //var credentials = string.IsNullOrEmpty(config[nameof(CredentialName)]) ? null : GitHubCredentials.TryCreate(config[nameof(CredentialName)], config);
+            //var repositoryOwner = AH.CoalesceString(config[nameof(OrganizationName)], credentials?.OrganizationName, config[nameof(UserName)], credentials?.UserName, "(unknown)");
+            //var repositoryName = AH.CoalesceString(config[nameof(RepositoryName)], credentials?.RepositoryName, "(unknown)");
+            return AH.CoalesceString(config[nameof(IGitHubConfiguration.RepositoryName)], config[nameof(IGitHubConfiguration.CredentialName)], config[nameof(IGitHubConfiguration.ResourceName)]);
+        }
+
         public static (GitHubSecureCredentials, GitHubSecureResource) GetCredentialsAndResource(this IGitHubConfiguration operation, ICredentialResolutionContext context)
         {
             // ProjectName could be set directly (via OtterScript) or indirectly (via legacy ResourceCredential)

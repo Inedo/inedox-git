@@ -70,21 +70,19 @@ GitHub::Tag(
             var github = new GitHubClient(credentials, resource);
 
             var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                        where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
+                        where string.Equals((string)r["name"], resource.RepositoryName, StringComparison.OrdinalIgnoreCase)
                         select r).FirstOrDefault();
 
             if (repo == null)
-                throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
+                throw new InvalidOperationException($"Repository '{resource.RepositoryName}' not found on GitHub.");
 
             return (string)repo["clone_url"];
         }
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Tag GitHub Source"),
-               new RichDescription("in ", new Hilite(source), " with ", new Hilite(config[nameof(this.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " with ", new Hilite(config[nameof(this.Tag)]))
             );
         }
     }

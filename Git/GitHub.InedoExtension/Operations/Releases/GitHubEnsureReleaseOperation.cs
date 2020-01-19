@@ -23,9 +23,9 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var github = new GitHubClient(credentials, resource);
 
-            var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
+            var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 
-            var release = await github.GetReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, context.CancellationToken);
+            var release = await github.GetReleaseAsync(ownerName, resource.RepositoryName, this.Template.Tag, context.CancellationToken);
 
             if (release == null)
             {
@@ -48,18 +48,16 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var github = new GitHubClient(credentials, resource);
 
-            var ownerName = AH.CoalesceString(this.Template.OrganizationName, this.Template.UserName);
+            var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 
-            await github.EnsureReleaseAsync(ownerName, this.Template.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease, context.CancellationToken).ConfigureAwait(false);
+            await github.EnsureReleaseAsync(ownerName, resource.RepositoryName, this.Template.Tag, this.Template.Target, this.Template.Title, this.Template.Description, this.Template.Draft, this.Template.Prerelease, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.Template.RepositoryName)], config[nameof(this.Template.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Ensure GitHub Release"),
-               new RichDescription("in ", new Hilite(source), " for tag ", new Hilite(config[nameof(this.Template.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " for tag ", new Hilite(config[nameof(this.Template.Tag)]))
             );
         }
     }
