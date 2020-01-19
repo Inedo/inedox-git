@@ -4,6 +4,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -72,5 +73,17 @@ namespace Inedo.Extensions.GitHub.Credentials
 
             return (GitHubCredentials)ResourceCredentials.TryCreate(GitHubCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
         }
+
+        public override SecureCredentials ToSecureCredentials() => new GitHubSecureCredentials
+        {
+            UserName = this.UserName,
+            Password = this.Password
+        };
+        public override SecureResource ToSecureResource() => new GitHubSecureResource
+        {
+            ApiUrl = this.ApiUrl,
+            OrganizationName = this.OrganizationName,
+            RepositoryName = this.RepositoryName
+        };
     }
 }

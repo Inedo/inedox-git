@@ -2,6 +2,8 @@
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -44,5 +46,15 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         public override SecureString Password => this.Token;
 
         public override RichDescription GetDescription() => new RichDescription(this.InstanceUrl);
+
+        public override SecureCredentials ToSecureCredentials() => new AzureDevOpsSecureCredentials
+        {
+            UserName = this.UserName,
+            Token = this.Token
+        };
+        public override SecureResource ToSecureResource() => new AzureDevOpsSecureResource
+        {
+            InstanceUrl = this.InstanceUrl
+        };
     }
 }
