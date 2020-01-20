@@ -1,15 +1,16 @@
-﻿using Inedo.Documentation;
-using Inedo.Extensibility.Credentials;
+﻿using System.ComponentModel;
+using System.Security;
+using Inedo.Documentation;
+using Inedo.Extensions.Credentials;
 using Inedo.Serialization;
 using Inedo.Web;
-using System.ComponentModel;
-using System.Security;
+using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
 namespace Inedo.Extensions.GitHub.Credentials
 {
     [DisplayName("GitHub Account")]
     [Description("Use an account on GitHub account to connect to GitHub resources")]
-    public sealed class GitHubSecureCredentials : SecureCredentials
+    public sealed class GitHubSecureCredentials : GitSecureCredentialsBase
     {
         [Persistent]
         [DisplayName("User name")]
@@ -23,5 +24,11 @@ namespace Inedo.Extensions.GitHub.Credentials
         public SecureString Password { get; set; }
 
         public override RichDescription GetDescription() => new RichDescription(this.UserName);
+
+        public override UsernamePasswordCredentials ToUsernamePassword() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
+        {
+            UserName = this.UserName,
+            Password = this.Password
+        };
     }
 }

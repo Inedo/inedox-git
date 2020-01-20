@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
@@ -12,11 +13,6 @@ using Inedo.Web.Plans.ArgumentEditors;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GetSourceOperation<TCredentials> : GetSourceOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
-    {
-        public abstract string CredentialName { get; set; }
-
-    }
     public abstract class GetSourceOperation : GitOperation
     {
         [ScriptAlias("DiskPath")]

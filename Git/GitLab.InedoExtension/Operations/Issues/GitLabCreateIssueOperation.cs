@@ -63,15 +63,15 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             if (this.Assignees != null)
                 data.Add("assignee_ids", (await Task.WhenAll(this.Assignees.Select(name => gitlab.FindUserAsync(name, context.CancellationToken))).ConfigureAwait(false)).Where(id => id.HasValue));
             if (!string.IsNullOrEmpty(this.Milestone))
-                data.Add("milestone_id", await gitlab.CreateMilestoneAsync(this.Milestone, this.ProjectName, context.CancellationToken).ConfigureAwait(false));
-            this.IssueId = await gitlab.CreateIssueAsync(this.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
+                data.Add("milestone_id", await gitlab.CreateMilestoneAsync(this.Milestone, resource.ProjectName, context.CancellationToken).ConfigureAwait(false));
+            this.IssueId = await gitlab.CreateIssueAsync(resource.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Create issue titled ", new Hilite(config[nameof(Title)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(ProjectName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

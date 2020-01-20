@@ -3,9 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders

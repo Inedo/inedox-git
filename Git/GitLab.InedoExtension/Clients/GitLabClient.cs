@@ -1,10 +1,4 @@
-﻿using Inedo.Extensibility.Credentials;
-using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.GitLab.Credentials;
-using Inedo.Extensions.GitLab.Operations;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +8,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Extensions.GitLab.Credentials;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.Clients
 {
@@ -54,8 +51,8 @@ namespace Inedo.Extensions.GitLab.Clients
         public GitLabClient(GitLabSecureCredentials credentials, GitLabSecureResource resource)
         {
             this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
-            this.UserName = credentials.UserName;
-            this.Password = credentials.PersonalAccessToken;
+            this.UserName = credentials?.UserName;
+            this.Password = credentials?.PersonalAccessToken;
             this.GroupName = AH.NullIf(resource.GroupName, string.Empty);
         }
 

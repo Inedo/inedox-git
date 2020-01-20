@@ -76,12 +76,14 @@
     <Compile Include="RaftRepositories\GitRaftRepositoryBase.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryCommit.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryMonitor.cs" />
-    <Compile Include="SuggestionProviders\GitSecureResourceSuggestionProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="SuggestionProviders\" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

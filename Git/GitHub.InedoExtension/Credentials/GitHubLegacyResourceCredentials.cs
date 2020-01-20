@@ -7,9 +7,7 @@ using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.Credentials
 {

@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
@@ -26,6 +23,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [ScriptAlias("Credentials")]
         [DisplayName("From GitHub resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
+        [IgnoreConfigurationDrift]
         public string ResourceName { get; set; }
 
         void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
@@ -39,6 +37,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
         [PlaceholderText("Use user name from GitHub resource's credentials")]
+        [IgnoreConfigurationDrift]
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
@@ -46,6 +45,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [ScriptAlias("Password")]
         [DisplayName("Password")]
         [PlaceholderText("Use password from GitHub resource's credentials")]
+        [IgnoreConfigurationDrift]
         public SecureString Password { get; set; }
 
         [Persistent]
@@ -54,6 +54,7 @@ namespace Inedo.Extensions.GitHub.Configurations
         [DisplayName("Organization name")]
         [PlaceholderText("Use organization from Github resource")]
         [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
+        [IgnoreConfigurationDrift]
         public string OrganizationName { get; set; }
 
         [Persistent]
@@ -62,14 +63,15 @@ namespace Inedo.Extensions.GitHub.Configurations
         [DisplayName("Repository name")]
         [PlaceholderText("Use repository from Github resource")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
+        [IgnoreConfigurationDrift]
         public string RepositoryName { get; set; }
 
         [Persistent]
         [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
-        [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Use URL from Github resource.")]
+        [PlaceholderText("Use URL from Github resource.")]
+        [IgnoreConfigurationDrift]
         public string ApiUrl { get; set; }
 
         [Persistent]

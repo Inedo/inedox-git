@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -28,61 +29,75 @@ GitLab::Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GitLabTagOperation : TagOperation<GitLabCredentials>, IGitLabConfiguration
+    public sealed class GitLabTagOperation : TagOperation, IGitLabConfiguration
     {
         [ScriptAlias("From")]
-        [DisplayName("From resource")]
-        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        [ScriptAlias("Credentials")]
+        [DisplayName("From GitLab resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
         public string ResourceName { get; set; }
 
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
+        [Category("Connection/Identity")]
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from GitLab resource's credentials")]
+        public string UserName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
+        [ScriptAlias("Password")]
+        [DisplayName("Password")]
+        [PlaceholderText("Use password from GitLab resource's credentials")]
+        public SecureString Password { get; set; }
+
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Group")]
         [DisplayName("Group name")]
-        [MappedCredential(nameof(GitLabCredentials.GroupName))]
-        [PlaceholderText("Use group from credentials")]
+        [PlaceholderText("Use group from GitLab resource")]
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
-        [MappedCredential(nameof(GitLabCredentials.ProjectName))]
-        [PlaceholderText("Use project from credentials")]
+        [PlaceholderText("Use project from GitLab resource")]
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
-        [PlaceholderText(GitLabClient.GitLabComUrl)]
-        [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
-        [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
+        [PlaceholderText("Use URL from GitLab resource")]
         public string ApiUrl { get; set; }
+
+        private GitLabSecureCredentials credential;
+        private GitLabSecureResource resource;
+
+        public override Task ExecuteAsync(IOperationExecutionContext context)
+        {
+            (this.credential, this.resource) = this.GetCredentialsAndResource((ICredentialResolutionContext)context);
+            return base.ExecuteAsync(context);
+        }
+        protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
+
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            var (credentials, resource) = this.GetCredentialsAndResource(context);
-            var gitlab = new GitLabClient(credentials, resource);
+            var gitlab = new GitLabClient(this.credential, this.resource);
 
-            var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
+            var project = await gitlab.GetProjectAsync(this.resource.ProjectName, cancellationToken).ConfigureAwait(false);
 
             if (project == null)
-                throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
+                throw new InvalidOperationException($"Project '{this.resource.ProjectName}' not found on GitLab.");
 
             return (string)project["http_url_to_repo"];
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.ProjectName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Tag GitLab Source"),
-               new RichDescription("in ", new Hilite(source), " with ", new Hilite(config[nameof(this.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " with ", new Hilite(config[nameof(this.Tag)]))
             );
         }
     }

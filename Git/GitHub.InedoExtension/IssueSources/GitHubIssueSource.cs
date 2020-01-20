@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
@@ -62,11 +61,8 @@ namespace Inedo.Extensions.GitHub.IssueSources
             if (resource == null)
             {
                 var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
-                if (rc != null)
-                {
-                    resource = (GitHubSecureResource)rc.ToSecureResource();
-                    credentials = (GitHubSecureCredentials)rc.ToSecureCredentials();
-                }
+                resource = (GitHubSecureResource)rc?.ToSecureResource();
+                credentials = (GitHubSecureCredentials)rc?.ToSecureCredentials();
             }
             if (resource == null)
                 throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");

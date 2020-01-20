@@ -24,14 +24,14 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            await gitlab.UpdateIssueAsync(this.IssueId, this.ProjectName, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.UpdateIssueAsync(this.IssueId, resource.ProjectName, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Close GitLab issue #", new Hilite(config[nameof(IssueId)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(ProjectName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

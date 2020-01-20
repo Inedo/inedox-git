@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -7,7 +8,9 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Credentials;
+using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Extensions.Operations;
+using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
@@ -25,44 +28,65 @@ AzureDevOps::Get-Source
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GitHubGetSourceOperation : GetSourceOperation<AzureDevOpsCredentials>
+    public sealed class GitHubGetSourceOperation : GetSourceOperation, IAzureDevOpsConfiguration
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }       
-
+        [DisplayName("From AzureDevOps resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
         [Required]
-        [Category("Azure DevOps")]
+        public string ResourceName { get; set; }
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
+        [PlaceholderText("Use team project from AzureDevOps resource")]
         public string ProjectName { get; set; }
-        
-        [Required]
-        [Category("Azure DevOps")]
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Repository")]
         [DisplayName("Repository name")]
+        [PlaceholderText("Use the project name")]
         public string RepositoryName { get; set; }
 
-        [Category("Advanced")]
-        [ScriptAlias("InstanceUrl")]
-        [DisplayName("Instance URL")]
-        [MappedCredential(nameof(AzureDevOpsCredentials.InstanceUrl))]
-        [PlaceholderText("Use instance URL from credentials")]
+        [Category("Connection/Identity")]
+        [ScriptAlias("Url")]
+        [DisplayName("Project collection URL")]
+        [PlaceholderText("Use team project from AzureDevOps resource")]
         public string InstanceUrl { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from AzureDevOps resource's credentials")]
+        public string UserName { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("Token")]
+        [DisplayName("Personal access token")]
+        [PlaceholderText("Use team project from AzureDevOps resource's credential")]
+        public SecureString Token { get; set; }
+
+        private AzureDevOpsSecureCredentials credential;
+        private AzureDevOpsSecureResource resource;
+
+        public override Task ExecuteAsync(IOperationExecutionContext context)
+        {
+            (this.credential, this.resource) = this.GetCredentialsAndResource(context);
+            return base.ExecuteAsync(context);
+        }
+        protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
 
         protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            string url = $"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName)}";
+            string url = $"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.resource.ProjectName)}/_git/{Uri.EscapeDataString(this.resource.RepositoryName)}";
             return Task.FromResult(url);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Get Azure DevOps Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
+               new RichDescription("from ", new Hilite(config.DescribeSource()), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }

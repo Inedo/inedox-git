@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -8,13 +9,11 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
-using Inedo.Extensions.GitLab.Operations;
 using Inedo.Extensions.GitLab.SuggestionProviders;
-using Inedo.Serialization;
+using Inedo.Extensions.Operations;
 using Inedo.Web;
-using Newtonsoft.Json.Linq;
 
-namespace Inedo.Extensions.Operations
+namespace Inedo.Extensions.GitLab.Operations
 {
     [DisplayName("Get Source from GitLab Repository")]
     [Description("Gets the source code from a GitLab project.")]
@@ -22,68 +21,85 @@ namespace Inedo.Extensions.Operations
     [ScriptAlias("Get-Source")]
     [ScriptAlias("GitLab-GetSource", Obsolete = true)]
     [ScriptNamespace("GitLab", PreferUnqualified = false)]
+    [DefaultProperty(nameof(ResourceName))]
     [Example(@"
-# pulls source from a remote repository and archives/exports the contents to a target directory
-GitLab::Get-Source(
-    Credentials: Hdars-GitLab,
-    Group: Hdars,
+# pulls source from a GitLab resource and archives/exports the contents to the $WorkingDirectory
+GitLab::Get-Source MyGitLabResource;
+
+# pulls source from a GitLab resource (with an overridden project name) and archives/exports the contents to a target directory
+GitLab::Get-Source MyGitLabResource
+(
+    Project: app-$ApplicationName,
     DiskPath: ~\Sources
 );
 ")]
-    public sealed class GitLabGetSourceOperation : GetSourceOperation<GitLabCredentials>, IGitLabConfiguration
+    public sealed class GitLabGetSourceOperation : GetSourceOperation, IGitLabConfiguration
     {
         [ScriptAlias("From")]
-        [DisplayName("From resource")]
-        [SuggestableValue(typeof(GitLabSecureResourceSuggestionProvider))]
+        [ScriptAlias("Credentials")]
+        [DisplayName("From GitLab resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
         public string ResourceName { get; set; }
 
         [Category("Connection/Identity")]
-        [ScriptAlias("Credentials")]
-        [DisplayName("Legacy Credentials")]
-        public override string CredentialName { get; set; }
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from GitLab resource's credentials")]
+        public string UserName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
+        [ScriptAlias("Password")]
+        [DisplayName("Password")]
+        [PlaceholderText("Use password from GitLab resource's credentials")]
+        public SecureString Password { get; set; }
+
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Group")]
         [DisplayName("Group name")]
-        [MappedCredential(nameof(GitLabCredentials.GroupName))]
-        [PlaceholderText("Use group from credentials")]
+        [PlaceholderText("Use group from GitLab resource")]
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
-        [MappedCredential(nameof(GitLabCredentials.ProjectName))]
-        [PlaceholderText("Use project from credentials")]
+        [PlaceholderText("Use project from GitLab resource")]
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
-        [PlaceholderText(GitLabClient.GitLabComUrl)]
-        [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
-        [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
+        [PlaceholderText("Use URL from GitLab resource")]
         public string ApiUrl { get; set; }
+
+        private GitLabSecureCredentials credential;
+        private GitLabSecureResource resource;
+
+        public override Task ExecuteAsync(IOperationExecutionContext context)
+        {
+            (this.credential, this.resource) = this.GetCredentialsAndResource((ICredentialResolutionContext)context);
+            return base.ExecuteAsync(context);
+        }
+        protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
+
 
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            var (credentials, resource) = this.GetCredentialsAndResource(context);
-            var gitlab = new GitLabClient(credentials, resource);
-            var project = await gitlab.GetProjectAsync(resource.ProjectName, cancellationToken).ConfigureAwait(false);
+            var gitlab = new GitLabClient(this.credential, this.resource);
+            var project = await gitlab.GetProjectAsync(this.resource.ProjectName, cancellationToken).ConfigureAwait(false);
             if (project == null)
-                throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
+                throw new InvalidOperationException($"Project '{this.resource.ProjectName}' not found on GitLab.");
 
             return (string)project["http_url_to_repo"];
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.ProjectName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Get GitLab Source"),
-               new RichDescription("from ", new Hilite(source), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
+               new RichDescription("from ", new Hilite(config.DescribeSource()), " to ", new Hilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }

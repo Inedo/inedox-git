@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel;
+using System.Security;
+using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Serialization;
+using Inedo.Web;
 using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
 namespace Inedo.Extensions.Git.Credentials
@@ -17,7 +19,12 @@ namespace Inedo.Extensions.Git.Credentials
     [PersistFrom("Inedo.Extensions.Credentials.GitCredentials,GitHub")]
     public sealed class GeneralGitCredentials : GitCredentialsBase
     {
-        public override SecureCredentials ToSecureCredentials() => new UsernamePasswordCredentials
+        public override RichDescription GetDescription()
+        {
+            return new RichDescription(AH.CoalesceString(this.UserName, "Anonymous"), "@", this.RepositoryUrl);
+        }
+
+        public override SecureCredentials ToSecureCredentials() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
         {
             UserName = this.UserName,
             Password = this.Password

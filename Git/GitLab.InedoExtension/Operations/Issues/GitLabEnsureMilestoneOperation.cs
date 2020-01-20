@@ -24,7 +24,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var milestones = await gitlab.GetMilestonesAsync(this.Template.ProjectName, null, context.CancellationToken).ConfigureAwait(false);
+            var milestones = await gitlab.GetMilestonesAsync(resource.ProjectName, null, context.CancellationToken).ConfigureAwait(false);
             var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
             if (milestone == null)
             {
@@ -49,7 +49,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, this.Template.ProjectName, context.CancellationToken).ConfigureAwait(false);
+            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, resource.ProjectName, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };
             if (this.Template.StartDate != null)
@@ -61,14 +61,14 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             if (this.Template.State.HasValue)
                 data.Add("state_event", this.Template.State == GitLabMilestoneConfiguration.OpenOrClosed.open ? "activate" : "close");
 
-            await gitlab.UpdateMilestoneAsync(id, this.Template.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.UpdateMilestoneAsync(id, resource.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Ensure milestone ", new Hilite(config[nameof(GitLabMilestoneConfiguration.Title)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(GitLabMilestoneConfiguration.ProjectName)], config[nameof(GitLabMilestoneConfiguration.CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

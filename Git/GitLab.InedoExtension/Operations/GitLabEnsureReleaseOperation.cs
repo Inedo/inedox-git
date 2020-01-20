@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
@@ -45,16 +44,14 @@ namespace Inedo.Extensions.GitLab.Operations
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
 
-            await gitlab.EnsureReleaseAsync(this.Template.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.EnsureReleaseAsync(resource.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.Template.ProjectName)], config[nameof(this.Template.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Ensure GitLab Release"),
-               new RichDescription("in ", new Hilite(source), " for tag ", new Hilite(config[nameof(this.Template.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " for tag ", new Hilite(config[nameof(this.Template.Tag)]))
             );
         }
     }

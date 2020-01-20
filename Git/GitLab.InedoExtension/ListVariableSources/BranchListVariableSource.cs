@@ -1,13 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -18,61 +18,39 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 {
     [DisplayName("GitLab Branches")]
     [Description("Branches from a GitLab repository.")]
-    public sealed class BranchListVariableSource : ListVariableSource, IHasCredentials<GitLabCredentials>
+    public sealed class BranchListVariableSource : ListVariableSource, IMissingPersistentPropertyHandler
     {
-        [Persistent]
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
+        [DisplayName("From GitHub resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
+        public string ResourceName { get; set; }
 
         [Persistent]
-        [Category("Connection/Identity")]
-        [ScriptAlias("UserName")]
-        [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
-        public string UserName { get; set; }
-
-        [Persistent(Encrypted = true)]
-        [Category("Connection/Identity")]
-        [ScriptAlias("Password")]
-        [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
-        public SecureString Password { get; set; }
-
-        [Persistent]
-        [Category("GitLab")]
-        [ScriptAlias("Group")]
-        [DisplayName("Group name")]
-        [MappedCredential(nameof(GitLabCredentials.GroupName))]
-        [PlaceholderText("Use group from credentials")]
-        [SuggestableValue(typeof(GroupNameSuggestionProvider))]
-        public string GroupName { get; set; }
-
-        [Persistent]
-        [Category("GitLab")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
-        [MappedCredential(nameof(GitLabCredentials.ProjectName))]
-        [PlaceholderText("Use project from credentials")]
+        [PlaceholderText("Use project from resource")]
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
-        [Persistent]
-        [Category("Advanced")]
-        [ScriptAlias("ApiUrl")]
-        [DisplayName("API URL")]
-        [PlaceholderText(GitLabClient.GitLabComUrl)]
-        [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
-        [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
-        public string ApiUrl { get; set; }
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
 
         public override async Task<IEnumerable<string>> EnumerateValuesAsync(ValueEnumerationContext context)
         {
-            this.SetValues(environmentId: null, applicationId: context.ProjectId);
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
+            var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
+                resource = (GitLabSecureResource)rc?.ToSecureResource();
+                credential = (GitLabSecureCredentials)rc?.ToSecureCredentials();
+            }
+            if (resource == null)
+                throw new InvalidOperationException($"Could not find resource \"{this.ResourceName}\".");
 
-            var client = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
+            var client = new GitLabClient(resource.ApiUrl, credential?.UserName, credential?.PersonalAccessToken, resource.GroupName);
 
             return await client.GetBranchesAsync(this.ProjectName, CancellationToken.None);
         }

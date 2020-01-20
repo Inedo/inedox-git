@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
 using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
@@ -13,21 +12,11 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
     {
         public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
-            var credentialName = config["CredentialName"];
-
-            if (string.IsNullOrEmpty(credentialName))
+            var (credentials, resource) = config.GetCredentialsAndResource();
+            if (resource == null)
                 return Enumerable.Empty<string>();
 
-            var credentials = GitLabCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.GroupName, credentials.UserName);
-
-            if (string.IsNullOrEmpty(ownerName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitLabClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.GroupName);
+            var client = new GitLabClient(resource.ApiUrl, credentials?.UserName, credentials?.PersonalAccessToken, resource.GroupName);
             var groups = await client.GetGroupsAsync(CancellationToken.None).ConfigureAwait(false);
 
             var names = from m in groups

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -22,22 +23,37 @@ namespace Inedo.Extensions.GitHub.Operations
     [ScriptAlias("Get-Source")]
     [ScriptAlias("GitHub-GetSource", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
+    [DefaultProperty(nameof(ResourceName))]
     [Example(@"
-# pulls source from a remote repository and archives/exports the contents to a target directory
-GitHub::Get-Source(
-    Credentials: Hdars-GitHub,
-    Organization: Hdars,
+# pulls source from a GitHub resource and archives/exports the contents to the $WorkingDirectory
+GitHub::Get-Source MyGitHubResource;
+
+# pulls source from a GitHub resource (with an overridden repository) and archives/exports the contents to a target directory
+GitHub::Get-Source MyGitHubResource
+(
+    Repository: app-$ApplicationName,
     DiskPath: ~\Sources
 );
 ")]
     public sealed class GitHubGetSourceOperation : GetSourceOperation, IGitHubConfiguration
     {
-        [Persistent]
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From GitHub resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
         public string ResourceName { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from GitHub resource's credentials")]
+        public string UserName { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("Password")]
+        [DisplayName("Password")]
+        [PlaceholderText("Use password from GitHub resource's credentials")]
+        public SecureString Password { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("Organization")]
@@ -60,17 +76,28 @@ GitHub::Get-Source(
         [Description("Use URL from Github resource.")]
         public string ApiUrl { get; set; }
 
+
+        private GitHubSecureCredentials credential;
+        private GitHubSecureResource resource;
+
+        public override Task ExecuteAsync(IOperationExecutionContext context)
+        {
+            (this.credential, this.resource) = this.GetCredentialsAndResource((ICredentialResolutionContext)context);
+            return base.ExecuteAsync(context);
+        }
+        protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
+
+
         protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
         {
-            var (credentials, resource) = this.GetCredentialsAndResource(context);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(this.credential, this.resource);
 
             var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                       where string.Equals((string)r["name"], resource.RepositoryName, StringComparison.OrdinalIgnoreCase)
+                       where string.Equals((string)r["name"], this.resource.RepositoryName, StringComparison.OrdinalIgnoreCase)
                        select r).FirstOrDefault();
 
             if (repo == null)
-                throw new InvalidOperationException($"Repository '{resource.RepositoryName}' not found on GitHub.");
+                throw new InvalidOperationException($"Repository '{this.resource.RepositoryName}' not found on GitHub.");
 
             return (string)repo["clone_url"];
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
@@ -56,12 +57,14 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
     internal sealed class RestApi
     {
-        private IAzureDevOpsConnectionInfo connectionInfo;
-        private ILogSink log;
+        private readonly ILogSink log;
+        private readonly SecureString token;
+        private readonly string instanceUrl;
 
-        public RestApi(IAzureDevOpsConnectionInfo connectionInfo, ILogSink log)
+        public RestApi(SecureString token, string instanceUrl, ILogSink log)
         {
-            this.connectionInfo = connectionInfo ?? throw new ArgumentNullException(nameof(connectionInfo));
+            this.token = token;
+            this.instanceUrl = instanceUrl;
             this.log = log;
         }
 
@@ -275,9 +278,9 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         {
             string apiBaseUrl;
             if (string.IsNullOrEmpty(project))
-                apiBaseUrl = $"{this.connectionInfo.InstanceUrl}/_apis/";
+                apiBaseUrl = $"{this.instanceUrl}/_apis/";
             else
-                apiBaseUrl = $"{this.connectionInfo.InstanceUrl}/{Uri.EscapeUriString(project)}/_apis/";
+                apiBaseUrl = $"{this.instanceUrl}/{Uri.EscapeUriString(project)}/_apis/";
 
             string url = apiBaseUrl + relativeUrl + query.ToString();
 
@@ -336,10 +339,10 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         private void SetCredentials(HttpWebRequest request)
         {
-            if (this.connectionInfo.Token != null)
+            if (this.token != null)
             {
                 this.log?.LogDebug($"Setting Authorization header to token value...");
-                request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(":" + AH.Unprotect(this.connectionInfo.Token)));
+                request.Headers[HttpRequestHeader.Authorization] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(":" + AH.Unprotect(this.token)));
             }
             else
             {

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
@@ -19,7 +18,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
 {
     [DisplayName("GitLab Issue Source")]
     [Description("Issue source for GitLab.")]
-    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IHasCredentials<GitLabCredentials>
+    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IHasCredentials<GitLabLegacyResourceCredentials>
     {
         string IHasCredentials.CredentialName { get; set; }
 
@@ -63,10 +62,14 @@ namespace Inedo.Extensions.GitLab.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            var rc = this.TryGetCredentials(environmentId: null, applicationId: context.ProjectId) as GitLabCredentials;
-            var credContext = new CredentialResolutionContext(context.ProjectId, null);
-            var resource = (GitLabSecureResource)(rc?.ToSecureResource() ?? SecureResource.TryCreate(this.ResourceName, credContext));
-            var credentials = (GitLabSecureCredentials)(rc?.ToSecureCredentials() ?? SecureCredentials.TryCreate(this.CredentialName, credContext));
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
+                resource = (GitLabSecureResource)rc?.ToSecureResource();
+                credentials = (GitLabSecureCredentials)rc?.ToSecureCredentials();
+            }
             if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate GitLab issues.");
 

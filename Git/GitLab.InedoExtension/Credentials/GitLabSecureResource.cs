@@ -1,18 +1,11 @@
-﻿using Inedo.Diagnostics;
+﻿using System;
+using System.ComponentModel;
 using Inedo.Documentation;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Inedo.Extensions.GitLab.Credentials
 {
@@ -29,13 +22,13 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Persistent]
         [DisplayName("Group name")]
         [PlaceholderText("e.g. apache")]
-        [SuggestableValue(typeof(CredentialsGroupNameSuggestionProvider))]
+        [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
         [Persistent]
         [DisplayName("Project")]
         [PlaceholderText("e.g. log4net")]
-        [SuggestableValue(typeof(CredentialsProjectNameSuggestionProvider))]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         [Required]
         public string ProjectName { get; set; }
 

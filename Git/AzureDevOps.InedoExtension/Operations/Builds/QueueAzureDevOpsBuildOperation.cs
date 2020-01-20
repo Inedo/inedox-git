@@ -19,15 +19,6 @@ namespace Inedo.Extensions.AzureDevOps.Operations
     [Tag("azure-devops")]
     public sealed class QueueAzureDevOpsBuildOperation : AzureDevOpsOperation
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-
-        [ScriptAlias("Project")]
-        [DisplayName("Project")]
-        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
-        public string Project { get; set; }
-
         [Required]
         [ScriptAlias("BuildDefinition")]
         [DisplayName("Build definition")]
@@ -53,18 +44,19 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 
         public async override Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var api = new RestApi(this, this);
+            var (c, r) = this.GetCredentialsAndResource(context);
+            var api = new RestApi(c?.Token, r.InstanceUrl, this);
 
             this.LogDebug("Finding Azure DevOps build definition...");
-            var definitionResult = await api.GetBuildDefinitionsAsync(this.Project);
+            var definitionResult = await api.GetBuildDefinitionsAsync(r.ProjectName);
             var definition = definitionResult.FirstOrDefault(d => string.IsNullOrEmpty(this.BuildDefinition) || string.Equals(d.name, this.BuildDefinition, StringComparison.OrdinalIgnoreCase));
 
             if (definition == null)
                 throw new InvalidOperationException("Could not find a build definition named: " + AH.CoalesceString(this.BuildDefinition, "any"));
 
-            this.LogInformation($"Queueing Azure DevOps build of {this.Project}, build definition {definition.name}...");
+            this.LogInformation($"Queueing Azure DevOps build of {r.ProjectName}, build definition {definition.name}...");
 
-            var queuedBuild = await api.QueueBuildAsync(this.Project, definition.id);
+            var queuedBuild = await api.QueueBuildAsync(r.ProjectName, definition.id);
 
             this.LogInformation($"Build number \"{queuedBuild.buildNumber}\" created for definition \"{queuedBuild.definition.name}\".");
 
@@ -78,7 +70,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
                 while (!string.Equals(queuedBuild.status, "completed", StringComparison.OrdinalIgnoreCase))
                 {
                     await Task.Delay(4000, context.CancellationToken);
-                    queuedBuild = await api.GetBuildAsync(this.Project, queuedBuild.id);
+                    queuedBuild = await api.GetBuildAsync(r.ProjectName, queuedBuild.id);
                     if (queuedBuild.status != lastStatus)
                     {
                         this.LogInformation($"Current build status changed from \"{lastStatus}\" to \"{queuedBuild.status}\"...");
@@ -107,7 +99,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         {
             return new ExtendedRichDescription(
                 new RichDescription(
-                    "Queue Azure DevOps Build for ", new Hilite(config[nameof(this.Project)])
+                    "Queue Azure DevOps Build for ", new Hilite(config.DescribeSource())
                 ),
                 new RichDescription(
                     "using the build definition ",

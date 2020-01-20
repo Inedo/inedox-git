@@ -10,10 +10,6 @@ using Inedo.Extensions.Credentials;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class TagOperation<TCredentials> : TagOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
-    {
-        public abstract string CredentialName { get; set; }
-    }
     public abstract class TagOperation : GitOperation
     {
         [Required]

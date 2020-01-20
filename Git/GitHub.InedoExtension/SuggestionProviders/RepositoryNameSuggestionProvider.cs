@@ -1,10 +1,10 @@
-﻿using Inedo.Extensibility;
-using Inedo.Extensions.GitHub.Clients;
-using Inedo.Web;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Extensibility;
+using Inedo.Extensions.GitHub.Clients;
+using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {

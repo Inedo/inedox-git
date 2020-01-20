@@ -30,7 +30,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            await gitlab.CreateCommentAsync(this.IssueId, this.ProjectName, this.Body, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.CreateCommentAsync(this.IssueId, resource.ProjectName, this.Body, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
@@ -38,7 +38,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             return new ExtendedRichDescription(
                 new RichDescription("Add comment to GitLab issue #", new Hilite(config[nameof(IssueId)])),
                 new RichDescription(
-                    "in ", new Hilite(AH.CoalesceString(config[nameof(ProjectName)], config[nameof(CredentialName)])),
+                    "in ", new Hilite(config.DescribeSource()),
                     " starting with ", new Hilite(config[nameof(Body)])
                 )
             );

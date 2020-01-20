@@ -1,18 +1,11 @@
-﻿using Inedo.Diagnostics;
+﻿using System;
+using System.ComponentModel;
 using Inedo.Documentation;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Inedo.Extensions.GitHub.Credentials
 {

@@ -7,7 +7,6 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 
 namespace Inedo.Extensions.GitHub.Operations
 {

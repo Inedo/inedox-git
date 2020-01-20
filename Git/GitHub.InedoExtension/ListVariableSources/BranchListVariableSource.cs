@@ -1,4 +1,9 @@
-﻿using Inedo.Documentation;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
@@ -8,11 +13,6 @@ using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Inedo.Extensions.GitHub.ListVariableSources
 {
@@ -40,10 +40,16 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
         public override Task<IEnumerable<string>> EnumerateValuesAsync(ValueEnumerationContext context)
         {
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
+            var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
             if (resource == null)
-                throw new InvalidOperationException($"Could not find resource \"{this.ResourceName}\".");
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
+                resource = (GitHubSecureResource)rc?.ToSecureResource();
+                credential = (GitHubSecureCredentials)rc?.ToSecureCredentials();
+            }
+            if (resource == null)
+                return Task.FromResult(Enumerable.Empty<string>());
 
-            var credential = resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
             var client = new GitHubClient(resource.ApiUrl, credential?.UserName, credential?.Password, resource.OrganizationName);
 
             return client.ListRefsAsync(resource.OrganizationName, resource.RepositoryName, RefType.Branch, CancellationToken.None);

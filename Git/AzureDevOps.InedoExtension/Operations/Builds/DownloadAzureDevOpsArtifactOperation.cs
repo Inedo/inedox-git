@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients;
+using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.IO;
 using Inedo.Web;
@@ -20,17 +22,8 @@ namespace Inedo.Extensions.AzureDevOps.Operations
     [Tag("artifacts")]
     [Tag("azure-devops")]
     [Serializable]
-    public sealed class DownloadAzureDevOpsArtifactOperation : RemoteAzureDevOpsOperation, IAzureDevOpsConnectionInfo
+    public sealed class DownloadAzureDevOpsArtifactOperation : RemoteAzureDevOpsOperation
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-
-        [ScriptAlias("Project")]
-        [DisplayName("Project")]
-        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
-        public string Project { get; set; }
-
         [Required]
         [ScriptAlias("BuildDefinition")]
         [DisplayName("Build definition")]
@@ -71,9 +64,9 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         {
             this.LogInformation($"Downloading artifact {this.ArtifactName} with build number \"{this.BuildNumber ?? "latest"}\" from Azure DevOps...");
 
-            var downloader = new ArtifactDownloader(this, this);
+            var downloader = new ArtifactDownloader(this.Token, this.InstanceUrl, this);
 
-            using (var artifact = await downloader.DownloadAsync(this.Project, this.BuildNumber, this.BuildDefinition, this.ArtifactName).ConfigureAwait(false))
+            using (var artifact = await downloader.DownloadAsync(this.ProjectName, this.BuildNumber, this.BuildDefinition, this.ArtifactName).ConfigureAwait(false))
             {
                 string targetDirectory = context.ResolvePath(this.TargetDirectory);
                 if (this.ExtractFilesToTargetDirectory)
@@ -102,7 +95,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         {
             var shortDesc = new RichDescription("Download Azure DevOps ", new Hilite(config[nameof(this.ArtifactName)]), " Artifact");
 
-            var longDesc = new RichDescription("from ", new Hilite(config[nameof(this.Project)]), " using ");
+            var longDesc = new RichDescription("from ", new Hilite(config.DescribeSource()), " using ");
             if (string.IsNullOrEmpty(config[nameof(this.BuildNumber)]))
                 longDesc.AppendContent("the last successful build");
             else

@@ -11,31 +11,12 @@ using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Extensions.Clients.LibGitSharp.Remote;
-using Inedo.Extensions.Credentials;
+using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GitOperation<TCredentials> : GitOperation, IHasCredentials<TCredentials> where TCredentials : GitCredentialsBase, new()
-    {
-        public abstract string CredentialName { get; set; }
-    }
     public abstract class GitOperation : ExecuteOperation
     {
-        [Category("Connection/Identity")]
-        [ScriptAlias("UserName")]
-        [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
-        public string UserName { get; set; }
-
-        [Category("Connection/Identity")]
-        [ScriptAlias("Password")]
-        [ScriptAlias("Token")]
-        [DisplayName("Password")]
-        [PlaceholderText("Use password/token from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
-        public SecureString Password { get; set; }
-
         [Category("Advanced")]
         [ScriptAlias("GitExePath")]
         [DisplayName("Git executable path")]
@@ -60,8 +41,12 @@ namespace Inedo.Extensions.Operations
         [Description("If set to true, the workspace directory will be cleared before any Git-based operations are performed.")]
         public bool CleanWorkspace { get; set; }
 
+        protected abstract UsernamePasswordCredentials GetCredentials();
+
         protected GitClient CreateClient(IOperationExecutionContext context, string repositoryUrl, WorkspacePath workspacePath)
         {
+            var creds = this.GetCredentials();
+
             if (!string.IsNullOrEmpty(this.GitExePath))
             {
                 this.LogDebug($"Executable path specified, using Git command line client at \"{this.GitExePath}\"...");
@@ -69,7 +54,7 @@ namespace Inedo.Extensions.Operations
                     this.GitExePath,
                     context.Agent.GetService<IRemoteProcessExecuter>(),
                     context.Agent.GetService<IFileOperationsExecuter>(),
-                    new GitRepositoryInfo(workspacePath, repositoryUrl, this.UserName, this.Password),
+                    new GitRepositoryInfo(workspacePath, repositoryUrl, creds?.UserName, creds?.Password),
                     this,
                     context.CancellationToken
                 );
@@ -82,7 +67,7 @@ namespace Inedo.Extensions.Operations
                     context.WorkingDirectory,
                     context.Simulation,
                     context.CancellationToken,
-                    new GitRepositoryInfo(workspacePath, repositoryUrl, this.UserName, this.Password),
+                    new GitRepositoryInfo(workspacePath, repositoryUrl, creds?.UserName, creds?.Password),
                     this
                 );
             }

@@ -10,32 +10,42 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
-    public abstract class AzureDevOpsOperation : ExecuteOperation, IHasCredentials<AzureDevOpsCredentials>, IAzureDevOpsConfiguration
+    public abstract class AzureDevOpsOperation : ExecuteOperation, IAzureDevOpsConfiguration
     {
-        private protected AzureDevOpsOperation()
-        {
-        }
-
-        [ScriptAlias("From")]
-        [DisplayName("From resource")]
-        [SuggestableValue(typeof(AzureDevOpsSecureResourceSuggestionProvider))]
+        [DisplayName("From AzureDevOps resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
+        [Required]
         public string ResourceName { get; set; }
 
-        public abstract string CredentialName { get; set; }
+        [Category("Connection/Identity")]
+        [ScriptAlias("Project")]
+        [DisplayName("Project name")]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
+        [PlaceholderText("Use team project from AzureDevOps resource")]
+        public string ProjectName { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("Repository")]
+        [DisplayName("Repository name")]
+        [PlaceholderText("Use the project name")]
+        public string RepositoryName { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("Url")]
-        [DisplayName("Instance URL")]
-        [PlaceholderText("Use instance URL from credentials")]
-        [MappedCredential(nameof(AzureDevOpsCredentials.InstanceUrl))]
-        [Description("The instance URL, follows the format: https://dev.azure.com/{organization}")]
+        [DisplayName("Project collection URL")]
+        [PlaceholderText("Use team project from AzureDevOps resource")]
         public string InstanceUrl { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from AzureDevOps resource's credentials")]
+        public string UserName { get; set; }
 
         [Category("Connection/Identity")]
         [ScriptAlias("Token")]
         [DisplayName("Personal access token")]
-        [PlaceholderText("Use access token from credentials")]
-        [MappedCredential(nameof(AzureDevOpsCredentials.Token))]
+        [PlaceholderText("Use team project from AzureDevOps resource's credential")]
         public SecureString Token { get; set; }
     }
 }

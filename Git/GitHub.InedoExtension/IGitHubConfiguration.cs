@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Credentials;
-using Inedo.Web.Handlers;
-using Inedo.Web.Plans;
 
 namespace Inedo.Extensions.GitHub
 {
@@ -55,7 +48,7 @@ namespace Inedo.Extensions.GitHub
                     ResourceName = AH.NullIf(config[nameof(IGitHubConfiguration.ResourceName)], string.Empty),
                     UserName = AH.NullIf(config[nameof(IGitHubConfiguration.UserName)], string.Empty)
                 }, 
-                new CredentialResolutionContext((config.EditorContext as IOperationEditorContext)?.ProjectId, null));
+                new CredentialResolutionContext((config.EditorContext as ICredentialResolutionContext)?.ApplicationId, null));
         }
         public static (GitHubSecureCredentials, GitHubSecureResource) GetCredentialsAndResource(this IGitHubConfiguration operation, ICredentialResolutionContext context)
         {
@@ -77,7 +70,7 @@ namespace Inedo.Extensions.GitHub
             }
 
             return (
-                new GitHubSecureCredentials
+                string.IsNullOrEmpty(AH.CoalesceString(operation.UserName, credentials?.UserName)) ? null : new GitHubSecureCredentials
                 {
                     UserName = AH.CoalesceString(operation.UserName, credentials?.UserName),
                     Password = operation.Password ?? credentials?.Password

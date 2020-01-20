@@ -2,9 +2,7 @@
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
