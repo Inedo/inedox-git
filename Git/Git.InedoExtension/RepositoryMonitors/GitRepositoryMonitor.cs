@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
@@ -13,7 +13,6 @@ using Inedo.Extensions.Clients.CommandLine;
 using Inedo.Extensions.Clients.LibGitSharp.Remote;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
-using Inedo.Extensions.Git.Credentials;
 using Inedo.Serialization;
 using Inedo.Web;
 
@@ -65,16 +64,20 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
         {
             var credctx = (ICredentialResolutionContext)context;
             var resource = (GitSecureResourceBase)SecureResource.Create(this.ResourceName, credctx);
-            var credential = (GitSecureCredentialsBase)resource?.GetCredentials(credctx);
+            var credential = resource?.GetCredentials(credctx);
             if (resource == null)
             {
                 var rc = SecureCredentials.Create(this.ResourceName, credctx) as GitCredentialsBase;
                 resource = (GitSecureResourceBase)rc?.ToSecureResource();
-                credential = (GitSecureCredentialsBase)rc?.ToSecureCredentials();
+                credential = rc?.ToSecureCredentials();
             }
 
             var repositoryUrl = await resource.GetRepositoryUrlAsync(credctx, context.CancellationToken);
-            var upcreds = credential?.ToUsernamePassword();
+            var upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
+            if (credential is GitSecureCredentialsBase gitcreds)
+                upcreds = gitcreds.ToUsernamePassword();
+            else if (credential != null)
+                throw new InvalidOperationException("Invalid credential type for Git repository monitor.");
 
             if (!string.IsNullOrEmpty(this.GitExePath))
             {
