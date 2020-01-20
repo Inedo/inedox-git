@@ -81,19 +81,7 @@ GitHub::Tag(
         }
         protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
-        {
-            var github = new GitHubClient(this.credential, this.resource);
-
-            var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                        where string.Equals((string)r["name"], this.resource.RepositoryName, StringComparison.OrdinalIgnoreCase)
-                        select r).FirstOrDefault();
-
-            if (repo == null)
-                throw new InvalidOperationException($"Repository '{this.resource.RepositoryName}' not found on GitHub.");
-
-            return (string)repo["clone_url"];
-        }
+        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) => this.resource.GetRepositoryUrl(context, cancellationToken);
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(

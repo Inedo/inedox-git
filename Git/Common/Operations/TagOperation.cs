@@ -41,7 +41,7 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken, context as ICredentialResolutionContext).ConfigureAwait(false);
+            string repositoryUrl = await this.GetRepositoryUrlAsync((ICredentialResolutionContext)context,context.CancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(repositoryUrl))
             {
                 this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");

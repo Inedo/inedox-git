@@ -76,11 +76,7 @@ AzureDevOps::Get-Source
         }
         protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
 
-        protected override Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
-        {
-            string url = $"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.resource.ProjectName)}/_git/{Uri.EscapeDataString(this.resource.RepositoryName)}";
-            return Task.FromResult(url);
-        }
+        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) => this.resource.GetRepositoryUrl(context, cancellationToken);
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {

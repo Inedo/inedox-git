@@ -1,7 +1,11 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
 using Inedo.Documentation;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
+using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
@@ -11,7 +15,7 @@ namespace Inedo.Extensions.GitLab.Credentials
 {
     [DisplayName("GitLab Project")]
     [Description("Connect to a GitLab project for source code, issue tracking, etc. integration")]
-    public sealed class GitLabSecureResource : SecureResource<GitLabSecureCredentials>
+    public sealed class GitLabSecureResource : GitSecureResourceBase<GitLabSecureCredentials>
     {
         [Persistent]
         [DisplayName("API URL")]
@@ -45,6 +49,16 @@ namespace Inedo.Extensions.GitLab.Credentials
 
             var group = string.IsNullOrEmpty(this.GroupName) ? "" : $"{this.GroupName}\\";
             return new RichDescription($"{group}{this.ProjectName} @ {host}");
+        }
+
+        public override async Task<string> GetRepositoryUrl(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        {
+            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
+            var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
+            if (project == null)
+                throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
+
+            return (string)project["http_url_to_repo"];
         }
     }
 }

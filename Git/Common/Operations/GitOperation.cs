@@ -42,6 +42,7 @@ namespace Inedo.Extensions.Operations
         public bool CleanWorkspace { get; set; }
 
         protected abstract UsernamePasswordCredentials GetCredentials();
+        protected abstract Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken);
 
         protected GitClient CreateClient(IOperationExecutionContext context, string repositoryUrl, WorkspacePath workspacePath)
         {
@@ -72,7 +73,5 @@ namespace Inedo.Extensions.Operations
                 );
             }
         }
-
-        protected abstract Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context);
     }
 }

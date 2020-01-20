@@ -1,13 +1,17 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensibility.SecureResources;
+using Inedo.Extensibility.Credentials;
+using Inedo.Extensions.Credentials;
 using Inedo.Serialization;
 
 namespace Inedo.Extensions.AzureDevOps.Credentials
 {
     [DisplayName("Azure DevOps Project")]
     [Description("Connect to an Azure DevOps project for source code, issue tracking, etc. integration")]
-    public sealed class AzureDevOpsSecureResource : SecureResource<AzureDevOpsSecureCredentials>
+    public sealed class AzureDevOpsSecureResource : GitSecureResourceBase<AzureDevOpsSecureCredentials>
     {
         [Required]
         [Persistent]
@@ -37,5 +41,8 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
                 : this.InstanceUrl;
             return new RichDescription(proj, "@", inst);
         }
+
+        public override Task<string> GetRepositoryUrl(ICredentialResolutionContext context, CancellationToken cancellationToken) => 
+            Task.FromResult($"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName)}");
     }
 }

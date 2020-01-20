@@ -84,16 +84,7 @@ GitLab::Get-Source MyGitLabResource
         }
         protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
 
-
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken, ICredentialResolutionContext context)
-        {
-            var gitlab = new GitLabClient(this.credential, this.resource);
-            var project = await gitlab.GetProjectAsync(this.resource.ProjectName, cancellationToken).ConfigureAwait(false);
-            if (project == null)
-                throw new InvalidOperationException($"Project '{this.resource.ProjectName}' not found on GitLab.");
-
-            return (string)project["http_url_to_repo"];
-        }
+        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) => this.resource.GetRepositoryUrl(context, cancellationToken);
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {

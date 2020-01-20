@@ -1,8 +1,8 @@
 ﻿using System.Security;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
+using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Git.Credentials;
 using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
@@ -32,32 +32,18 @@ namespace Inedo.Extensions.Git
                 config[nameof(IGitConfiguration.ResourceName)],
                 "(unknown)");
         }
-
-        public static (UsernamePasswordCredentials, GitSecureResource) GetCredentialsAndResource(this IComponentConfiguration config)
+        public static (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(this IGitConfiguration operation, IOperationExecutionContext opcontext)
         {
-            return GetCredentialsAndResource(
-                new GitConfiguration
-                {
-                    RepositoryUrl = AH.NullIf(config[nameof(IGitConfiguration.RepositoryUrl)], string.Empty),
-                    Password = string.IsNullOrEmpty(config[nameof(IGitConfiguration.Password)]) ? null : AH.CreateSecureString(config[nameof(IGitConfiguration.Password)]),
-                    ResourceName = AH.NullIf(config[nameof(IGitConfiguration.ResourceName)], string.Empty),
-                    UserName = AH.NullIf(config[nameof(IGitConfiguration.UserName)], string.Empty)
-                },
-                new CredentialResolutionContext((config.EditorContext as ICredentialResolutionContext)?.ApplicationId, null));
-        }
-        public static (UsernamePasswordCredentials, GitSecureResource) GetCredentialsAndResource(this IGitConfiguration operation, IOperationExecutionContext context)
-            => GetCredentialsAndResource(operation, (ICredentialResolutionContext)context);
-        public static (UsernamePasswordCredentials, GitSecureResource) GetCredentialsAndResource(this IGitConfiguration operation, ICredentialResolutionContext context)
-        {
+            var context = (ICredentialResolutionContext)opcontext;
             UsernamePasswordCredentials credentials = null;
-            GitSecureResource resource = null;
+            GitSecureResourceBase resource = null;
             if (!string.IsNullOrEmpty(operation.ResourceName))
             {
-                resource = (GitSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
+                resource = (GitSecureResourceBase)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
                     var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GeneralGitCredentials;
-                    resource = (GitSecureResource)rc?.ToSecureResource();
+                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
                     credentials = (UsernamePasswordCredentials)rc?.ToSecureCredentials();
                 }
                 else
@@ -74,7 +60,7 @@ namespace Inedo.Extensions.Git
                     },
                 new GitSecureResource
                 {
-                    RepositoryUrl = AH.CoalesceString(operation.RepositoryUrl, resource?.RepositoryUrl)
+                    RepositoryUrl = AH.CoalesceString(operation.RepositoryUrl, resource?.GetRepositoryUrl(context, opcontext.CancellationToken))
                 }
             );
 
