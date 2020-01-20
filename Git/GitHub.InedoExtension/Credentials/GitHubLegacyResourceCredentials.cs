@@ -13,7 +13,7 @@ namespace Inedo.Extensions.GitHub.Credentials
 {
     [ScriptAlias(GitHubLegacyResourceCredentials.TypeName)]
     [DisplayName("GitHub")]
-    [Description("Credentials for GitHub.")]
+    [Description("(Legacy) Resource Credentials for GitHub.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitHubCredentials,GitHub")]
     [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubCredentials,GitHub")]
     public sealed class GitHubLegacyResourceCredentials : GitCredentialsBase

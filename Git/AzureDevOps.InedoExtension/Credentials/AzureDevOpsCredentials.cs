@@ -11,7 +11,7 @@ using Inedo.Web;
 namespace Inedo.Extensions.AzureDevOps.Credentials
 {
     [ScriptAlias("AzureDevOps")]
-    [DisplayName("Azure DevOps")]
+    [DisplayName("(Legacy) Resource Credentials for Azure DevOps")]
     [Description("Credentials for Azure DevOps that can be either username/password for source control and a personal access token for issue tracking.")]
     public sealed class AzureDevOpsCredentials : GitCredentialsBase
     {

@@ -34,7 +34,7 @@ Git::Tag Hdars-Git
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From Git resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitSecureResourceBase>))]
         public string ResourceName { get; set; }
 
         [Category("Connection/Identity")]

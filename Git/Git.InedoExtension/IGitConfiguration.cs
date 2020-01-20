@@ -38,14 +38,14 @@ namespace Inedo.Extensions.Git
         {
             var context = (ICredentialResolutionContext)opcontext;
             UsernamePasswordCredentials credentials = null;
-            GitSecureResource resource = null;
+            GitSecureResourceBase resource = null;
             if (!string.IsNullOrEmpty(operation.ResourceName))
             {
-                resource = (GitSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
+                resource = (GitSecureResourceBase)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
-                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GeneralGitCredentials;
-                    resource = (GitSecureResource)rc?.ToSecureResource();
+                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GeneralGitLegacyResourceCredentials;
+                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
                     credentials = (UsernamePasswordCredentials)rc?.ToSecureCredentials();
                 }
                 else
