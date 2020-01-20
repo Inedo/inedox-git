@@ -1,6 +1,9 @@
 ﻿using System.ComponentModel;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.UI.WebControls;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Credentials.Git;
@@ -18,5 +21,5 @@ namespace Inedo.Extensions.Git.Credentials
 
         public override RichDescription GetDescription() => new RichDescription(this.RepositoryUrl);
         public override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) => Task.FromResult(this.RepositoryUrl);
-    }
+   }
 }

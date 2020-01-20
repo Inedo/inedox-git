@@ -2,22 +2,14 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitLab.Clients;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {
-    public sealed class ProjectNameSuggestionProvider : ISuggestionProvider
+    public sealed class ProjectNameSuggestionProvider : GitLabSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var (credentials, resource) = config.GetCredentialsAndResource();
-            if (resource == null)
-                return Enumerable.Empty<string>();
-
-            var client = new GitLabClient(resource.ApiUrl, credentials?.UserName, credentials?.PersonalAccessToken, resource.GroupName);
-            var repos = await client.GetProjectsAsync(CancellationToken.None).ConfigureAwait(false);
+            var repos = await this.Client.GetProjectsAsync(CancellationToken.None).ConfigureAwait(false);
             var names = from m in repos
                         let name = m["path"]?.ToString()
                         where !string.IsNullOrEmpty(name)

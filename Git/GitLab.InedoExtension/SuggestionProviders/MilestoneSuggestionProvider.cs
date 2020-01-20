@@ -2,22 +2,18 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitLab.Clients;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {
-    public sealed class MilestoneSuggestionProvider : ISuggestionProvider
+    public sealed class MilestoneSuggestionProvider : GitLabSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var (credentials, resource) = config.GetCredentialsAndResource();
-            if (resource == null)
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IGitLabConfiguration.ProjectName)], this.Resource?.ProjectName);
+            if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var client = new GitLabClient(resource.ApiUrl, credentials?.UserName, credentials?.PersonalAccessToken, resource.GroupName);
-            var milestones = await client.GetMilestonesAsync(resource.ProjectName, "open", CancellationToken.None).ConfigureAwait(false);
+            var milestones = await this.Client.GetMilestonesAsync(projectName, "open", CancellationToken.None).ConfigureAwait(false);
             var titles = from m in milestones
                          let title = m["title"]?.ToString()
                          let iid = m.Value<int?>("iid")

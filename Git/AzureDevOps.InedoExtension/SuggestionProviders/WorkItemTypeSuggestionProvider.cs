@@ -8,10 +8,12 @@ namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
     {
         internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            if (string.IsNullOrEmpty(this.Resource.ProjectName))
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IAzureDevOpsConfiguration.ProjectName)], this.Resource?.ProjectName);
+
+            if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var types = await this.Client.GetWorkItemTypesAsync(this.Resource.ProjectName).ConfigureAwait(false);
+            var types = await this.Client.GetWorkItemTypesAsync(projectName).ConfigureAwait(false);
             return from t in types
                    orderby t.name
                    select t.name;

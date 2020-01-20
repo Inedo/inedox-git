@@ -18,19 +18,8 @@ namespace Inedo.Extensions.GitLab.IssueSources
 {
     [DisplayName("GitLab Issue Source")]
     [Description("Issue source for GitLab.")]
-    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IHasCredentials<GitLabLegacyResourceCredentials>
+    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IMissingPersistentPropertyHandler
     {
-        string IHasCredentials.CredentialName { get; set; }
-
-        [Required]
-        [Persistent]
-        [DisplayName("Resource name")]
-        public string CredentialName 
-        {
-            get => this.ResourceName;
-            set => this.ResourceName = value;
-        }
-
         [Persistent]
         [DisplayName("Project name")]
         [PlaceholderText("Use project name from credentials")]
@@ -59,6 +48,11 @@ namespace Inedo.Extensions.GitLab.IssueSources
             + "<pre>labels=No+Label&amp;search=cheese</pre>")]
         public string CustomFilterQueryString { get; set; }
 
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {

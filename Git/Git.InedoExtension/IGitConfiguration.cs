@@ -17,14 +17,6 @@ namespace Inedo.Extensions.Git
         SecureString Password { get; }
         string UserName { get; }
     }
-    internal sealed class GitConfiguration : IGitConfiguration
-    {
-        public string ResourceName { get; set; }
-        public string RepositoryUrl { get; set; }
-        public SecureString Password { get; set; }
-        public string UserName { get; set; }
-    }
-
     internal static class GitOperationExtensions
     {
         public static string DescribeSource(this IOperationConfiguration config)

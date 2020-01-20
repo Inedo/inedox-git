@@ -52,7 +52,7 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
             var client = new GitLabClient(resource.ApiUrl, credential?.UserName, credential?.PersonalAccessToken, resource.GroupName);
 
-            return await client.GetBranchesAsync(this.ProjectName, CancellationToken.None);
+            return await client.GetBranchesAsync(this.ProjectName, CancellationToken.None).ConfigureAwait(false);
         }
 
         public override RichDescription GetDescription()

@@ -13,10 +13,12 @@ namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
     {
         internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            if (string.IsNullOrEmpty(this.Resource.ProjectName))
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IAzureDevOpsConfiguration.ProjectName)], this.Resource?.ProjectName);
+
+            if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var iterations = await this.Client.GetIterationsAsync(this.Resource.ProjectName).ConfigureAwait(false);
+            var iterations = await this.Client.GetIterationsAsync(projectName).ConfigureAwait(false);
             return iterations.Select(i => i.path);
         }
     }

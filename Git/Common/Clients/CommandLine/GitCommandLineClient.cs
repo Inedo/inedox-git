@@ -174,7 +174,7 @@ namespace Inedo.Extensions.Clients.CommandLine
             {
                 FileName = this.gitExePath,
                 Arguments = args.ToString(),
-                WorkingDirectory = workingDirectory ?? await this.fileOps.GetBaseWorkingDirectoryAsync()
+                WorkingDirectory = workingDirectory ?? await this.fileOps.GetBaseWorkingDirectoryAsync().ConfigureAwait(false)
             };
 
             if (this.repository.HasLocalRepository)

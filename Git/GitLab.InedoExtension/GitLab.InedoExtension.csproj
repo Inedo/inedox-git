@@ -87,6 +87,7 @@
     <Compile Include="Operations\Issues\GitLabEnsureMilestoneOperation.cs" />
     <Compile Include="Operations\GitLabOperationBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SuggestionProviders\GitLabSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\GroupNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\MilestoneSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\ProjectNameSuggestionProvider.cs" />

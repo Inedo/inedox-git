@@ -8,7 +8,7 @@ namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
     {        
         internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var projectName = this.Resource.ProjectName;
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IAzureDevOpsConfiguration.ProjectName)], this.Resource?.ProjectName);
             var definitionName = this.ComponentConfiguration["BuildDefinition"];
             if (string.IsNullOrEmpty(projectName) || string.IsNullOrEmpty(definitionName))
                 return Enumerable.Empty<string>();

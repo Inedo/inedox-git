@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Issue Source")]
     [Description("Issue source for GitHub.")]
-    public sealed class GitHubIssueSource : IssueSource, IMissingPersistentPropertyHandler
+    public sealed class GitHubIssueSource : IssueSource<GitHubSecureResource>, IMissingPersistentPropertyHandler
     {
         [Persistent]
         [DisplayName("Repository name")]
@@ -73,7 +73,9 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
             var client = new GitHubClient(credentials, resource);
 
-            string ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
+            string ownerName = AH.CoalesceString(resource.OrganizationName, credentials?.UserName);
+            if (string.IsNullOrEmpty(ownerName))
+                throw new InvalidOperationException("A organization or user name must be defined to enumerate GitHub issues.");
 
             var filter = new GitHubIssueFilter
             {

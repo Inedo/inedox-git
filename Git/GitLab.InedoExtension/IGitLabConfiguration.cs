@@ -16,15 +16,6 @@ namespace Inedo.Extensions.GitLab
         SecureString Password { get; }
         string UserName { get; }
     }
-    internal sealed class GitLabConfiguration : IGitLabConfiguration
-    {
-        public string ResourceName { get; set; }
-        public string GroupName { get; set; }
-        public string ProjectName { get; set; }
-        public string ApiUrl { get; set; }
-        public SecureString Password { get; set; }
-        public string UserName { get; set; }
-    }
     internal static class GitLabOperationExtensions 
     {
         public static string DescribeSource(this IOperationConfiguration config)
@@ -34,25 +25,16 @@ namespace Inedo.Extensions.GitLab
                 config[nameof(IGitLabConfiguration.ResourceName)],
                 "(unknown)");
         }
-        public static (GitLabSecureCredentials, GitLabSecureResource) GetCredentialsAndResource(this IComponentConfiguration config)
-        {
-            return GetCredentialsAndResource(
-                new GitLabConfiguration
-                {
-                    ApiUrl = AH.NullIf(config[nameof(IGitLabConfiguration.ApiUrl)], string.Empty),
-                    GroupName = AH.NullIf(config[nameof(IGitLabConfiguration.GroupName)], string.Empty),
-                    Password = string.IsNullOrEmpty(config[nameof(IGitLabConfiguration.Password)]) ? null : AH.CreateSecureString(config[nameof(IGitLabConfiguration.Password)]),
-                    ProjectName = AH.NullIf(config[nameof(IGitLabConfiguration.ProjectName)], string.Empty),
-                    ResourceName = AH.NullIf(config[nameof(IGitLabConfiguration.ResourceName)], string.Empty),
-                    UserName = AH.NullIf(config[nameof(IGitLabConfiguration.UserName)], string.Empty)
-                },
-                new CredentialResolutionContext((config.EditorContext as ICredentialResolutionContext)?.ApplicationId, null));
-        }
+
         public static (GitLabSecureCredentials, GitLabSecureResource) GetCredentialsAndResource(this IGitLabConfiguration operation, ICredentialResolutionContext context)
         {
-            GitLabSecureCredentials credentials = null;
-            GitLabSecureResource resource = null;
-            if (!string.IsNullOrEmpty(operation.ResourceName))
+            GitLabSecureCredentials credentials; GitLabSecureResource resource; 
+            if (string.IsNullOrEmpty(operation.ResourceName))
+            {
+                credentials = string.IsNullOrEmpty(operation.UserName) ? null : new GitLabSecureCredentials();
+                resource = string.IsNullOrEmpty(AH.CoalesceString(operation.ProjectName, operation.GroupName, operation.ApiUrl)) ? null : new GitLabSecureResource();
+            }
+            else
             {
                 resource = (GitLabSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
@@ -67,19 +49,19 @@ namespace Inedo.Extensions.GitLab
                 }
             }
 
-            return (
-                string.IsNullOrEmpty(AH.CoalesceString(operation.UserName, credentials?.UserName)) ? null : new GitLabSecureCredentials
-                {
-                    UserName = AH.CoalesceString(operation.UserName, credentials?.UserName),
-                    PersonalAccessToken = operation.Password ?? credentials?.PersonalAccessToken
-                },
-                new GitLabSecureResource
-                {
-                    ApiUrl = AH.CoalesceString(operation.ApiUrl, resource?.ApiUrl),
-                    GroupName = AH.CoalesceString(operation.GroupName, resource?.GroupName),
-                    ProjectName = AH.CoalesceString(operation.ProjectName, resource?.ProjectName)
-                }
-            );
+            if (credentials != null)
+            {
+                credentials.UserName = AH.CoalesceString(operation.UserName, credentials.UserName);
+                credentials.PersonalAccessToken = operation.Password ?? credentials.PersonalAccessToken;
+            }
+            if (resource != null)
+            {
+                resource.ApiUrl = AH.CoalesceString(operation.ApiUrl, resource.ApiUrl);
+                resource.GroupName = AH.CoalesceString(operation.GroupName, resource.GroupName);
+                resource.ProjectName = AH.CoalesceString(operation.ProjectName, resource.ProjectName);
+            }
+
+            return (credentials, resource);
         }
     }
 }

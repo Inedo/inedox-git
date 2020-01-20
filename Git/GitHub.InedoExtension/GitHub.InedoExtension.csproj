@@ -90,6 +90,7 @@
     <Compile Include="Operations\Releases\GitHubUploadReleaseAssetsOperation.cs" />
     <Compile Include="Operations\GitHubSetStatusOperation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SuggestionProviders\GitHubSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\MilestoneSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\OrganizationNameSuggestionProvider.cs" />
     <Compile Include="SuggestionProviders\RepositoryNameSuggestionProvider.cs" />

@@ -19,7 +19,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
 {
     [DisplayName("Azure DevOps Issue Source")]
     [Description("Issue source for Azure DevOps.")]
-    public sealed class AzureDevOpsIssueSource : IssueSource, IMissingPersistentPropertyHandler
+    public sealed class AzureDevOpsIssueSource : IssueSource<AzureDevOpsSecureResource>, IMissingPersistentPropertyHandler
     {
         [Persistent]
         [DisplayName("Project")]
@@ -59,7 +59,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
                 credentials = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
             }
             if (resource == null)
-                throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");
+                throw new InvalidOperationException($"A resource must be supplied to enumerate AzureDevOps issues.");
 
             var client = new RestApi(credentials?.Token, resource.InstanceUrl, context.Log);
             string wiql = this.GetWiql(context.Log);

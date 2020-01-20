@@ -2,23 +2,14 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitHub.Clients;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
-    public sealed class RepositoryNameSuggestionProvider : ISuggestionProvider
+    public sealed class RepositoryNameSuggestionProvider : GitHubSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var (credentials, resource) = config.GetCredentialsAndResource();
-            if (resource == null || credentials == null)
-                return Enumerable.Empty<string>();
-
-            var client = new GitHubClient(resource.ApiUrl, credentials?.UserName, credentials?.Password, resource.OrganizationName);
-
-            var repos = await client.GetRepositoriesAsync(CancellationToken.None).ConfigureAwait(false);
+            var repos = await this.Client.GetRepositoriesAsync(CancellationToken.None).ConfigureAwait(false);
             var names = from m in repos
                         let name = m["name"]?.ToString()
                         where !string.IsNullOrEmpty(name)

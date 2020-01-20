@@ -8,16 +8,14 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
-    public sealed class OrganizationNameSuggestionProvider : ISuggestionProvider
+    public sealed class OrganizationNameSuggestionProvider : GitHubSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var (credentials, resource) = config.GetCredentialsAndResource();
-            if (resource == null)
+            if (this.Credentials == null)
                 return Enumerable.Empty<string>();
 
-            var client = new GitHubClient(resource.ApiUrl, credentials?.UserName, credentials?.Password, resource.OrganizationName);
-            var orgs = await client.GetOrganizationsAsync(CancellationToken.None).ConfigureAwait(false);
+            var orgs = await this.Client.GetOrganizationsAsync(CancellationToken.None).ConfigureAwait(false);
             var names = from m in orgs
                         let name = m["login"]?.ToString()
                         where !string.IsNullOrEmpty(name)
