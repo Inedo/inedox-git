@@ -6,6 +6,7 @@ using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
@@ -51,7 +52,7 @@ namespace Inedo.Extensions.GitLab.Credentials
             return new RichDescription($"{group}{this.ProjectName} @ {host}");
         }
 
-        public override async Task<string> GetRepositoryUrl(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
         {
             var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
             var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);

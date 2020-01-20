@@ -1,9 +1,9 @@
-﻿using Inedo.Documentation;
-using Inedo.Extensions.Credentials;
+﻿using System.ComponentModel;
+using System.Security;
+using Inedo.Documentation;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Serialization;
 using Inedo.Web;
-using System.ComponentModel;
-using System.Security;
 using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
 namespace Inedo.Extensions.AzureDevOps.Credentials

@@ -1,8 +1,10 @@
 ﻿using System.Security;
+using System.Threading.Tasks;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.Git.Credentials;
 using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
@@ -32,24 +34,29 @@ namespace Inedo.Extensions.Git
                 config[nameof(IGitConfiguration.ResourceName)],
                 "(unknown)");
         }
-        public static (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(this IGitConfiguration operation, IOperationExecutionContext opcontext)
+        public static async Task<(UsernamePasswordCredentials, GitSecureResourceBase)> GetCredentialsAndResourceAsync(this IGitConfiguration operation, IOperationExecutionContext opcontext)
         {
             var context = (ICredentialResolutionContext)opcontext;
             UsernamePasswordCredentials credentials = null;
-            GitSecureResourceBase resource = null;
+            GitSecureResource resource = null;
             if (!string.IsNullOrEmpty(operation.ResourceName))
             {
-                resource = (GitSecureResourceBase)SecureResource.TryCreate(operation.ResourceName, context);
+                resource = (GitSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
                     var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GeneralGitCredentials;
-                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
+                    resource = (GitSecureResource)rc?.ToSecureResource();
                     credentials = (UsernamePasswordCredentials)rc?.ToSecureCredentials();
                 }
                 else
                 {
                     credentials = (UsernamePasswordCredentials)resource.GetCredentials(context);
                 }
+            }
+            string repositoryUrl = operation.RepositoryUrl;
+            if (string.IsNullOrEmpty(repositoryUrl) && resource != null)
+            {
+                repositoryUrl = await resource.GetRepositoryUrlAsync(context, opcontext.CancellationToken);
             }
 
             return (
@@ -60,7 +67,7 @@ namespace Inedo.Extensions.Git
                     },
                 new GitSecureResource
                 {
-                    RepositoryUrl = AH.CoalesceString(operation.RepositoryUrl, resource?.GetRepositoryUrl(context, opcontext.CancellationToken))
+                    RepositoryUrl = repositoryUrl
                 }
             );
 

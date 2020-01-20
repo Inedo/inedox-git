@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Serialization;
 
 namespace Inedo.Extensions.AzureDevOps.Credentials
@@ -42,7 +42,7 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
             return new RichDescription(proj, "@", inst);
         }
 
-        public override Task<string> GetRepositoryUrl(ICredentialResolutionContext context, CancellationToken cancellationToken) => 
+        public override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) =>
             Task.FromResult($"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName)}");
     }
 }

@@ -7,6 +7,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.Git.Credentials;
 using Inedo.Extensions.Operations;
 using Inedo.Web;
@@ -60,17 +61,16 @@ Git::Get-Source
         private UsernamePasswordCredentials credential;
         private GitSecureResourceBase resource;
 
-        public override Task ExecuteAsync(IOperationExecutionContext context)
+        public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            (this.credential, this.resource) = this.GetCredentialsAndResource(context);
-            return base.ExecuteAsync(context);
+            (this.credential, this.resource) = await this.GetCredentialsAndResourceAsync(context);
+            await base.ExecuteAsync(context);
         }
         protected override UsernamePasswordCredentials GetCredentials() => this.credential;
 
-        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        protected async override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
         {
-            var url = AH.CoalesceString(this.RepositoryUrl, this.resource.GetRepositoryUrl(context, cancellationToken));
-            return Task.FromResult(url);
+            return AH.CoalesceString(this.RepositoryUrl, await this.resource.GetRepositoryUrlAsync(context, cancellationToken));
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

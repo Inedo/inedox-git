@@ -5,8 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.Credentials;
+using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
@@ -51,7 +50,7 @@ namespace Inedo.Extensions.GitHub.Credentials
             return new RichDescription($"{group}{this.RepositoryName} @ {host}");
         }
 
-        public override async Task<string> GetRepositoryUrl(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
         {
             var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
 

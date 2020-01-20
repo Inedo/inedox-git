@@ -26,8 +26,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Clients\RemoteBranchInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Clients\WorkspacePath.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitCredentialsBase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitSecureCredentialsBase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Credentials\GitSecureResourceBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Editors\DateEditor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\TagOperation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Operations\GetSourceOperation.cs" />

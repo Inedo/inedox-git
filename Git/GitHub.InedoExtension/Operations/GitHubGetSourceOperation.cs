@@ -88,7 +88,8 @@ GitHub::Get-Source MyGitHubResource
         protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
 
 
-        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)  => this.resource.GetRepositoryUrl(context, cancellationToken);
+        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)  
+            => this.resource.GetRepositoryUrlAsync(context, cancellationToken);
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
