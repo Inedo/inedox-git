@@ -91,7 +91,12 @@ GitHub::Set-Status (
         {
             var client = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
 
-            var url = $"{SDK.BaseUrl.TrimEnd('/')}/executions/execution-in-progress?executionId={context.ExecutionId}";
+            string url = null;
+            if (string.IsNullOrEmpty(SDK.BaseUrl))
+                this.LogWarning("BaseUrl is not set, which means a target_url cannot be provided as a status. Go to Admin > Advanced/All Settings to set a BaseUrl.");
+            else
+                url = $"{SDK.BaseUrl.TrimEnd('/')}/executions/execution-in-progress?executionId={context.ExecutionId}";
+
             var statusContext = "ci/" + SDK.ProductName.ToLower() + AH.ConcatNE("/", this.AdditionalContext);
 
             if (this.Status == StatusType.auto)
