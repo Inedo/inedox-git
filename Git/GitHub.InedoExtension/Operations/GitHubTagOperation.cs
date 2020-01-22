@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -29,56 +30,64 @@ GitHub::Tag(
     Tag: $ReleaseName.$PackageNumber
 );
 ")]
-    public sealed class GitHubTagOperation : TagOperation<GitHubCredentials>
+    public sealed class GitHubTagOperation : TagOperation, IGitHubConfiguration
     {
+        [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
+        [DisplayName("From GitHub resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
+        public string ResourceName { get; set; }
 
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
+        [ScriptAlias("UserName")]
+        [DisplayName("User name")]
+        [PlaceholderText("Use user name from GitHub resource's credentials")]
+        public string UserName { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("Password")]
+        [DisplayName("Password")]
+        [PlaceholderText("Use password from GitHub resource's credentials")]
+        public SecureString Password { get; set; }
+
+        [Category("Connection/Identity")]
         [ScriptAlias("Organization")]
         [DisplayName("Organization name")]
-        [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
-        [PlaceholderText("Use organization from credentials")]
+        [PlaceholderText("Use organization from Github resource")]
         [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
         public string OrganizationName { get; set; }
 
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Repository")]
         [DisplayName("Repository name")]
-        [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
-        [PlaceholderText("Use repository from credentials")]
+        [PlaceholderText("Use repository from Github resource")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
         [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
+        [Description("Use URL from Github resource.")]
         public string ApiUrl { get; set; }
+        
+        private GitHubSecureCredentials credential;
+        private GitHubSecureResource resource;
 
-        protected override async Task<string> GetRepositoryUrlAsync(CancellationToken cancellationToken)
+        public override Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
-
-            var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                        where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
-                        select r).FirstOrDefault();
-
-            if (repo == null)
-                throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
-
-            return (string)repo["clone_url"];
+            (this.credential, this.resource) = this.GetCredentialsAndResource((ICredentialResolutionContext)context);
+            return base.ExecuteAsync(context);
         }
+        protected override Extensions.Credentials.UsernamePasswordCredentials GetCredentials() => this.credential?.ToUsernamePassword();
+
+        protected override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) 
+            => this.resource.GetRepositoryUrlAsync(context, cancellationToken);
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Tag GitHub Source"),
-               new RichDescription("in ", new Hilite(source), " with ", new Hilite(config[nameof(this.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " with ", new Hilite(config[nameof(this.Tag)]))
             );
         }
     }

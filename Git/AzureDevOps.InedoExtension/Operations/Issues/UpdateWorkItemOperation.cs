@@ -26,9 +26,6 @@ Create-WorkItem
 ")]
     public sealed class UpdateWorkItemOperation : AzureDevOpsOperation
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
         [Required]
         [ScriptAlias("Id")]
         [DisplayName("Id")]
@@ -56,8 +53,8 @@ Create-WorkItem
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             this.LogInformation($"Updating work item (ID={this.Id}) in Azure DevOps...");
-
-            var client = new RestApi(this, this);
+            var (c, r) = this.GetCredentialsAndResource(context);
+            var client = new RestApi(c?.Token, r.InstanceUrl, this);
             try
             {
                 await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State).ConfigureAwait(false);

@@ -6,6 +6,7 @@ using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.IO;
@@ -62,9 +63,10 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
                 return;
             }
 
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
 
-            var ownerName = AH.CoalesceString(this.OrganizationName, this.UserName);
+            var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 
             foreach (var info in files)
             {
@@ -78,7 +80,7 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
                 using (var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false))
                 {
                     this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
-                    await github.UploadReleaseAssetAsync(ownerName, this.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
+                    await github.UploadReleaseAssetAsync(ownerName, resource.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
                     this.progress = null;
                 }
             }
@@ -86,11 +88,9 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string source = AH.CoalesceString(config[nameof(this.RepositoryName)], config[nameof(this.CredentialName)]);
-
             return new ExtendedRichDescription(
                new RichDescription("Upload ", new MaskHilite(config[nameof(this.Includes)], config[nameof(this.Excludes)]), " from ", new DirectoryHilite(config[nameof(this.SourceDirectory)]), " to GitHub"),
-               new RichDescription("in ", new Hilite(source), " release ", new Hilite(config[nameof(this.Tag)]))
+               new RichDescription("in ", new Hilite(config.DescribeSource()), " release ", new Hilite(config[nameof(this.Tag)]))
             );
         }
     }

@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
@@ -19,54 +16,62 @@ namespace Inedo.Extensions.GitHub.Configurations
 {
     [Serializable]
     [DisplayName("GitHub Release")]
-    public sealed class GitHubReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitHubCredentials>
+    public sealed class GitHubReleaseConfiguration : PersistedConfiguration, IExistential, IGitHubConfiguration, IMissingPersistentPropertyHandler
     {
         [Persistent]
+        [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
+        [DisplayName("From GitHub resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
+        [IgnoreConfigurationDrift]
+        public string ResourceName { get; set; }
+
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
 
         [Persistent]
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
+        [PlaceholderText("Use user name from GitHub resource's credentials")]
+        [IgnoreConfigurationDrift]
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
+        [PlaceholderText("Use password from GitHub resource's credentials")]
+        [IgnoreConfigurationDrift]
         public SecureString Password { get; set; }
 
         [Persistent]
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Organization")]
         [DisplayName("Organization name")]
-        [MappedCredential(nameof(GitHubCredentials.OrganizationName))]
-        [PlaceholderText("Use organization from credentials")]
+        [PlaceholderText("Use organization from Github resource")]
         [SuggestableValue(typeof(OrganizationNameSuggestionProvider))]
+        [IgnoreConfigurationDrift]
         public string OrganizationName { get; set; }
 
         [Persistent]
-        [Category("GitHub")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Repository")]
         [DisplayName("Repository name")]
-        [MappedCredential(nameof(GitHubCredentials.RepositoryName))]
-        [PlaceholderText("Use repository from credentials")]
+        [PlaceholderText("Use repository from Github resource")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
+        [IgnoreConfigurationDrift]
         public string RepositoryName { get; set; }
 
         [Persistent]
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
-        [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        [MappedCredential(nameof(GitHubCredentials.ApiUrl))]
+        [PlaceholderText("Use URL from Github resource.")]
+        [IgnoreConfigurationDrift]
         public string ApiUrl { get; set; }
 
         [Persistent]

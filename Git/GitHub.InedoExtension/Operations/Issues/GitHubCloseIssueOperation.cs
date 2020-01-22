@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 
@@ -21,15 +22,16 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
-            await github.UpdateIssueAsync(this.IssueNumber, AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, new { state = "closed" }, context.CancellationToken).ConfigureAwait(false);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
+            await github.UpdateIssueAsync(this.IssueNumber, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, new { state = "closed" }, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Close GitHub issue #", new Hilite(config[nameof(IssueNumber)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(RepositoryName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

@@ -9,19 +9,16 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
 {
-    internal sealed class IterationPathSuggestionProvider : ISuggestionProvider
+    internal sealed class IterationPathSuggestionProvider : AzureDevOpsSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var credentialName = config["CredentialName"];
-            var project = config["Project"];
-            if (string.IsNullOrEmpty(credentialName) || string.IsNullOrEmpty(project))
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IAzureDevOpsConfiguration.ProjectName)], this.Resource?.ProjectName);
+
+            if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var credentials = ResourceCredentials.Create<AzureDevOpsCredentials>(credentialName);
-
-            var api = new RestApi(credentials, null);
-            var iterations = await api.GetIterationsAsync(project).ConfigureAwait(false);
+            var iterations = await this.Client.GetIterationsAsync(projectName).ConfigureAwait(false);
             return iterations.Select(i => i.path);
         }
     }

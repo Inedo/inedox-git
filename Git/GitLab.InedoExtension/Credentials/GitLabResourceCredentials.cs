@@ -5,20 +5,21 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 using Inedo.Web.Plans;
 
 namespace Inedo.Extensions.GitLab.Credentials
 {
-    [ScriptAlias(GitLabCredentials.TypeName)]
+    [ScriptAlias(GitLabLegacyResourceCredentials.TypeName)]
     [DisplayName("GitLab")]
-    [Description("Credentials for GitLab.")]
+    [Description("(Legacy) Resource Credentials for GitLab.")]
     [PersistFrom("Inedo.Extensions.Credentials.GitLabCredentials,GitLab")]
-    public sealed class GitLabCredentials : GitCredentialsBase
+    [PersistFrom("Inedo.Extensions.GitLab.Credentials.GitLabCredentials,GitLab")]
+    public sealed class GitLabLegacyResourceCredentials : GitCredentialsBase
     {
         public const string TypeName = "GitLab";
 
@@ -31,13 +32,11 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Persistent]
         [DisplayName("Group name")]
         [PlaceholderText("e.g. apache")]
-        [SuggestableValue(typeof(CredentialsGroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
         [Persistent]
         [DisplayName("Project")]
         [PlaceholderText("e.g. log4net")]
-        [SuggestableValue(typeof(CredentialsProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Persistent]
@@ -64,24 +63,37 @@ namespace Inedo.Extensions.GitLab.Credentials
             return desc;            
         }
 
-        internal static GitLabCredentials TryCreate(string name, ValueEnumerationContext context)
+        internal static GitLabLegacyResourceCredentials TryCreate(string name, ValueEnumerationContext context)
         {
-            return (GitLabCredentials)ResourceCredentials.TryCreate(GitLabCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
+            return (GitLabLegacyResourceCredentials)ResourceCredentials.TryCreate(GitLabLegacyResourceCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
         }
 
-        internal static GitLabCredentials TryCreate(string name, IComponentConfiguration config)
+        internal static GitLabLegacyResourceCredentials TryCreate(string name, IComponentConfiguration config)
         {
             int? projectId = (config.EditorContext as IOperationEditorContext)?.ProjectId ?? AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
             int? environmentId = AH.ParseInt(config["EnvironmentId"]);
 
-            return (GitLabCredentials)ResourceCredentials.TryCreate(GitLabCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
+            return (GitLabLegacyResourceCredentials)ResourceCredentials.TryCreate(GitLabLegacyResourceCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
         }
-        internal static GitLabCredentials TryCreate(string name, IOperationConfiguration config)
+        internal static GitLabLegacyResourceCredentials TryCreate(string name, IOperationConfiguration config)
         {
             int? projectId = AH.ParseInt(AH.CoalesceString(config["ProjectId"], config["ApplicationId"]));
             int? environmentId = AH.ParseInt(config["EnvironmentId"]);
 
-            return (GitLabCredentials)ResourceCredentials.TryCreate(GitLabCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
+            return (GitLabLegacyResourceCredentials)ResourceCredentials.TryCreate(GitLabLegacyResourceCredentials.TypeName, name, environmentId: environmentId, applicationId: projectId, inheritFromParent: false);
         }
+
+        public override SecureResource ToSecureResource() => new GitLabSecureResource
+        {
+            ApiUrl = this.ApiUrl,
+            GroupName = this.GroupName,
+            ProjectName = this.ProjectName
+        };
+        public override SecureCredentials ToSecureCredentials() => string.IsNullOrEmpty(this.UserName) ? null : 
+            new GitLabSecureCredentials
+            {
+                UserName = this.UserName,
+                PersonalAccessToken = this.Password
+            };
     }
 }

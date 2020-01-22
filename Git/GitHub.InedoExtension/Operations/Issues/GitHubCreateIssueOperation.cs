@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -41,7 +42,8 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var github = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var github = new GitHubClient(credentials, resource);
             var data = new Dictionary<string, object> { ["title"] = this.Title };
             if (!string.IsNullOrEmpty(this.Body))
                 data.Add("body", this.Body);
@@ -50,15 +52,15 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
             if (this.Assignees != null)
                 data.Add("assignees", this.Assignees);
             if (!string.IsNullOrEmpty(this.Milestone))
-                data.Add("milestone", await github.CreateMilestoneAsync(this.Milestone, AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, context.CancellationToken));
-            this.IssueNumber = await github.CreateIssueAsync(AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, data, context.CancellationToken).ConfigureAwait(false);
+                data.Add("milestone", await github.CreateMilestoneAsync(this.Milestone, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, context.CancellationToken));
+            this.IssueNumber = await github.CreateIssueAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Create issue titled ", new Hilite(config[nameof(Title)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(RepositoryName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", config.DescribeSource())
             );
         }
     }

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -18,13 +18,8 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Issue Source")]
     [Description("Issue source for GitHub.")]
-    public sealed class GitHubIssueSource : IssueSource, IHasCredentials<GitHubCredentials>
+    public sealed class GitHubIssueSource : IssueSource<GitHubSecureResource>, IMissingPersistentPropertyHandler
     {
-        [Required]
-        [Persistent]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
-
         [Persistent]
         [DisplayName("Repository name")]
         [PlaceholderText("Use repository name from credentials")]
@@ -53,24 +48,34 @@ namespace Inedo.Extensions.GitHub.IssueSources
             + "<pre>milestone=none&amp;assignee=BuildMasterUser&amp;state=all</pre>")]
         public string CustomFilterQueryString { get; set; }
 
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
+
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            GitHubCredentials credentials = null;
-            if (context is IStandardContext stdcontext)
-                 credentials = this.TryGetCredentials(stdcontext.EnvironmentId, stdcontext.ProjectId) as GitHubCredentials;
-            else
-                credentials = this.TryGetCredentials();
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
+                resource = (GitHubSecureResource)rc?.ToSecureResource();
+                credentials = (GitHubSecureCredentials)rc?.ToSecureCredentials();
+            }
+            if (resource == null)
+                throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");
 
-            if (credentials == null)
-                throw new InvalidOperationException("Credentials must be supplied to enumerate GitHub issues.");
-
-            string repositoryName = AH.CoalesceString(this.RepositoryName, credentials.RepositoryName);
+            string repositoryName = AH.CoalesceString(this.RepositoryName, resource.RepositoryName);
             if (string.IsNullOrEmpty(repositoryName))
                 throw new InvalidOperationException("A repository name must be defined in either the issue source or associated GitHub credentials in order to enumerate GitHub issues.");
 
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
-            
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
+            var client = new GitHubClient(credentials, resource);
+
+            string ownerName = AH.CoalesceString(resource.OrganizationName, credentials?.UserName);
+            if (string.IsNullOrEmpty(ownerName))
+                throw new InvalidOperationException("A organization or user name must be defined to enumerate GitHub issues.");
 
             var filter = new GitHubIssueFilter
             {

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps;
 using Inedo.Extensions.AzureDevOps.Clients;
@@ -19,15 +20,6 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
     [Tag("azure-devops")]
     public sealed class ImportAzureDevOpsArtifactOperation : AzureDevOpsOperation
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-
-        [ScriptAlias("Project")]
-        [DisplayName("Project")]
-        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
-        public string Project { get; set; }
-
         [Required]
         [ScriptAlias("BuildDefinition")]
         [DisplayName("Build definition")]
@@ -56,11 +48,13 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
         public async override Task ExecuteAsync(IOperationExecutionContext context)
         {
             this.LogInformation($"Importing {this.ArtifactName} artifact with build number \"{this.BuildNumber ?? "latest"}\" from Azure DevOps...");
+
+            var (c, r) = this.GetCredentialsAndResource(context);
             
             this.AzureDevOpsBuildNumber = await ArtifactImporter.DownloadAndImportAsync(
-                (IAzureDevOpsConnectionInfo)this,
+                c.Token,r.InstanceUrl,
                 this,
-                this.Project,
+                r.ProjectName,
                 this.BuildNumber,
                 this.BuildDefinition,
                 context,
@@ -74,7 +68,7 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
         {
             var shortDesc = new RichDescription("Import Azure DevOps ", new Hilite(config[nameof(this.ArtifactName)]), " Artifact");
 
-            var longDesc = new RichDescription("from ", new Hilite(config[nameof(this.Project)]), " using ");
+            var longDesc = new RichDescription("from ", new Hilite(config.DescribeSource()), " using ");
             if (string.IsNullOrEmpty(config[nameof(this.BuildNumber)]))
                 longDesc.AppendContent("the last successful build");
             else

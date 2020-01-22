@@ -2,34 +2,17 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.Credentials;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {
-    public sealed class GroupNameSuggestionProvider : ISuggestionProvider
+    public sealed class GroupNameSuggestionProvider : GitLabSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var credentialName = config["CredentialName"];
-
-            if (string.IsNullOrEmpty(credentialName))
+            if (this.Credentials == null)
                 return Enumerable.Empty<string>();
 
-            var credentials = GitLabCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.GroupName, credentials.UserName);
-
-            if (string.IsNullOrEmpty(ownerName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitLabClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.GroupName);
-            var groups = await client.GetGroupsAsync(CancellationToken.None).ConfigureAwait(false);
-
+            var groups = await this.Client.GetGroupsAsync(CancellationToken.None).ConfigureAwait(false);
             var names = from m in groups
                         let name = m["full_path"]?.ToString()
                         where !string.IsNullOrEmpty(name)

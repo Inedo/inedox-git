@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel;
+using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Credentials;
@@ -11,7 +13,7 @@ using Inedo.Web.Plans.ArgumentEditors;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GetSourceOperation<TCredentials> : GitOperation<TCredentials> where TCredentials : GitCredentialsBase, new()
+    public abstract class GetSourceOperation : GitOperation
     {
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]
@@ -44,7 +46,7 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            string repositoryUrl = await this.GetRepositoryUrlAsync(context.CancellationToken).ConfigureAwait(false);
+            string repositoryUrl = await this.GetRepositoryUrlAsync((ICredentialResolutionContext)context, context.CancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(repositoryUrl))
             {
                 this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");

@@ -15,6 +15,7 @@ using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
 {
+    [Obsolete("Use GitRaftRepository2", true)]
     public abstract class GitRaftRepositoryBase : RaftRepository
     {
         private Lazy<Repository> lazyRepository;
@@ -512,6 +513,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
 
+        [Obsolete("Use GitRaftRepository2", true)]
         private sealed class RaftItemStream : Stream
         {
             private Stream wrapped;

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Extensibility.Operations;
@@ -10,9 +11,9 @@ namespace Inedo.Extensions.AzureDevOps.Clients
 {
     internal static class ArtifactImporter
     {
-        public static async Task<string> DownloadAndImportAsync(IAzureDevOpsConnectionInfo connectionInfo, ILogSink logger, string teamProject, string buildNumber, string buildDefinitionName, IOperationExecutionContext context, string artifactName)
+        public static async Task<string> DownloadAndImportAsync(SecureString token, string instanceUrl, ILogSink logger, string teamProject, string buildNumber, string buildDefinitionName, IOperationExecutionContext context, string artifactName)
         {
-            var downloader = new ArtifactDownloader(connectionInfo, logger);
+            var downloader = new ArtifactDownloader(token, instanceUrl, logger);
 
             using (var artifact = await downloader.DownloadAsync(teamProject, buildNumber, buildDefinitionName, artifactName).ConfigureAwait(false))
             {

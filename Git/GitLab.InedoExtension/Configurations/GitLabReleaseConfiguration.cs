@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Credentials;
-using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
@@ -19,59 +16,60 @@ namespace Inedo.Extensions.GitLab.Configurations
 {
     [Serializable]
     [DisplayName("GitLab Release")]
-    public sealed class GitLabReleaseConfiguration : PersistedConfiguration, IExistential, IHasCredentials<GitLabCredentials>
+    public sealed class GitLabReleaseConfiguration : PersistedConfiguration, IExistential, IGitLabConfiguration, IMissingPersistentPropertyHandler
     {
         [Persistent]
+        [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
+        [DisplayName("From GitLab resource")]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
         [IgnoreConfigurationDrift]
-        public string CredentialName { get; set; }
+        public string ResourceName { get; set; }
+
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
+
 
         [Persistent]
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
         [DisplayName("User name")]
-        [PlaceholderText("Use user name from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.UserName))]
-        [IgnoreConfigurationDrift]
+        [PlaceholderText("Use user name from GitLab resource's credentials")]
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [Category("Connection/Identity")]
         [ScriptAlias("Password")]
         [DisplayName("Password")]
-        [PlaceholderText("Use password from credentials")]
-        [MappedCredential(nameof(GitCredentialsBase.Password))]
-        [IgnoreConfigurationDrift]
+        [PlaceholderText("Use password from GitLab resource's credentials")]
         public SecureString Password { get; set; }
 
         [Persistent]
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Group")]
         [DisplayName("Group name")]
-        [MappedCredential(nameof(GitLabCredentials.GroupName))]
-        [PlaceholderText("Use group from credentials")]
+        [PlaceholderText("Use group from GitLab resource")]
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         [IgnoreConfigurationDrift]
         public string GroupName { get; set; }
 
         [Persistent]
-        [Category("GitLab")]
+        [Category("Connection/Identity")]
         [ScriptAlias("Project")]
         [DisplayName("Project name")]
-        [MappedCredential(nameof(GitLabCredentials.ProjectName))]
-        [PlaceholderText("Use project from credentials")]
+        [PlaceholderText("Use project from GitLab resource")]
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         [IgnoreConfigurationDrift]
         public string ProjectName { get; set; }
 
         [Persistent]
-        [Category("Advanced")]
+        [Category("Connection/Identity")]
         [ScriptAlias("ApiUrl")]
         [DisplayName("API URL")]
-        [PlaceholderText(GitLabClient.GitLabComUrl)]
-        [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
-        [MappedCredential(nameof(GitLabCredentials.ApiUrl))]
+        [PlaceholderText("Use URL from GitLab resource")]
         [IgnoreConfigurationDrift]
         public string ApiUrl { get; set; }
 

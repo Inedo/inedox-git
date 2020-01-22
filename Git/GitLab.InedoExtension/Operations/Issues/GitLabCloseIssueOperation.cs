@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 
@@ -21,15 +22,16 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var gitlab = new GitLabClient(this.ApiUrl, this.UserName, this.Password, this.GroupName);
-            await gitlab.UpdateIssueAsync(this.IssueId, this.ProjectName, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var gitlab = new GitLabClient(credentials, resource);
+            await gitlab.UpdateIssueAsync(this.IssueId, resource.ProjectName, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
                 new RichDescription("Close GitLab issue #", new Hilite(config[nameof(IssueId)])),
-                new RichDescription("in ", new Hilite(AH.CoalesceString(config[nameof(ProjectName)], config[nameof(CredentialName)])))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

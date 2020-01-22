@@ -17,6 +17,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
     [PersistFrom("Inedo.Extensions.RaftRepositories.ExternalGitRaftRepository,Git")]
     [PersistFrom("Inedo.Otter.Extensions.RaftRepositories.ExternalGitRaftRepository,OtterCoreEx")]
+    [Obsolete("Use GitRaftRepository2", true)]
     public sealed class ExternalGitRaftRepository : GitRaftRepositoryBase
     {
         private readonly Lazy<string> localRepoPath;

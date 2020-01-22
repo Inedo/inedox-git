@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Extensions.GitLab.Credentials;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -27,7 +28,6 @@ namespace Inedo.Extensions.GitLab.Clients
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());
-
         private string EscapeFullProjectPath(string project)
         {
             if (!string.IsNullOrEmpty(this.GroupName))
@@ -45,6 +45,15 @@ namespace Inedo.Extensions.GitLab.Clients
             this.UserName = userName;
             this.Password = password;
             this.GroupName = AH.NullIf(groupName, string.Empty);
+        }
+
+        
+        public GitLabClient(GitLabSecureCredentials credentials, GitLabSecureResource resource)
+        {
+            this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
+            this.UserName = credentials?.UserName;
+            this.Password = credentials?.PersonalAccessToken;
+            this.GroupName = AH.NullIf(resource.GroupName, string.Empty);
         }
 
         public string GroupName { get; }

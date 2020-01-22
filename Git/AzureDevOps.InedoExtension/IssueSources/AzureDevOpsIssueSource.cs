@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
@@ -7,6 +8,7 @@ using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
 using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
@@ -17,11 +19,8 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
 {
     [DisplayName("Azure DevOps Issue Source")]
     [Description("Issue source for Azure DevOps.")]
-    public sealed class AzureDevOpsIssueSource : IssueSource, IHasCredentials<AzureDevOpsCredentials>
+    public sealed class AzureDevOpsIssueSource : IssueSource<AzureDevOpsSecureResource>, IMissingPersistentPropertyHandler
     {
-        [Persistent]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
         [Persistent]
         [DisplayName("Project")]
         [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
@@ -43,12 +42,26 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             + "for more information.")]
         public string CustomWiql { get; set; }
 
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
+
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            context.Log.LogDebug("Enumerating Azure DevOps issue source...");
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsCredentials;
+                resource = (AzureDevOpsSecureResource)rc?.ToSecureResource();
+                credentials = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
+            }
+            if (resource == null)
+                throw new InvalidOperationException($"A resource must be supplied to enumerate AzureDevOps issues.");
 
-            var credentials = this.TryGetCredentials<AzureDevOpsCredentials>();
-            var client = new RestApi(credentials, context.Log);
+            var client = new RestApi(credentials?.Token, resource.InstanceUrl, context.Log);
             string wiql = this.GetWiql(context.Log);
 
             var workItems = await client.GetWorkItemsAsync(wiql).ConfigureAwait(false);
@@ -97,7 +110,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
                 return new RichDescription("Get Issues from Azure DevOps Using Custom WIQL");
             else
                 return new RichDescription(
-                    "Get Issues from ", new Hilite(this.Project), " in Azure DevOps for iteration path ", new Hilite(this.IterationPath)
+                    "Get Issues from ", new Hilite(AH.CoalesceString(this.Project, this.ResourceName)), " in Azure DevOps for iteration path ", new Hilite(this.IterationPath)
                 );
         }
     }

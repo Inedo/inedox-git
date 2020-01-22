@@ -20,12 +20,12 @@ namespace Inedo.Extensions.Clients.LibGitSharp
 
         protected override void Clean(string path, string root, Stream input, Stream output)
         {
-            this.CleanOrSmudgeAsync(path, root, input, output, "clean").WaitAndUnwrapExceptions();
+            this.CleanOrSmudgeAsync(path, root, input, output, "clean").GetAwaiter().GetResult();
         }
 
         protected override void Smudge(string path, string root, Stream input, Stream output)
         {
-            this.CleanOrSmudgeAsync(path, root, input, output, "smudge").WaitAndUnwrapExceptions();
+            this.CleanOrSmudgeAsync(path, root, input, output, "smudge").GetAwaiter().GetResult();
         }
 
         private async Task CleanOrSmudgeAsync(string path, string root, Stream input, Stream output, string mode)

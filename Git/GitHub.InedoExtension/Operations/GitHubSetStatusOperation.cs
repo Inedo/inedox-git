@@ -7,7 +7,6 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 
 namespace Inedo.Extensions.GitHub.Operations
 {
@@ -89,7 +88,8 @@ GitHub::Set-Status (
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            var client = new GitHubClient(this.ApiUrl, this.UserName, this.Password, this.OrganizationName);
+            var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
+            var client = new GitHubClient(credentials, resource);
 
             string url = null;
             if (string.IsNullOrEmpty(SDK.BaseUrl))
@@ -124,17 +124,14 @@ GitHub::Set-Status (
             }
 
             this.LogInformation($"Assigning '{this.Status}' status to the commit on GitHub...");
-            await client.CreateStatusAsync(AH.CoalesceString(this.OrganizationName, this.UserName), this.RepositoryName, this.CommitHash, this.Status.ToString(), url, this.Description, statusContext, context.CancellationToken).ConfigureAwait(false);
+            await client.CreateStatusAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, this.CommitHash, this.Status.ToString(), url, this.Description, statusContext, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            var credentials = string.IsNullOrEmpty(config[nameof(CredentialName)]) ? null : GitHubCredentials.TryCreate(config[nameof(CredentialName)], config);
-            var repositoryOwner = AH.CoalesceString(config[nameof(OrganizationName)], credentials?.OrganizationName, config[nameof(UserName)], credentials?.UserName, "(unknown)");
-            var repositoryName = AH.CoalesceString(config[nameof(RepositoryName)], credentials?.RepositoryName, "(unknown)");
             return new ExtendedRichDescription(
                 new RichDescription("Set build status on GitHub commit ", new Hilite(config[nameof(CommitHash)]), " to ", new Hilite(config[nameof(Status)])),
-                new RichDescription("in repository ", new Hilite(repositoryOwner), "/", new Hilite(repositoryName))
+                new RichDescription("in ", new Hilite(config.DescribeSource()))
             );
         }
     }

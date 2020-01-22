@@ -2,36 +2,18 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.Credentials;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitLab.SuggestionProviders
 {
-    public sealed class MilestoneSuggestionProvider : ISuggestionProvider
+    public sealed class MilestoneSuggestionProvider : GitLabSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var credentialName = config["CredentialName"];
-
-            if (string.IsNullOrEmpty(credentialName))
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IGitLabConfiguration.ProjectName)], this.Resource?.ProjectName);
+            if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var credentials = GitLabCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.GroupName, credentials.UserName);
-            string repositoryName = AH.CoalesceString(config["ProjectName"], credentials.ProjectName);
-
-            if (string.IsNullOrEmpty(ownerName) || string.IsNullOrEmpty(repositoryName))
-                return Enumerable.Empty<string>();
-
-            var client = new GitLabClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.GroupName);
-
-            var milestones = await client.GetMilestonesAsync(repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
-
+            var milestones = await this.Client.GetMilestonesAsync(projectName, "open", CancellationToken.None).ConfigureAwait(false);
             var titles = from m in milestones
                          let title = m["title"]?.ToString()
                          let iid = m.Value<int?>("iid")

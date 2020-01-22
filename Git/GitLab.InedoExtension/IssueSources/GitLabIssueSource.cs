@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -18,13 +18,8 @@ namespace Inedo.Extensions.GitLab.IssueSources
 {
     [DisplayName("GitLab Issue Source")]
     [Description("Issue source for GitLab.")]
-    public sealed class GitLabIssueSource : IssueSource, IHasCredentials<GitLabCredentials>
+    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IMissingPersistentPropertyHandler
     {
-        [Required]
-        [Persistent]
-        [DisplayName("Credentials")]
-        public string CredentialName { get; set; }
-
         [Persistent]
         [DisplayName("Project name")]
         [PlaceholderText("Use project name from credentials")]
@@ -48,28 +43,36 @@ namespace Inedo.Extensions.GitLab.IssueSources
         [PlaceholderText("Use above fields")]
         [Description("If a custom filter query string is set, the above filters are ignored. See "
             + "<a href=\"https://docs.gitlab.com/ce/api/issues.html#list-project-issues\" target=\"_blank\">GitLab API List Issues for a Project</a> "
-            + "for more information.<br /><br />" 
-            + "For example, to filter by all issues with no labels that contain the word 'cheese' in their title or description:<br /><br />" 
+            + "for more information.<br /><br />"
+            + "For example, to filter by all issues with no labels that contain the word 'cheese' in their title or description:<br /><br />"
             + "<pre>labels=No+Label&amp;search=cheese</pre>")]
         public string CustomFilterQueryString { get; set; }
 
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
+        }
+
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            GitLabCredentials credentials = null;
-            if (context is IStandardContext stdcontext)
-                 credentials = this.TryGetCredentials(stdcontext.EnvironmentId, stdcontext.ProjectId) as GitLabCredentials;
-            else
-                credentials = this.TryGetCredentials();
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
+            if (resource == null)
+            {
+                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
+                resource = (GitLabSecureResource)rc?.ToSecureResource();
+                credentials = (GitLabSecureCredentials)rc?.ToSecureCredentials();
+            }
+            if (resource == null)
+                throw new InvalidOperationException("A resource must be supplied to enumerate GitLab issues.");
 
-            if (credentials == null)
-                throw new InvalidOperationException("Credentials must be supplied to enumerate GitLab issues.");
-
-            string projectName = AH.CoalesceString(this.ProjectName, credentials.ProjectName);
+            string projectName = AH.CoalesceString(this.ProjectName, resource.ProjectName);
             if (string.IsNullOrEmpty(projectName))
-                throw new InvalidOperationException("A project name must be defined in either the issue source or associated GitLab credentials in order to enumerate GitLab issues.");
+                throw new InvalidOperationException("A project name must be defined in either the issue source or associated GitLab resource in order to enumerate GitLab issues.");
 
-            var client = new GitLabClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.GroupName);
-            
+            var client = new GitLabClient(credentials, resource);
+
             var filter = new GitLabIssueFilter
             {
                 Milestone = this.MilestoneTitle,

@@ -9,19 +9,16 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
 {
-    internal sealed class BuildNumberSuggestionProvider : ISuggestionProvider
+    internal sealed class BuildNumberSuggestionProvider : AzureDevOpsSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var credentialName = config["CredentialName"];
-            var projectName = AH.CoalesceString(config["Project"], config["ProjectName"]);
-            var definitionName = config["BuildDefinition"];
-            if (string.IsNullOrEmpty(credentialName) || string.IsNullOrEmpty(projectName) || string.IsNullOrEmpty(definitionName))
+            var projectName = AH.CoalesceString(this.ComponentConfiguration[nameof(IAzureDevOpsConfiguration.ProjectName)], this.Resource?.ProjectName);
+            var definitionName = this.ComponentConfiguration["BuildDefinition"];
+            if (string.IsNullOrEmpty(projectName) || string.IsNullOrEmpty(definitionName))
                 return Enumerable.Empty<string>();
 
-            var credentials = ResourceCredentials.Create<AzureDevOpsCredentials>(credentialName);
-
-            var api = new RestApi(credentials, null);
+            var api = this.Client;
             var definition = await api.GetBuildDefinitionAsync(projectName, definitionName).ConfigureAwait(false);
             if (definition == null)
                 return Enumerable.Empty<string>();

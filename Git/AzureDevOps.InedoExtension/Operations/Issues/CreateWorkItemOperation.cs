@@ -27,14 +27,6 @@ Create-WorkItem
 ")]
     public sealed class CreateWorkItemOperation : AzureDevOpsOperation
     {
-        [ScriptAlias("Credentials")]
-        [DisplayName("Credentials")]
-        public override string CredentialName { get; set; }
-        [Required]
-        [ScriptAlias("Project")]
-        [DisplayName("Project")]
-        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
-        public string Project { get; set; }
         [Required]
         [ScriptAlias("Type")]
         [DisplayName("Work item type")]
@@ -63,11 +55,11 @@ Create-WorkItem
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             this.LogInformation("Creating work item in Azure DevOps...");
-
-            var client = new RestApi(this, this);
+            var (c, r) = this.GetCredentialsAndResource(context);
+            var client = new RestApi(c?.Token, r.InstanceUrl, this);
             try
             {
-                var result = await client.CreateWorkItemAsync(this.Project, this.Type, this.Title, this.Description, this.IterationPath).ConfigureAwait(false);
+                var result = await client.CreateWorkItemAsync(r.ProjectName, this.Type, this.Title, this.Description, this.IterationPath).ConfigureAwait(false);
 
                 this.LogDebug($"Work item (ID={result.id}) created.");
                 this.WorkItemId = result.id.ToString();
@@ -83,7 +75,7 @@ Create-WorkItem
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             return new ExtendedRichDescription(
-                new RichDescription("Create Azure DevOps Work Item for project ", config[nameof(this.Project)])
+                new RichDescription("Create Azure DevOps Work Item for project ", config.DescribeSource())
             );
         }
     }

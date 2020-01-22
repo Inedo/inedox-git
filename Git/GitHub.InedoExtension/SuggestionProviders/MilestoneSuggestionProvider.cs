@@ -4,33 +4,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
-    public sealed class MilestoneSuggestionProvider : ISuggestionProvider
+    public sealed class MilestoneSuggestionProvider : GitHubSuggestionProvider
     {
-        public async Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
+        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
         {
-            var credentialName = config["CredentialName"];
-
-            if (string.IsNullOrEmpty(credentialName))
-                return Enumerable.Empty<string>();
-
-            var credentials = GitHubCredentials.TryCreate(credentialName, config);
-            if (credentials == null)
-                return Enumerable.Empty<string>();
-
-            string ownerName = AH.CoalesceString(credentials.OrganizationName, credentials.UserName);
-            string repositoryName = AH.CoalesceString(config["RepositoryName"], credentials.RepositoryName);
-
+            string repositoryName = AH.CoalesceString(this.ComponentConfiguration[nameof(IGitHubConfiguration.RepositoryName)], this.Resource?.RepositoryName);
+            string ownerName = AH.CoalesceString(
+                this.ComponentConfiguration[nameof(IGitHubConfiguration.OrganizationName)], this.Resource?.OrganizationName,
+                this.ComponentConfiguration[nameof(IGitHubConfiguration.UserName)], this.Credentials?.UserName
+                );
             if (string.IsNullOrEmpty(ownerName) || string.IsNullOrEmpty(repositoryName))
                 return Enumerable.Empty<string>();
 
-            var client = new GitHubClient(credentials.ApiUrl, credentials.UserName, credentials.Password, credentials.OrganizationName);
-
-            var milestones = await client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
+            var milestones = await this.Client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
 
             var titles = from m in milestones
                          let title = m["title"]?.ToString()

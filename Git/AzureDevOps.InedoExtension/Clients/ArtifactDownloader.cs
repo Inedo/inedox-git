@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
@@ -9,17 +10,17 @@ namespace Inedo.Extensions.AzureDevOps.Clients
 {
     internal sealed class ArtifactDownloader
     {
-        private IAzureDevOpsConnectionInfo connectionInfo;
-        private ILogSink logger;
+        private readonly ILogSink logger;
+        private readonly SecureString token;
+        private readonly string instanceUrl;
 
-        public ArtifactDownloader(IAzureDevOpsConnectionInfo connectionInfo, ILogSink log)
+        public ArtifactDownloader(SecureString token, string instanceUrl, ILogSink log)
         {
-            if (connectionInfo == null)
-                throw new ArgumentNullException(nameof(connectionInfo));
-            if (string.IsNullOrEmpty(connectionInfo.InstanceUrl))
+            if (string.IsNullOrEmpty(instanceUrl))
                 throw new InvalidOperationException("The base URL property of the AzureDevOps credentials or the Url property of the Import/Download Azure DevOps Artifact operation must be set.");
 
-            this.connectionInfo = connectionInfo;
+            this.token = token;
+            this.instanceUrl = instanceUrl;
             this.logger = log;
         }
 
@@ -30,7 +31,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients
             if (string.IsNullOrEmpty(artifactName))
                 throw new ArgumentException("An artifact name is required to download the artifact.", nameof(artifactName));
 
-            var api = new RestApi(connectionInfo, logger);
+            var api = new RestApi(this.token, this.instanceUrl, this.logger);
 
             var buildDefinition = await api.GetBuildDefinitionAsync(teamProject, buildDefinitionName).ConfigureAwait(false);
             if (buildDefinition == null)
