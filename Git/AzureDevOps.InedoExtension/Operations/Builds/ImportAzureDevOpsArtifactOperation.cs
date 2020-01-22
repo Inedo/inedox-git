@@ -52,7 +52,8 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
             var (c, r) = this.GetCredentialsAndResource(context);
             
             this.AzureDevOpsBuildNumber = await ArtifactImporter.DownloadAndImportAsync(
-                c.Token,r.InstanceUrl,
+                c?.Token,
+                r.InstanceUrl,
                 this,
                 r.ProjectName,
                 this.BuildNumber,

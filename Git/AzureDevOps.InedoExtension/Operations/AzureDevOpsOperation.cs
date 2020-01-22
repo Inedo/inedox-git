@@ -12,6 +12,8 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 {
     public abstract class AzureDevOpsOperation : ExecuteOperation, IAzureDevOpsConfiguration
     {
+        [ScriptAlias("From")]
+        [ScriptAlias("Credentials")]
         [DisplayName("From AzureDevOps resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
         [Required]
