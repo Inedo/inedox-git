@@ -77,7 +77,7 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
             var upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
             if (credential is GitSecureCredentialsBase gitcreds)
                 upcreds = gitcreds.ToUsernamePassword();
-            else if (credential != null && upcreds != null)
+            else if (credential != null && upcreds == null)
                 throw new InvalidOperationException("Invalid credential type for Git repository monitor.");
 
             if (!string.IsNullOrEmpty(this.GitExePath))
