@@ -22,8 +22,9 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
     [Description("Monitors a Git repository for new commits.")]
     public sealed class GitRepositoryMonitor : RepositoryMonitor, IMissingPersistentPropertyHandler
     {
+        [Required]
         [Persistent]
-        [DisplayName("From GitHub resource")]
+        [DisplayName("From Git resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitSecureResourceBase>))]
         public string ResourceName { get; set; }
 
@@ -76,7 +77,7 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
             var upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
             if (credential is GitSecureCredentialsBase gitcreds)
                 upcreds = gitcreds.ToUsernamePassword();
-            else if (credential != null)
+            else if (credential != null && upcreds != null)
                 throw new InvalidOperationException("Invalid credential type for Git repository monitor.");
 
             if (!string.IsNullOrEmpty(this.GitExePath))
