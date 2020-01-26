@@ -33,9 +33,10 @@ namespace Inedo.Extensions.GitHub.IssueSources
         public string ProjectName { get; set; }
 
         [Persistent]
-        [DisplayName("Closed states")]
+        [DisplayName("Closed states (one per line)")]
         [DefaultValue("Done")]
-        public IEnumerable<string> ClosedStates { get; set; }
+        [FieldEditMode(FieldEditMode.Multiline)]
+        public string ClosedStates { get; set; } = "Done";
 
         [Persistent]
         [DisplayName("Fail if project not found")]
@@ -44,7 +45,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
         {
-            var resource = (GitHubSecureResource)SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId));
+            var resource = (GitHubSecureResource)this.GetResource(new ResourceResolutionContext(context.ProjectId));
             if (resource == null)
                 throw new InvalidOperationException("missing resource");
             var credentials = (GitHubSecureCredentials)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
@@ -71,7 +72,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                         continue;
 
                     var issue = await client.GetIssueAsync(issueUrl, CancellationToken.None);
-                    issues.Add(new GitHubIssue(issue, column.Key, this.ClosedStates.Contains(column.Key, StringComparer.OrdinalIgnoreCase)));
+                    issues.Add(new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase)));
                 }
             }
 
