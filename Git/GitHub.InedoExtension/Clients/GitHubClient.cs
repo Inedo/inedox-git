@@ -372,51 +372,37 @@ namespace Inedo.Extensions.GitHub.Clients
                     }
                 }
 
+                string linkHeader;
+                object responseJson;
+
                 try
                 {
                     using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
                     {
-                        object responseJson;
-                        string linkHeader;
+                        linkHeader = response.Headers["Link"] ?? string.Empty;
 
-                        if (response.StatusCode == HttpStatusCode.NotModified)
+                        using (var responseStream = response.GetResponseStream())
+                        using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
                         {
-                            responseJson = cachedResponse.Item3;
-                            linkHeader = cachedResponse.Item2;
-                        }
-                        else
-                        {
-                            linkHeader = response.Headers["Link"] ?? string.Empty;
-
-                            using (var responseStream = response.GetResponseStream())
-                            using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                            {
-                                string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                                responseJson = jsonSerializer.DeserializeObject(responseText);
-                            }
-
-                            if (method == "GET")
-                            {
-                                MemoryCache.Default.Set(cacheKey, Tuple.Create(response.Headers.Get("ETag"), linkHeader, responseJson), null);
-                            }
+                            string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                            responseJson = jsonSerializer.DeserializeObject(responseText);
                         }
 
-                        if (allPages)
+                        if (method == "GET")
                         {
-                            var nextPage = NextPageLinkPattern.Match(linkHeader);
-                            if (nextPage.Success)
-                            {
-                                responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
-                            }
+                            MemoryCache.Default.Set(cacheKey, Tuple.Create(response.Headers.Get("ETag"), linkHeader, responseJson), null);
                         }
-
-                        return responseJson;
                     }
                 }
                 catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
+                }
+                catch (WebException ex) when ((ex.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotModified)
+                {
+                    responseJson = cachedResponse.Item3;
+                    linkHeader = cachedResponse.Item2;
                 }
                 catch (WebException ex) when (ex.Response != null)
                 {
@@ -427,6 +413,18 @@ namespace Inedo.Extensions.GitHub.Clients
                         throw new Exception(message, ex);
                     }
                 }
+
+
+                if (allPages)
+                {
+                    var nextPage = NextPageLinkPattern.Match(linkHeader);
+                    if (nextPage.Success)
+                    {
+                        responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
+                    }
+                }
+
+                return responseJson;
             }
         }
         private HttpWebRequest CreateRequest(string method, string uri)
