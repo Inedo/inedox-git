@@ -20,6 +20,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [AppliesTo(InedoProduct.BuildMaster)]
     public sealed class GitRaftRepository2 : RaftRepository2
     {
+        private static readonly object gitRaftLock = new object();
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
@@ -97,15 +98,20 @@ namespace Inedo.Extensions.Git.RaftRepositories
             var entry = this.FindEntry(type, name);
             if (entry != null)
             {
-                var commits = this.lazyRepository.Value.Commits.QueryBy(
-                    entry.Path,
-                    new CommitFilter
-                    {
-                        IncludeReachableFrom = this.lazyRepository.Value.Branches[this.CurrentBranchName],
-                        FirstParentOnly = false,
-                        SortBy = CommitSortStrategies.Time
-                    }
-                );
+                LogEntry[] commits;
+
+                lock (gitRaftLock)
+                {
+                    commits = this.lazyRepository.Value.Commits.QueryBy(
+                        entry.Path,
+                        new CommitFilter
+                        {
+                            IncludeReachableFrom = this.lazyRepository.Value.Branches[this.CurrentBranchName],
+                            FirstParentOnly = false,
+                            SortBy = CommitSortStrategies.Time
+                        }
+                    ).ToArray();
+                }
 
                 foreach (var c in commits)
                     yield return new GitRaftItem2(type, entry, this, c.Commit);
@@ -151,22 +157,25 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void WriteRaftItem(RaftItemType type, string name, Stream content, DateTimeOffset? timestamp = null, string userName = null)
         {
-            if (this.disposed)
-                throw new ObjectDisposedException(nameof(GitRaftRepository2));
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
-            if (this.ReadOnly)
-                throw new NotSupportedException();
+            lock (gitRaftLock)
+            {
+                if (this.disposed)
+                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
+                if (string.IsNullOrEmpty(name))
+                    throw new ArgumentNullException(nameof(name));
+                if (this.ReadOnly)
+                    throw new NotSupportedException();
 
-            EnsureRelativePath(name);
+                EnsureRelativePath(name);
 
-            var itemPath = PathEx.Combine('/', GetStandardTypeName(type), name);
-            if (!string.IsNullOrEmpty(this.RepositoryRoot))
-                itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
+                var itemPath = PathEx.Combine('/', GetStandardTypeName(type), name);
+                if (!string.IsNullOrEmpty(this.RepositoryRoot))
+                    itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
 
-            var blob = this.Repo.ObjectDatabase.CreateBlob(content ?? Stream.Null);
-            this.lazyCurrentTree.Value.Add(itemPath, blob, Mode.NonExecutableFile);
-            this.Dirty = true;
+                var blob = this.Repo.ObjectDatabase.CreateBlob(content ?? Stream.Null);
+                this.lazyCurrentTree.Value.Add(itemPath, blob, Mode.NonExecutableFile);
+                this.Dirty = true;
+            }
         }
         public override void WriteRaftItem(RaftItemType type, string name, byte[] content, DateTimeOffset? timestamp = null, string userName = null)
         {
@@ -191,20 +200,23 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void DeleteRaftItem(RaftItemType type, string name)
         {
-            if (this.disposed)
-                throw new ObjectDisposedException(nameof(GitRaftRepository2));
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(name);
-            if (this.ReadOnly)
-                throw new NotSupportedException();
-
-            EnsureRelativePath(name);
-
-            var entry = this.FindEntry(type, name);
-            if (entry != null)
+            lock (gitRaftLock)
             {
-                this.lazyCurrentTree.Value.Remove(entry.Path);
-                this.Dirty = true;
+                if (this.disposed)
+                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
+                if (string.IsNullOrEmpty(name))
+                    throw new ArgumentNullException(name);
+                if (this.ReadOnly)
+                    throw new NotSupportedException();
+
+                EnsureRelativePath(name);
+
+                var entry = this.FindEntry(type, name);
+                if (entry != null)
+                {
+                    this.lazyCurrentTree.Value.Remove(entry.Path);
+                    this.Dirty = true;
+                }
             }
         }
 
@@ -212,9 +224,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             var repo = this.lazyRepository.Value;
 
-            var tip = repo.Branches[this.CurrentBranchName]?.Tip;
-            if (tip == null)
-                return Enumerable.Empty<string>();
+            Commit tip;
+            lock (gitRaftLock)
+            {
+                tip = repo.Branches[this.CurrentBranchName]?.Tip;
+                if (tip == null)
+                    return Enumerable.Empty<string>();
+            }
 
             return getProjects(tip.Tree, null);
 
@@ -255,46 +271,49 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void Commit(IUserDirectoryUser user)
         {
-            if (this.disposed)
-                throw new ObjectDisposedException(nameof(GitRaftRepository2));
-            if (user == null)
-                throw new ArgumentNullException(nameof(user));
-            if (this.ReadOnly)
-                throw new NotSupportedException();
-
-            if (this.variablesDirty)
-                this.SaveVariables();
-
-            if (this.Dirty)
+            lock (gitRaftLock)
             {
-                var signature = new Signature(AH.CoalesceString(user.DisplayName, user.Name), AH.CoalesceString(user.EmailAddress ?? "none@example.com"), DateTime.Now);
+                if (this.disposed)
+                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
+                if (user == null)
+                    throw new ArgumentNullException(nameof(user));
+                if (this.ReadOnly)
+                    throw new NotSupportedException();
 
-                var repo = this.lazyRepository.Value;
-                var tree = repo.ObjectDatabase.CreateTree(this.lazyCurrentTree.Value);
+                if (this.variablesDirty)
+                    this.SaveVariables();
 
-                var branch = repo.Branches[this.CurrentBranchName];
-                if (branch == null)
+                if (this.Dirty)
                 {
-                    var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, repo.Head.Tip == null ? Enumerable.Empty<Commit>() : new[] { repo.Head.Tip }, false);
-                    branch = repo.Branches.Add(this.CurrentBranchName, commit);
+                    var signature = new Signature(AH.CoalesceString(user.DisplayName, user.Name), AH.CoalesceString(user.EmailAddress ?? "none@example.com"), DateTime.Now);
 
-                    repo.Refs.Add("refs/head", repo.Refs.Head);
-                }
-                else
-                {
-                    var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, new[] { branch.Tip }, false);
-                    repo.Refs.UpdateTarget(repo.Refs[branch.CanonicalName], commit.Id);
-                }
+                    var repo = this.lazyRepository.Value;
+                    var tree = repo.ObjectDatabase.CreateTree(this.lazyCurrentTree.Value);
 
-                this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
-
-                this.Repo.Network.Push(
-                    this.Repo.Branches[this.CurrentBranchName],
-                    new PushOptions
+                    var branch = repo.Branches[this.CurrentBranchName];
+                    if (branch == null)
                     {
-                        CredentialsProvider = this.CredentialsHandler
+                        var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, repo.Head.Tip == null ? Enumerable.Empty<Commit>() : new[] { repo.Head.Tip }, false);
+                        branch = repo.Branches.Add(this.CurrentBranchName, commit);
+
+                        repo.Refs.Add("refs/head", repo.Refs.Head);
                     }
-                );
+                    else
+                    {
+                        var commit = repo.ObjectDatabase.CreateCommit(signature, signature, $"Updated by {SDK.ProductName}.", tree, new[] { branch.Tip }, false);
+                        repo.Refs.UpdateTarget(repo.Refs[branch.CanonicalName], commit.Id);
+                    }
+
+                    this.Repo.Branches.Update(this.Repo.Branches[this.CurrentBranchName], b => b.TrackedBranch = "refs/remotes/origin/" + this.CurrentBranchName);
+
+                    this.Repo.Network.Push(
+                        this.Repo.Branches[this.CurrentBranchName],
+                        new PushOptions
+                        {
+                            CredentialsProvider = this.CredentialsHandler
+                        }
+                    );
+                }
             }
         }
 
@@ -331,54 +350,57 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private Repository OpenRepository()
         {
-            if (DirectoryEx.Exists(this.LocalRepositoryPath))
+            lock (gitRaftLock)
             {
-                if (Repository.IsValid(this.LocalRepositoryPath))
+                if (DirectoryEx.Exists(this.LocalRepositoryPath))
                 {
-                    var repository = new Repository(this.LocalRepositoryPath);
-
-                    if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
+                    if (Repository.IsValid(this.LocalRepositoryPath))
                     {
-                        Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                        if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
+                        var repository = new Repository(this.LocalRepositoryPath);
+
+                        if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                         {
-                            //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
-                            var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
-                            repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
+                            Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+                            if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
+                            {
+                                //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
+                                var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
+                                repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
+                            }
+
+                            repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
                         }
 
-                        repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
+                        return repository;
                     }
 
-                    return repository;
+                    if (DirectoryEx.GetFileSystemInfos(this.LocalRepositoryPath, MaskingContext.Default).Any())
+                        throw new InvalidOperationException("The specified local repository path does not appear to be a Git repository but already contains files or directories.");
+                }
+                else
+                {
+                    DirectoryEx.Create(this.LocalRepositoryPath);
                 }
 
-                if (DirectoryEx.GetFileSystemInfos(this.LocalRepositoryPath, MaskingContext.Default).Any())
-                    throw new InvalidOperationException("The specified local repository path does not appear to be a Git repository but already contains files or directories.");
-            }
-            else
-            {
-                DirectoryEx.Create(this.LocalRepositoryPath);
-            }
+                if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
+                {
+                    Repository.Clone(
+                        this.RemoteRepositoryUrl,
+                        this.LocalRepositoryPath,
+                        new CloneOptions
+                        {
+                            CredentialsProvider = this.CredentialsHandler,
+                            IsBare = true
+                        }
+                    );
+                }
+                else
+                {
+                    Repository.Init(this.LocalRepositoryPath, true);
+                }
 
-            if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
-            {
-                Repository.Clone(
-                    this.RemoteRepositoryUrl,
-                    this.LocalRepositoryPath,
-                    new CloneOptions
-                    {
-                        CredentialsProvider = this.CredentialsHandler,
-                        IsBare = true
-                    }
-                );
+                return new Repository(this.LocalRepositoryPath);
             }
-            else
-            {
-                Repository.Init(this.LocalRepositoryPath, true);
-            }
-
-            return new Repository(this.LocalRepositoryPath);
         }
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
         {
@@ -412,46 +434,55 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private void SaveVariables()
         {
-            var repo = this.lazyRepository.Value;
-
-            using (var buffer = new SlimMemoryStream())
+            lock (gitRaftLock)
             {
-                var writer = new StreamWriter(buffer, InedoLib.UTF8Encoding);
-                WriteStandardVariableData(this.lazyVariables.Value, writer);
-                writer.Flush();
+                var repo = this.lazyRepository.Value;
 
-                buffer.Position = 0;
+                using (var buffer = new SlimMemoryStream())
+                {
+                    var writer = new StreamWriter(buffer, InedoLib.UTF8Encoding);
+                    WriteStandardVariableData(this.lazyVariables.Value, writer);
+                    writer.Flush();
 
-                var blob = repo.ObjectDatabase.CreateBlob(buffer, "variables");
+                    buffer.Position = 0;
 
-                this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
+                    var blob = repo.ObjectDatabase.CreateBlob(buffer, "variables");
 
-                this.Dirty = true;
+                    this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
+
+                    this.Dirty = true;
+                }
             }
         }
         private TreeDefinition GetCurrentTree()
         {
-            var repo = this.lazyRepository.Value;
+            lock (gitRaftLock)
+            {
+                var repo = this.lazyRepository.Value;
 
-            var branch = repo.Branches[this.CurrentBranchName];
-            if (branch?.Tip == null)
-                return new TreeDefinition();
+                var branch = repo.Branches[this.CurrentBranchName];
+                if (branch?.Tip == null)
+                    return new TreeDefinition();
 
-            return TreeDefinition.From(branch.Tip);
+                return TreeDefinition.From(branch.Tip);
+            }
         }
         private TreeEntry FindEntry(string name, string hash = null)
         {
-            var repo = this.lazyRepository.Value;
-            var path = string.IsNullOrEmpty(this.RepositoryRoot) ? name : PathEx.Combine('/', this.RepositoryRoot, name);
+            lock (gitRaftLock)
+            {
+                var repo = this.lazyRepository.Value;
+                var path = string.IsNullOrEmpty(this.RepositoryRoot) ? name : PathEx.Combine('/', this.RepositoryRoot, name);
 
-            Tree root;
+                Tree root;
 
-            if (!string.IsNullOrEmpty(hash))
-                root = repo.Lookup<Commit>(hash)?.Tree;
-            else
-                root = repo.Branches[this.CurrentBranchName]?.Tip.Tree;
+                if (!string.IsNullOrEmpty(hash))
+                    root = repo.Lookup<Commit>(hash)?.Tree;
+                else
+                    root = repo.Branches[this.CurrentBranchName]?.Tip.Tree;
 
-            return root?[path];
+                return root?[path];
+            }
         }
         private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
         private IEnumerable<RaftItem2> GetRaftItemsInternal(RaftItemType? type)
@@ -459,23 +490,26 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepository2));
 
-            var repo = this.lazyRepository.Value;
-            var tip = repo.Branches[this.CurrentBranchName]?.Tip;
-            if (tip == null)
-                yield break;
-
             Tree tipTree;
-            if (string.IsNullOrEmpty(this.RepositoryRoot))
+            lock (gitRaftLock)
             {
-                tipTree = tip.Tree;
-            }
-            else
-            {
-                var rootItem = tip[this.RepositoryRoot];
-                if (rootItem?.TargetType != TreeEntryTargetType.Tree)
+                var repo = this.lazyRepository.Value;
+                var tip = repo.Branches[this.CurrentBranchName]?.Tip;
+                if (tip == null)
                     yield break;
 
-                tipTree = (Tree)rootItem.Target;
+                if (string.IsNullOrEmpty(this.RepositoryRoot))
+                {
+                    tipTree = tip.Tree;
+                }
+                else
+                {
+                    var rootItem = tip[this.RepositoryRoot];
+                    if (rootItem?.TargetType != TreeEntryTargetType.Tree)
+                        yield break;
+
+                    tipTree = (Tree)rootItem.Target;
+                }
             }
 
             foreach (var rootItem in tipTree)
