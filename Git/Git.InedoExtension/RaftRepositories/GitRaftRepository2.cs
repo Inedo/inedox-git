@@ -7,10 +7,12 @@ using System.Security;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.RaftRepositories;
 using Inedo.Extensibility.UserDirectories;
 using Inedo.IO;
 using Inedo.Serialization;
+using Inedo.Web;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git.RaftRepositories
@@ -48,6 +50,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
         [DisplayName("Remote repository URL")]
         [PlaceholderText("Git clone URL")]
         public string RemoteRepositoryUrl { get; set; }
+        [Persistent]
+        [DisplayName("Credential")]
+        [SuggestableValue(typeof(SecureCredentialsSuggestionProvider<Extensions.Credentials.UsernamePasswordCredentials>))]
+        public string CredentialName { get; set; }
         [Persistent]
         [DisplayName("User name")]
         [PlaceholderText("anonymous")]
@@ -404,6 +410,16 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
         {
+            if (!string.IsNullOrEmpty(this.CredentialName))
+            {
+                var credential = (Extensions.Credentials.UsernamePasswordCredentials)SecureCredentials.Create(this.CredentialName, new CredentialResolutionContext(null, null));
+                return new SecureUsernamePasswordCredentials
+                {
+                    Username = credential.UserName,
+                    Password = credential.Password
+                };
+            }
+
             if (string.IsNullOrEmpty(this.UserName))
             {
                 return new DefaultCredentials();
