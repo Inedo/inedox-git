@@ -84,7 +84,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             var entry = this.FindEntry(type, name, version);
             if (entry != null)
-                return new GitRaftItem2(type, entry, this);
+                return new GitRaftItem2(type, entry, this, string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version));
             else
                 return null;
         }
