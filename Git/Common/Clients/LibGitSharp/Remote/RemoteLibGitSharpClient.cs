@@ -17,7 +17,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
         public RemoteLibGitSharpClient(IRemoteJobExecuter jobExecuter, string workingDirectory, bool simulation, CancellationToken cancellationToken, GitRepositoryInfo repository, ILogSink log) 
             : base(repository, log)
         {
-            this.jobExecuter = jobExecuter ?? throw new NotSupportedException("A hosted agent must be used with the built-in LibGitSharp git client.");
+            this.jobExecuter = jobExecuter ?? throw new NotSupportedException("To use Git-based operations on Linux/SSH-based servers, you must specify a path for the Git executable. This can be configured on the operation, or by creating a variable named $DefaultGitExePath, which you can scope to the server, role, etc.");
             this.workingDirectory = workingDirectory;
             this.simulation = simulation;
             this.cancellationToken = cancellationToken;
