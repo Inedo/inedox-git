@@ -263,6 +263,58 @@ namespace Inedo.Extensions.Clients.LibGitSharp
             return CopyFilesAsync(new FileArchiver(targetDirectory), this.repository.LocalRepositoryPath, targetDirectory, keepInternals);
         }
 
+        public override Task<IReadOnlyList<string>> ListRepoFilesAsync()
+        {
+            try
+            {
+                this.BeginOperation();
+
+                using (var repository = new Repository(this.repository.LocalRepositoryPath))
+                {
+                    return Task.FromResult<IReadOnlyList<string>>(repository.Index.Select(e => e.Path).ToArray());
+                }
+            }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException("Listing repository files failed: " + ex.Message);
+            }
+            finally
+            {
+                this.EndOperation();
+            }
+        }
+
+        public override Task<DateTimeOffset?> GetFileLastModifiedAsync(string fileName)
+        {
+            try
+            {
+                this.BeginOperation();
+
+                var slashFileName = fileName.Replace('\\', '/');
+                using (var repository = new Repository(this.repository.LocalRepositoryPath))
+                {
+                    var commit = repository.Head.Commits.First(c =>
+                    {
+                        var cId = c.Tree[slashFileName]?.Target?.Sha;
+                        var pId = c.Parents?.FirstOrDefault()?[slashFileName]?.Target?.Sha;
+                        return cId != pId;
+                    });
+
+                    return Task.FromResult(commit?.Author.When);
+                }
+            }
+            catch (Exception ex)
+            {
+                // gitsharp exceptions are not always serializable
+                throw new ExecutionFailureException("Getting last modified time failed: " + ex.Message);
+            }
+            finally
+            {
+                this.EndOperation();
+            }
+        }
+
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
         {
             if (string.IsNullOrEmpty(this.repository.UserName))

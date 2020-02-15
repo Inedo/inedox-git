@@ -75,6 +75,22 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
             ).ConfigureAwait(false);
         }
 
+        public override async Task<IReadOnlyList<string>> ListRepoFilesAsync()
+        {
+            return (string[])await this.ExecuteRemoteAsync(
+                ClientCommand.ListRepoFiles,
+                new RemoteLibGitSharpContext()
+            ).ConfigureAwait(false);
+        }
+
+        public override async Task<DateTimeOffset?> GetFileLastModifiedAsync(string fileName)
+        {
+            return (DateTimeOffset?)await this.ExecuteRemoteAsync(
+                ClientCommand.GetFileLastModified,
+                new RemoteLibGitSharpContext { FileName = fileName }
+            ).ConfigureAwait(false);
+        }
+
         private async Task<object> ExecuteRemoteAsync(ClientCommand command, RemoteLibGitSharpContext context)
         {
             context.WorkingDirectory = this.workingDirectory;

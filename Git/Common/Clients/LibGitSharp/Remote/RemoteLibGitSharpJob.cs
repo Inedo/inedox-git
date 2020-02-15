@@ -65,6 +65,12 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
                 case ClientCommand.Update:
                     return await client.UpdateAsync(this.Context.UpdateOptions).ConfigureAwait(false);
 
+                case ClientCommand.ListRepoFiles:
+                    return (await client.ListRepoFilesAsync().ConfigureAwait(false)).ToArray();
+
+                case ClientCommand.GetFileLastModified:
+                    return await client.GetFileLastModifiedAsync(this.Context.FileName).ConfigureAwait(false);
+
                 default:
                     throw new InvalidOperationException("Invalid remote LibGitSharp job type: " + this.Command);
             }
