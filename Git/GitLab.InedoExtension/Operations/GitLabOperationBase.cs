@@ -31,9 +31,10 @@ namespace Inedo.Extensions.GitLab.Operations
 
 
         [Category("Connection/Identity")]
-        [ScriptAlias("Group")]
-        [DisplayName("Group name")]
-        [PlaceholderText("Use group from GitLab resource")]
+        [ScriptAlias("Namespace")]
+        [ScriptAlias("Group", Obsolete = true)]
+        [DisplayName("Namespace")]
+        [PlaceholderText("Use namespace from GitLab resource")]
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 

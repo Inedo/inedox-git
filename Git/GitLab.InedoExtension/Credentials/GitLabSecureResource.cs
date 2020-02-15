@@ -25,8 +25,9 @@ namespace Inedo.Extensions.GitLab.Credentials
         public string ApiUrl { get; set; }
 
         [Persistent]
-        [DisplayName("Group name")]
-        [PlaceholderText("e.g. apache")]
+        [DisplayName("Namespace")]
+        [PlaceholderText("e.g. username (default) or group/sub_group")]
+        [Description("BuildMaster will use the user account as the default namespace when searching for a project name")]
         [SuggestableValue(typeof(GroupNameSuggestionProvider))]
         public string GroupName { get; set; }
 
