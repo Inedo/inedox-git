@@ -17,7 +17,7 @@ using Inedo.Web;
 namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Issue Source")]
-    [Description("Issue source for GitHub.")]
+    [Description("Issue source for GitHub based on milestones.")]
     public sealed class GitHubIssueSource : IssueSource<GitHubSecureResource>, IMissingPersistentPropertyHandler
     {
         [Persistent]

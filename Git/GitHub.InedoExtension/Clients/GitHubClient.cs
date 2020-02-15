@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Caching;
 using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,6 +28,11 @@ namespace Inedo.Extensions.GitHub.Clients
             // Ensure TLS 1.2 is supported. See https://github.com/blog/2498-weak-cryptographic-standards-removal-notice
             ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
         }
+
+        private static readonly string[] EnabledPreviews = new[]
+        {
+            "application/vnd.github.inertia-preview+json", // projects
+        };
 
         public const string GitHubComUrl = "https://api.github.com";
 
@@ -91,6 +97,11 @@ namespace Inedo.Extensions.GitHub.Clients
             return issues.Cast<Dictionary<string, object>>().ToList();
         }
 
+        internal async Task<Dictionary<string, object>> GetIssueAsync(string issueUrl, CancellationToken cancellationToken)
+        {
+            var issue = await this.InvokeAsync("GET", issueUrl, cancellationToken).ConfigureAwait(false);
+            return (Dictionary<string, object>)issue;
+        }
         public async Task<Dictionary<string, object>> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
@@ -156,6 +167,36 @@ namespace Inedo.Extensions.GitHub.Clients
                 return new Dictionary<string, object>[0];
 
             return milestones.Cast<Dictionary<string, object>>().ToList();
+        }
+
+        public async Task<IList<Dictionary<string, object>>> GetProjectsAsync(string ownerName, string repositoryName, CancellationToken cancellationToken)
+        {
+            var url = $"{this.apiBaseUrl}/orgs/{Esc(ownerName)}/projects?state=all";
+            if (!string.IsNullOrEmpty(repositoryName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/projects?state=all";
+
+            var projects = await this.InvokePagesAsync("GET", url, cancellationToken);
+            if (projects == null)
+                return new Dictionary<string, object>[0];
+
+            return projects.Cast<Dictionary<string, object>>().ToList();
+        }
+
+        internal async Task<IList<KeyValuePair<string, IList<Dictionary<string, object>>>>> GetProjectColumnsAsync(string projectColumnsUrl, CancellationToken cancellationToken)
+        {
+            var columnData = await this.InvokePagesAsync("GET", projectColumnsUrl, cancellationToken);
+            if (columnData == null)
+                return new KeyValuePair<string, IList<Dictionary<string, object>>>[0];
+
+            var columns = new List<KeyValuePair<string, IList<Dictionary<string, object>>>>();
+            foreach (var column in columnData.Cast<Dictionary<string, object>>())
+            {
+                var cardData = await this.InvokePagesAsync("GET", (string)column["cards_url"], cancellationToken);
+                var cards = cardData?.Cast<Dictionary<string, object>>().ToArray() ?? new Dictionary<string, object>[0];
+                columns.Add(new KeyValuePair<string, IList<Dictionary<string, object>>>((string)column["name"], cards));
+            }
+
+            return columns;
         }
 
         public async Task<Dictionary<string, object>> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
@@ -315,6 +356,13 @@ namespace Inedo.Extensions.GitHub.Clients
 
             using (cancellationToken.Register(() => request.Abort()))
             {
+                var cacheKey = $"github-{this.UserName ?? string.Empty}-{uri}";
+                var cachedResponse = method == "GET" ? (Tuple<string, string, object>)MemoryCache.Default.Get(cacheKey) : null;
+                if (cachedResponse != null)
+                {
+                    request.Headers.Add("If-None-Match", cachedResponse.Item1);
+                }
+
                 if (data != null)
                 {
                     using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
@@ -324,29 +372,37 @@ namespace Inedo.Extensions.GitHub.Clients
                     }
                 }
 
+                string linkHeader;
+                object responseJson;
+
                 try
                 {
-                    using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                    using (var responseStream = response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
+                    using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
                     {
-                        string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        var responseJson = jsonSerializer.DeserializeObject(responseText);
-                        if (allPages)
+                        linkHeader = response.Headers["Link"] ?? string.Empty;
+
+                        using (var responseStream = response.GetResponseStream())
+                        using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
                         {
-                            var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? string.Empty);
-                            if (nextPage.Success)
-                            {
-                                responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
-                            }
+                            string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                            responseJson = jsonSerializer.DeserializeObject(responseText);
                         }
-                        return responseJson;
+
+                        if (method == "GET")
+                        {
+                            MemoryCache.Default.Set(cacheKey, Tuple.Create(response.Headers.Get("ETag"), linkHeader, responseJson), null);
+                        }
                     }
                 }
                 catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
+                }
+                catch (WebException ex) when ((ex.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotModified)
+                {
+                    responseJson = cachedResponse.Item3;
+                    linkHeader = cachedResponse.Item2;
                 }
                 catch (WebException ex) when (ex.Response != null)
                 {
@@ -357,6 +413,18 @@ namespace Inedo.Extensions.GitHub.Clients
                         throw new Exception(message, ex);
                     }
                 }
+
+
+                if (allPages)
+                {
+                    var nextPage = NextPageLinkPattern.Match(linkHeader);
+                    if (nextPage.Success)
+                    {
+                        responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
+                    }
+                }
+
+                return responseJson;
             }
         }
         private HttpWebRequest CreateRequest(string method, string uri)
@@ -364,6 +432,7 @@ namespace Inedo.Extensions.GitHub.Clients
             var request = WebRequest.CreateHttp(uri);
             request.UserAgent = "InedoGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
             request.Method = method;
+            request.Accept = string.Join(", ", new[] { "application/vnd.github.v3+json" }.Concat(EnabledPreviews));
 
             if (!string.IsNullOrEmpty(this.UserName))
                 request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + AH.Unprotect(this.Password)));

@@ -7,15 +7,15 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     public sealed class GitHubIssue : IIssueTrackerIssue
     {
-        public GitHubIssue(Dictionary<string, object> issue)
+        public GitHubIssue(Dictionary<string, object> issue, string overrideStatus = null, bool? overrideClosed = null)
         {
             this.Id = issue["number"].ToString();
             this.Title = issue["title"].ToString();
             var labels = issue["labels"] as IEnumerable<Dictionary<string, object>>;
             this.Type = labels?.FirstOrDefault()?["name"]?.ToString();
             this.Description = issue["body"]?.ToString() ?? string.Empty;
-            this.Status = issue["state"].ToString();
-            this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
+            this.Status = overrideStatus ?? issue["state"].ToString();
+            this.IsClosed = overrideClosed ?? string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
             this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
             if (issue["user"] is Dictionary<string, object> user)
