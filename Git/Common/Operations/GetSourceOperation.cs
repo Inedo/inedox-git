@@ -107,9 +107,10 @@ namespace Inedo.Extensions.Operations
                 foreach (var file in files)
                 {
                     var modTime = await client.GetFileLastModifiedAsync(file).ConfigureAwait(false);
-                    if (modTime.HasValue)
+                    var filePath = fileOps.CombinePath(diskPath, file);
+                    if (modTime.HasValue && fileOps.FileExists(filePath))
                     {
-                        await fileOps.SetLastWriteTimeAsync(fileOps.CombinePath(diskPath), modTime.Value.UtcDateTime).ConfigureAwait(false);
+                        await fileOps.SetLastWriteTimeAsync(filePath, modTime.Value.UtcDateTime).ConfigureAwait(false);
                     }
                 }
             }
