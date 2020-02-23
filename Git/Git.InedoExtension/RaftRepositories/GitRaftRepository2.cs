@@ -48,17 +48,19 @@ namespace Inedo.Extensions.Git.RaftRepositories
         [Required]
         [Persistent]
         [DisplayName("Remote repository URL")]
-        [PlaceholderText("Git clone URL")]
+        [PlaceholderText("i.e. the Git clone URL")]
         public string RemoteRepositoryUrl { get; set; }
         [Persistent]
-        [DisplayName("Credential")]
+        [DisplayName("Secure credential")]
         [SuggestableValue(typeof(SecureCredentialsSuggestionProvider<Extensions.Credentials.UsernamePasswordCredentials>))]
+        [PlaceholderText("a Username & Password secure credential")]
         public string CredentialName { get; set; }
         [Persistent]
         [DisplayName("User name")]
-        [PlaceholderText("anonymous")]
+        [PlaceholderText("use User name from secure credential")]
         public string UserName { get; set; }
         [Persistent(Encrypted = true)]
+        [PlaceholderText("use Password from secure credential")]
         public SecureString Password { get; set; }
 
         public sealed override bool IsReadOnly => this.ReadOnly;
