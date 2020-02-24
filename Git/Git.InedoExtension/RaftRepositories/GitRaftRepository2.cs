@@ -554,7 +554,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 ReadOnly = this.ReadOnly,
                 RepositoryRoot = this.RepositoryRoot,
                 RaftId = this.RaftId,
-                RaftName = this.RaftName
+                RaftName = this.RaftName,
+                CredentialName = this.CredentialName
             };
         }
     }
