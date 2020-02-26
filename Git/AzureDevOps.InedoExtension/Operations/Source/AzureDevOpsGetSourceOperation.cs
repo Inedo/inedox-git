@@ -30,6 +30,7 @@ AzureDevOps::Get-Source
 ")]
     public sealed class GitHubGetSourceOperation : GetSourceOperation, IAzureDevOpsConfiguration
     {
+        [ScriptAlias("From")]
         [DisplayName("From AzureDevOps resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
         [Required]

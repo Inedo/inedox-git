@@ -43,6 +43,6 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         }
 
         public override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) =>
-            Task.FromResult($"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName)}");
+            Task.FromResult($"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName ?? this.ProjectName ?? "")}");
     }
 }
