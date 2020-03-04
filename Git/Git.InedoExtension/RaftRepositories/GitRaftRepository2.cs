@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Threading;
+using System.Threading.Tasks;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
@@ -21,10 +23,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [DisplayName("Git")]
     [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
     [AppliesTo(InedoProduct.BuildMaster)]
-    public sealed class GitRaftRepository2 : RaftRepository2
+    public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
     {
         private static readonly object gitRaftLock = new object();
-        private static readonly Lazy<bool> isLazyItemSupported = new Lazy<bool>(IsLazyItemSupported, LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<bool> isBM627OrLater = new Lazy<bool>(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
@@ -337,6 +339,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
             return ConfigurationTestResult.Success;
         }
 
+        Task ISyncRaft.SynchronizeAsync(ILogSink logSink)
+        {
+            this.Synchronize();
+            return InedoLib.NullTask;
+        }
+        public void Synchronize() => this.Fetch(this.Repo);
+
         protected override void Dispose(bool disposing)
         {
             if (!this.disposed)
@@ -437,6 +446,21 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             return PathEx.Combine(SDK.GetCommonTempPath(), "GitRafts", this.RaftName);
         }
+        private void Fetch(Repository repository)
+        {
+            if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
+            {
+                Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+                if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
+                {
+                    //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
+                    var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
+                    repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
+                }
+
+                repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
+            }
+        }
         private Repository OpenRepository()
         {
             lock (gitRaftLock)
@@ -445,22 +469,12 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 {
                     if (Repository.IsValid(this.LocalRepositoryPath))
                     {
-                        var repository = new Repository(this.LocalRepositoryPath);
+                        var repo = new Repository(this.LocalRepositoryPath);
+                        // versions of BM before this require implicit fetching every time
+                        if (!isBM627OrLater.Value)
+                            this.Fetch(repo);
 
-                        if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
-                        {
-                            Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                            if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
-                            {
-                                //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
-                                var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
-                                repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
-                            }
-
-                            repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
-                        }
-
-                        return repository;
+                        return repo;
                     }
 
                     if (DirectoryEx.GetFileSystemInfos(this.LocalRepositoryPath, MaskingContext.Default).Any())
@@ -641,7 +655,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false)
         {
-            if (isLazyItemSupported.Value)
+            if (isBM627OrLater.Value)
                 return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache);
             else
                 return new EagerGitRaftItem2(type, treeEntry, this, commit, useCommitCache);
@@ -662,7 +676,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 }
             }
         }
-        private static bool IsLazyItemSupported() => SDK.ProductName != "BuildMaster" || SDK.ProductVersion >= new System.Version(6, 2, 7);
+        private static bool IsBM627OrLater() => SDK.ProductName != "BuildMaster" || SDK.ProductVersion >= new System.Version(6, 2, 7);
 
         private readonly struct CachedItemCommit
         {
