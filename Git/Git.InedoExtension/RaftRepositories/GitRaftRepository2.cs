@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Security;
+using System.Threading;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
@@ -23,10 +24,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
     public sealed class GitRaftRepository2 : RaftRepository2
     {
         private static readonly object gitRaftLock = new object();
+        private static readonly Lazy<bool> isLazyItemSupported = new Lazy<bool>(IsLazyItemSupported, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
         private readonly Lazy<TreeDefinition> lazyCurrentTree;
+        private readonly object commitCacheLock = new object();
+        private Dictionary<string, CachedItemCommit> commitCache;
         private bool variablesDirty;
         private bool disposed;
 
@@ -92,7 +96,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             var entry = this.FindEntry(type, name, version);
             if (entry != null)
-                return new GitRaftItem2(type, entry, this, string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version));
+                return this.CreateGitRaftItem(type, entry, commit: string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version));
             else
                 return null;
         }
@@ -106,7 +110,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
             var entry = this.FindEntry(type, name);
             if (entry != null)
             {
-                LogEntry[] commits;
+                List<LogEntry> commits;
 
                 lock (gitRaftLock)
                 {
@@ -118,7 +122,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                             FirstParentOnly = false,
                             SortBy = CommitSortStrategies.Time
                         }
-                    ).ToArray();
+                    ).ToList();
                 }
 
                 foreach (var c in commits)
@@ -349,6 +353,83 @@ namespace Inedo.Extensions.Git.RaftRepositories
             base.Dispose(disposing);
         }
 
+        internal Commit GetLatestCommit(string itemPath, bool useCache)
+        {
+            // This method attempts to return the latest commit associated with a specific item.
+            // This is intended primarily for informational purposes to fill in fields like ItemVersion and ModifiedByUser on RaftItem2.
+            // When useCache is true:
+            // - the most recent 50 trees committed are iterated and each item is added to a dictionary
+            // - the dictionary associates item paths to the most recent modify/add of the item
+            // - this does NOT detect deletes or renames, but the way it's used currently it doesn't need to
+            // - since it only considers the most recent 50 commits, it could return an "incorrect" commit hash for old items
+            // - (incorrect is in quotes because this whole system of indpendent item versioning is not really how Git is typically used)
+            // - without this optimization though, the "all items" page in BuildMaster is exteremely slow even for relatively small rafts
+
+            if (!useCache)
+            {
+                lock (gitRaftLock)
+                {
+                    return getLatestCommitForItem(this.Repo, itemPath);
+                }
+            }
+
+            lock (this.commitCacheLock)
+            {
+                // if it's already in the commit cache, just return it
+                if (this.commitCache != null && this.commitCache.TryGetValue(itemPath, out var commit))
+                    return commit.Commit;
+
+                lock (gitRaftLock)
+                {
+                    var repo = this.Repo;
+
+                    // build the commit cache if it doesn't exist yet
+                    if (this.commitCache == null)
+                    {
+                        var commits = repo.Commits.QueryBy(
+                            new CommitFilter
+                            {
+                                IncludeReachableFrom = repo.Branches[this.CurrentBranchName],
+                                SortBy = CommitSortStrategies.Time
+                            }
+                        );
+
+                        var cache = new Dictionary<string, CachedItemCommit>();
+
+                        foreach (var c in commits.Take(50).Reverse())
+                        {
+                            foreach (var item in IterateFullTree(c.Tree))
+                            {
+                                if (!cache.TryGetValue(item.Path, out var prevCommit) || item.Target.Id != prevCommit.ItemId)
+                                    cache[item.Path] = new CachedItemCommit(item.Target.Id, c);
+                            }
+                        }
+
+                        this.commitCache = cache;
+
+                        // check to see if the item we're looking for is in the cache now that it's built
+                        if (this.commitCache.TryGetValue(itemPath, out var commit2))
+                            return commit2.Commit;
+                    }
+
+                    // fall back on expensive lookup
+                    return getLatestCommitForItem(repo, itemPath);
+                }
+            }
+
+            Commit getLatestCommitForItem(Repository repository, string path)
+            {
+                return repository.Commits.QueryBy(
+                    path,
+                    new CommitFilter
+                    {
+                        IncludeReachableFrom = repository.Branches[this.CurrentBranchName],
+                        SortBy = CommitSortStrategies.Time
+                    }
+                ).FirstOrDefault()?.Commit;
+            }
+        }
+
         private string GetLocalRepoPath()
         {
             if (string.IsNullOrWhiteSpace(this.RaftName))
@@ -538,7 +619,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     foreach (var item in (Tree)rootItem.Target)
                     {
                         if (item.TargetType != TreeEntryTargetType.Tree)
-                            yield return new GitRaftItem2(itemType.Value, item, this);
+                            yield return this.CreateGitRaftItem(itemType.Value, item, useCommitCache: true);
                     }
                 }
             }
@@ -557,6 +638,42 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 RaftName = this.RaftName,
                 CredentialName = this.CredentialName
             };
+        }
+        private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false)
+        {
+            if (isLazyItemSupported.Value)
+                return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache);
+            else
+                return new EagerGitRaftItem2(type, treeEntry, this, commit, useCommitCache);
+        }
+
+        private static IEnumerable<TreeEntry> IterateFullTree(Tree root)
+        {
+            foreach (var entry in root)
+            {
+                if (entry.TargetType == TreeEntryTargetType.Tree)
+                {
+                    foreach (var e in IterateFullTree((Tree)entry.Target))
+                        yield return e;
+                }
+                else
+                {
+                    yield return entry;
+                }
+            }
+        }
+        private static bool IsLazyItemSupported() => SDK.ProductName != "BuildMaster" || SDK.ProductVersion >= new System.Version(6, 2, 7);
+
+        private readonly struct CachedItemCommit
+        {
+            public CachedItemCommit(ObjectId oid, Commit commit)
+            {
+                this.ItemId = oid;
+                this.Commit = commit;
+            }
+
+            public ObjectId ItemId { get; }
+            public Commit Commit { get; }
         }
     }
 }
