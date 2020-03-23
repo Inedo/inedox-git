@@ -84,39 +84,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     var itemType = TryParseStandardTypeName(rootItem.Name);
                     if (itemType != null)
                     {
-                        foreach (var item in (Tree)rootItem.Target)
-                        {
-                            if (item.TargetType != TreeEntryTargetType.Tree)
-                            {
-                                if (this.OptimizeLoadTime)
-                                {
-                                    yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
-                                }
-                                else
-                                {
-                                    var commits = repo.Commits.QueryBy(item.Path,
-                                        new CommitFilter {
-                                            IncludeReachableFrom = repo.Branches[this.CurrentBranchName],
-                                            FirstParentOnly = false,
-                                            SortBy = CommitSortStrategies.Time, }
-                                        );
-                                    var commit = commits.FirstOrDefault();
-                                    if (commit != null)
-                                    {
-                                        var committer = commit.Commit.Committer;
-                                        yield return new RaftItem(itemType.Value, item.Name, committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
-                                    }
-                                    else
-                                    {
-                                        // Handles situations where the commits are empty, even though the
-                                        // file has been committed and pushed.  There is likely a root cause, but
-                                        // it is not known as of yet.
-                                        yield return new RaftItem(itemType.Value, item.Name, DateTimeOffset.Now);
-                                    }
-
-                                }
-                            }
-                        }
+                        foreach (var item in this.EnumerateTreeRecursive(repo, itemType.GetValueOrDefault(), (Tree)rootItem.Target, null))
+                            yield return item;
                     }
                 }
             }
@@ -428,6 +397,57 @@ namespace Inedo.Extensions.Git.RaftRepositories
         protected abstract Repository OpenRepository();
         protected abstract GitRaftRepositoryBase CreateCopy();
 
+        private IEnumerable<RaftItem> EnumerateTreeRecursive(Repository repo, RaftItemType type, Tree tree, string rootPath)
+        {
+            foreach (var item in tree)
+            {
+                if (item.TargetType != TreeEntryTargetType.Tree)
+                {
+                    if (this.OptimizeLoadTime)
+                    {
+                        yield return new RaftItem(type, joinPath(item.Name), DateTimeOffset.Now);
+                    }
+                    else
+                    {
+                        var commits = repo.Commits.QueryBy(
+                            item.Path,
+                            new CommitFilter
+                            {
+                                IncludeReachableFrom = repo.Branches[this.CurrentBranchName],
+                                FirstParentOnly = false,
+                                SortBy = CommitSortStrategies.Time,
+                            }
+                        );
+                        var commit = commits.FirstOrDefault();
+                        if (commit != null)
+                        {
+                            var committer = commit.Commit.Committer;
+                            yield return new RaftItem(type, joinPath(item.Name), committer.When.UtcDateTime, committer.Name, null, commits?.Count().ToString());
+                        }
+                        else
+                        {
+                            // Handles situations where the commits are empty, even though the
+                            // file has been committed and pushed.  There is likely a root cause, but
+                            // it is not known as of yet.
+                            yield return new RaftItem(type, joinPath(item.Name), DateTimeOffset.Now);
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var subItem in this.EnumerateTreeRecursive(repo, type, (Tree)item.Target, joinPath(item.Name)))
+                        yield return subItem;
+                }
+            }
+
+            string joinPath(string itemPath)
+            {
+                if (!string.IsNullOrEmpty(rootPath))
+                    return rootPath + "/" + itemPath;
+                else
+                    return itemPath;
+            }
+        }
         private GitRaftRepositoryBase Clone()
         {
             var instance = this.CreateCopy();
