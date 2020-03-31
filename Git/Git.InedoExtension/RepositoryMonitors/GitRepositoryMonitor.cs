@@ -57,7 +57,7 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
         {
             return new RichDescription(
                 "Git repository at ",
-                new Hilite(AH.CoalesceString(this.ResourceName))
+                new Hilite(this.ResourceName)
             );
         }
 

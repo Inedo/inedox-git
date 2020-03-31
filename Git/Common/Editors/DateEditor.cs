@@ -8,7 +8,7 @@ namespace Inedo.Extensions.Editors
     {
         private new SimpleInput EditorControl => (SimpleInput)base.EditorControl;
 
-        public DateEditor(PropertyInfo property) : base(property, new SimpleInput())
+        public DateEditor(PropertyInfo property) : base(property)
         {
             this.EditorControl.Attributes["type"] = "date";
             this.EditorControl.Attributes.Remove("autocomplete");
