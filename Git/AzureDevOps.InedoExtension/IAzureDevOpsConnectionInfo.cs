@@ -34,7 +34,7 @@ namespace Inedo.Extensions.AzureDevOps
             if (string.IsNullOrEmpty(operation.ResourceName))
             {
                 credentials = operation.Token == null ? null : new AzureDevOpsSecureCredentials();
-                resource = string.IsNullOrEmpty(AH.CoalesceString(operation.InstanceUrl)) ? null : new AzureDevOpsSecureResource();
+                resource = string.IsNullOrEmpty(operation.InstanceUrl) ? null : new AzureDevOpsSecureResource();
             }
             else
             {
