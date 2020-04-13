@@ -25,7 +25,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [AppliesTo(InedoProduct.BuildMaster)]
     public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
     {
-        private static readonly object gitRaftLock = new object();
         private static readonly Lazy<bool> isBM627OrLater = new Lazy<bool>(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
@@ -114,7 +113,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
             {
                 List<LogEntry> commits;
 
-                lock (gitRaftLock)
+                GitRepoLock.EnterLock(this.LocalRepositoryPath);
+                try
                 {
                     commits = this.lazyRepository.Value.Commits.QueryBy(
                         entry.Path,
@@ -125,6 +125,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
                             SortBy = CommitSortStrategies.Time
                         }
                     ).ToList();
+                }
+                finally
+                {
+                    GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
                 }
 
                 foreach (var c in commits)
@@ -171,17 +175,18 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void WriteRaftItem(RaftItemType type, string name, Stream content, DateTimeOffset? timestamp = null, string userName = null)
         {
-            lock (gitRaftLock)
+            if (this.disposed)
+                throw new ObjectDisposedException(nameof(GitRaftRepository2));
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(nameof(name));
+            if (this.ReadOnly)
+                throw new NotSupportedException();
+
+            EnsureRelativePath(name);
+
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
-                if (this.disposed)
-                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
-                if (string.IsNullOrEmpty(name))
-                    throw new ArgumentNullException(nameof(name));
-                if (this.ReadOnly)
-                    throw new NotSupportedException();
-
-                EnsureRelativePath(name);
-
                 var itemPath = PathEx.Combine('/', GetStandardTypeName(type), name);
                 if (!string.IsNullOrEmpty(this.RepositoryRoot))
                     itemPath = PathEx.Combine('/', this.RepositoryRoot, itemPath);
@@ -189,6 +194,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 var blob = this.Repo.ObjectDatabase.CreateBlob(content ?? Stream.Null);
                 this.lazyCurrentTree.Value.Add(itemPath, blob, Mode.NonExecutableFile);
                 this.Dirty = true;
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
             }
         }
         public override void WriteRaftItem(RaftItemType type, string name, byte[] content, DateTimeOffset? timestamp = null, string userName = null)
@@ -214,23 +223,28 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void DeleteRaftItem(RaftItemType type, string name)
         {
-            lock (gitRaftLock)
+            if (this.disposed)
+                throw new ObjectDisposedException(nameof(GitRaftRepository2));
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(name);
+            if (this.ReadOnly)
+                throw new NotSupportedException();
+
+            EnsureRelativePath(name);
+
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
-                if (this.disposed)
-                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
-                if (string.IsNullOrEmpty(name))
-                    throw new ArgumentNullException(name);
-                if (this.ReadOnly)
-                    throw new NotSupportedException();
-
-                EnsureRelativePath(name);
-
                 var entry = this.FindEntry(type, name);
                 if (entry != null)
                 {
                     this.lazyCurrentTree.Value.Remove(entry.Path);
                     this.Dirty = true;
                 }
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
             }
         }
 
@@ -239,14 +253,19 @@ namespace Inedo.Extensions.Git.RaftRepositories
             var repo = this.lazyRepository.Value;
 
             Commit tip;
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 tip = repo.Branches[this.CurrentBranchName]?.Tip;
                 if (tip == null)
                     return Enumerable.Empty<string>();
-            }
 
-            return getProjects(tip.Tree, null);
+                return getProjects(tip.Tree, null).ToList();
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
 
             IEnumerable<string> getProjects(Tree tree, string currentProject)
             {
@@ -285,15 +304,16 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         public override void Commit(IUserDirectoryUser user)
         {
-            lock (gitRaftLock)
-            {
-                if (this.disposed)
-                    throw new ObjectDisposedException(nameof(GitRaftRepository2));
-                if (user == null)
-                    throw new ArgumentNullException(nameof(user));
-                if (this.ReadOnly)
-                    throw new NotSupportedException();
+            if (this.disposed)
+                throw new ObjectDisposedException(nameof(GitRaftRepository2));
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+            if (this.ReadOnly)
+                throw new NotSupportedException();
 
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
+            {
                 if (this.variablesDirty)
                     this.SaveVariables();
 
@@ -329,6 +349,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     );
                 }
             }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
         }
 
         public override ConfigurationTestResult TestConfiguration()
@@ -341,10 +365,17 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         Task ISyncRaft.SynchronizeAsync(ILogSink logSink)
         {
-            this.Synchronize();
-            return InedoLib.NullTask;
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
+            {
+                this.Fetch(this.Repo);
+                return InedoLib.NullTask;
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
         }
-        public void Synchronize() => this.Fetch(this.Repo);
 
         protected override void Dispose(bool disposing)
         {
@@ -376,9 +407,14 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             if (!useCache)
             {
-                lock (gitRaftLock)
+                GitRepoLock.EnterLock(this.LocalRepositoryPath);
+                try
                 {
                     return getLatestCommitForItem(this.Repo, itemPath);
+                }
+                finally
+                {
+                    GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
                 }
             }
 
@@ -388,7 +424,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 if (this.commitCache != null && this.commitCache.TryGetValue(itemPath, out var commit))
                     return commit.Commit;
 
-                lock (gitRaftLock)
+                GitRepoLock.EnterLock(this.LocalRepositoryPath);
+                try
                 {
                     var repo = this.Repo;
 
@@ -423,6 +460,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                     // fall back on expensive lookup
                     return getLatestCommitForItem(repo, itemPath);
+                }
+                finally
+                {
+                    GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
                 }
             }
 
@@ -463,7 +504,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private Repository OpenRepository()
         {
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 if (DirectoryEx.Exists(this.LocalRepositoryPath))
                 {
@@ -503,6 +545,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 }
 
                 return new Repository(this.LocalRepositoryPath);
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
             }
         }
         private LibGit2Sharp.Credentials CredentialsHandler(string url, string usernameFromUrl, SupportedCredentialTypes types)
@@ -547,7 +593,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private void SaveVariables()
         {
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 var repo = this.lazyRepository.Value;
 
@@ -566,10 +613,15 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     this.Dirty = true;
                 }
             }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
         }
         private TreeDefinition GetCurrentTree()
         {
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 var repo = this.lazyRepository.Value;
 
@@ -579,10 +631,15 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                 return TreeDefinition.From(branch.Tip);
             }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
         }
         private TreeEntry FindEntry(string name, string hash = null)
         {
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 var repo = this.lazyRepository.Value;
                 var path = string.IsNullOrEmpty(this.RepositoryRoot) ? name : PathEx.Combine('/', this.RepositoryRoot, name);
@@ -596,6 +653,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                 return root?[path];
             }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
         }
         private TreeEntry FindEntry(RaftItemType type, string name, string hash = null) => this.FindEntry(PathEx.Combine('/', GetStandardTypeName(type), name), hash);
         private IEnumerable<RaftItem2> GetRaftItemsInternal(RaftItemType? type)
@@ -604,7 +665,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 throw new ObjectDisposedException(nameof(GitRaftRepository2));
 
             Tree tipTree;
-            lock (gitRaftLock)
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
             {
                 var repo = this.lazyRepository.Value;
                 var tip = repo.Branches[this.CurrentBranchName]?.Tip;
@@ -623,6 +685,10 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                     tipTree = (Tree)rootItem.Target;
                 }
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
             }
 
             foreach (var rootItem in tipTree)

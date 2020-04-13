@@ -102,6 +102,7 @@
     <Compile Include="RaftRepositories\GitRaftItem2.cs" />
     <Compile Include="RaftRepositories\GitRaftRepository2.cs" />
     <Compile Include="RaftRepositories\GitRaftRepositoryBase.cs" />
+    <Compile Include="RaftRepositories\GitRepoLock.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryCommit.cs" />
     <Compile Include="RepositoryMonitors\GitRepositoryMonitor.cs" />
   </ItemGroup>
