@@ -20,6 +20,8 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
     [Description("Branches from a GitLab repository.")]
     public sealed class BranchListVariableSource : ListVariableSource, IMissingPersistentPropertyHandler
     {
+        [Persistent]
+        [ScriptAlias("From")]
         [DisplayName("From GitHub resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
         public string ResourceName { get; set; }
