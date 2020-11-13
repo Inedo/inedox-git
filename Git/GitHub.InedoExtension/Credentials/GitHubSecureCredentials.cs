@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensions.Credentials.Git;
@@ -18,7 +19,7 @@ namespace Inedo.Extensions.GitHub.Credentials
         public string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
-        [DisplayName("Password or Personal access token")]
+        [DisplayName("Personal access token")]
         [FieldEditMode(FieldEditMode.Password)]
         [Required]
         public SecureString Password { get; set; }
@@ -32,3 +33,4 @@ namespace Inedo.Extensions.GitHub.Credentials
         };
     }
 }
+b
