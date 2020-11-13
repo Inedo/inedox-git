@@ -435,7 +435,6 @@ namespace Inedo.Extensions.GitHub.Clients
             request.Accept = string.Join(", ", new[] { "application/vnd.github.v3+json" }.Concat(EnabledPreviews));
 
             if (!string.IsNullOrEmpty(this.UserName))
-                //request.Headers[HttpRequestHeader.Authorization] = "basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(this.UserName + ":" + AH.Unprotect(this.Password)));
                 request.Headers[HttpRequestHeader.Authorization] = "token " + AH.Unprotect(this.Password);
 
 
