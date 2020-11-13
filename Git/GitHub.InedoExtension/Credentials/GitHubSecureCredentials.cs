@@ -33,4 +33,3 @@ namespace Inedo.Extensions.GitHub.Credentials
         };
     }
 }
-b
