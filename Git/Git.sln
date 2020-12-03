@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureDevOps.InedoExtension"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Common\Common.projitems*{5ceba506-1cc9-455f-8c47-865e8c11818f}*SharedItemsImports = 4
+		Common\Common.projitems*{5ceba506-1cc9-455f-8c47-865e8c11818f}*SharedItemsImports = 5
 		Common\Common.projitems*{7deffd91-ccde-4bc6-8e75-7880a11a12e2}*SharedItemsImports = 5
 		Common\Common.projitems*{aa553fe9-1918-4b8a-846a-1821f3485c04}*SharedItemsImports = 5
 		Common\Common.projitems*{e7439368-9a13-487f-934f-78c67f9cee2f}*SharedItemsImports = 13
