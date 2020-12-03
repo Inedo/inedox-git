@@ -6,7 +6,7 @@ namespace Inedo.Extensions.Editors
 {
     public sealed class DateEditor : PropertyEditor
     {
-        private new SimpleInput EditorControl => (SimpleInput)base.EditorControl;
+        private new AhTextInput EditorControl => (AhTextInput)base.EditorControl;
 
         public DateEditor(PropertyInfo property) : base(property)
         {

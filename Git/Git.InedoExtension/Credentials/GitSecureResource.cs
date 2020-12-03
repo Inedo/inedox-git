@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.UI.WebControls;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
