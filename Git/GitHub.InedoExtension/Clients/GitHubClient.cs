@@ -9,9 +9,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.IO;
+using Newtonsoft.Json;
 
 namespace Inedo.Extensions.GitHub.Clients
 {
@@ -37,7 +37,6 @@ namespace Inedo.Extensions.GitHub.Clients
         public const string GitHubComUrl = "https://api.github.com";
 
         private string apiBaseUrl;
-        private static readonly JavaScriptSerializer jsonSerializer = new JavaScriptSerializer();
         private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());
 
@@ -304,9 +303,8 @@ namespace Inedo.Extensions.GitHub.Clients
                     using (var responseStream = response.GetResponseStream())
                     using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
                     {
-                        var js = new JavaScriptSerializer();
                         string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        var responseJson = js.DeserializeObject(responseText);
+                        var responseJson = JsonConvert.DeserializeObject(responseText);
                         return responseJson;
                     }
                 }
@@ -368,7 +366,7 @@ namespace Inedo.Extensions.GitHub.Clients
                     using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
                     using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
                     {
-                        await writer.WriteAsync(jsonSerializer.Serialize(data)).ConfigureAwait(false);
+                        await writer.WriteAsync(JsonConvert.SerializeObject(data)).ConfigureAwait(false);
                     }
                 }
 
@@ -385,7 +383,7 @@ namespace Inedo.Extensions.GitHub.Clients
                         using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
                         {
                             string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                            responseJson = jsonSerializer.DeserializeObject(responseText);
+                            responseJson = JsonConvert.DeserializeObject(responseText);
                         }
 
                         if (method == "GET")

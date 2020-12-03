@@ -1,135 +1,32 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\LibGit2Sharp.NativeBinaries.1.0.185\build\LibGit2Sharp.NativeBinaries.props" Condition="Exists('..\packages\LibGit2Sharp.NativeBinaries.1.0.185\build\LibGit2Sharp.NativeBinaries.props')" />
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{AA553FE9-1918-4B8A-846A-1821F3485C04}</ProjectGuid>
+    <TargetFrameworks>net452;net5.0</TargetFrameworks>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Inedo.Extensions.GitHub</RootNamespace>
     <AssemblyName>GitHub</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-    <TargetFrameworkProfile />
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Inedo.Agents, Version=46.0.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\Inedo.Agents.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Inedo.Agents.Client, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=9de986a2f8db80fc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\Inedo.Agents.Client.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Inedo.ExecutionEngine, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=68703f0e52007e75, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\Inedo.ExecutionEngine.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Inedo.SDK, Version=1.7.2.0, Culture=neutral, PublicKeyToken=29fae5dec3001603, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\Inedo.SDK.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="InedoLib, Version=1000.0.0.0, Culture=neutral, PublicKeyToken=112cfb71329714a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\InedoLib.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="LibGit2Sharp, Version=0.24.0.0, Culture=neutral, PublicKeyToken=7cbde695407f0333, processorArchitecture=MSIL">
-      <HintPath>..\packages\LibGit2Sharp.0.24.0\lib\net40\LibGit2Sharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\Newtonsoft.Json.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Runtime.Caching" />
-    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\Inedo.SDK.1.7.2\lib\net452\System.Threading.Tasks.Extensions.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
-      <SpecificVersion>False</SpecificVersion>
-      <Private>False</Private>
-    </Reference>
+  <ItemGroup Condition="$(TargetFramework) == 'net452'">
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
+    <PackageReference Include="System.Runtime.Caching" Version="5.0.0" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="LibGit2Sharp" Version="0.24.0" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="1.0.185" />
+  </ItemGroup>
+  <ItemGroup Condition="$(TargetFramework) == 'net5.0'">
+    <PackageReference Include="System.IO.Packaging" Version="5.0.0" />
+    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Clients\GitHubClient.cs" />
-    <Compile Include="Configurations\GitHubMilestoneConfiguration.cs" />
-    <Compile Include="Configurations\GitHubReleaseConfiguration.cs" />
-    <Compile Include="Credentials\GitHubLegacyResourceCredentials.cs" />
-    <Compile Include="Credentials\GitHubSecureCredentials.cs" />
-    <Compile Include="Credentials\GitHubSecureResource.cs" />
-    <Compile Include="IGitHubConfiguration.cs" />
-    <Compile Include="IssueSources\GitHubIssue.cs" />
-    <Compile Include="IssueSources\GitHubIssueSource.cs" />
-    <Compile Include="IssueSources\GitHubProjectIssueSource.cs" />
-    <Compile Include="SuggestionProviders\ProjectNameSuggestionProvider.cs" />
-    <Compile Include="ListVariableSources\BranchListVariableSource.cs" />
-    <Compile Include="Operations\Issues\GitHubCloseIssueOperation.cs" />
-    <Compile Include="Operations\Issues\GitHubCreateIssueCommentOperation.cs" />
-    <Compile Include="Operations\Issues\GitHubCreateIssueOperation.cs" />
-    <Compile Include="Operations\Issues\GitHubEnsureMilestoneOperation.cs" />
-    <Compile Include="Operations\GitHubOperationBase.cs" />
-    <Compile Include="Operations\Releases\GitHubEnsureReleaseOperation.cs" />
-    <Compile Include="Operations\GitHubGetSourceOperation.cs" />
-    <Compile Include="Operations\GitHubTagOperation.cs" />
-    <Compile Include="Operations\Releases\GitHubUploadReleaseAssetsOperation.cs" />
-    <Compile Include="Operations\GitHubSetStatusOperation.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SuggestionProviders\GitHubSuggestionProvider.cs" />
-    <Compile Include="SuggestionProviders\MilestoneSuggestionProvider.cs" />
-    <Compile Include="SuggestionProviders\OrganizationNameSuggestionProvider.cs" />
-    <Compile Include="SuggestionProviders\RepositoryNameSuggestionProvider.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <PackageReference Include="Inedo.SDK" Version="1.9.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\LibGit2Sharp.NativeBinaries.1.0.185\build\LibGit2Sharp.NativeBinaries.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\LibGit2Sharp.NativeBinaries.1.0.185\build\LibGit2Sharp.NativeBinaries.props'))" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(TargetFramework) == 'net452'">
+    <Exec Command="powershell -Command &quot;if ((Test-Path C:\LocalDev\Tools\inedoxpack\inedoxpack.exe) -And (Test-Path C:\LocalDev\Otter\Extensions -PathType Container)) { C:\LocalDev\Tools\inedoxpack\inedoxpack.exe '$(TargetDir)..\$(TargetFileName)' 'C:\LocalDev\Otter\Extensions\$(TargetName).upack' 0.0.0 }&quot;" />
   </Target>
-  <PropertyGroup>
-    <PostBuildEvent>powershell -Command "if ((Test-Path C:\LocalDev\Tools\inedoxpack\inedoxpack.exe) -And (Test-Path C:\LocalDev\BuildMaster\Extensions -PathType Container)) { C:\LocalDev\Tools\inedoxpack\inedoxpack.exe '$(TargetPath)' 'C:\LocalDev\BuildMaster\Extensions\$(TargetName).upack' 0.0.0 }"</PostBuildEvent>
-  </PropertyGroup>
 </Project>
