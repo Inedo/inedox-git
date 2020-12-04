@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Runtime.Caching;
 using System.Security;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,28 +13,23 @@ using Newtonsoft.Json;
 
 namespace Inedo.Extensions.GitHub.Clients
 {
-    public enum RefType
-    {
-        Branch,
-        Tag
-    }
-
     internal sealed class GitHubClient
     {
+        public const string GitHubComUrl = "https://api.github.com";
+        private readonly string apiBaseUrl;
+
+#if NET452
         static GitHubClient()
         {
-            // Ensure TLS 1.2 is supported. See https://github.com/blog/2498-weak-cryptographic-standards-removal-notice
-            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
         }
+#endif
 
         private static readonly string[] EnabledPreviews = new[]
         {
             "application/vnd.github.inertia-preview+json", // projects
         };
 
-        public const string GitHubComUrl = "https://api.github.com";
-
-        private string apiBaseUrl;
         private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());
 
@@ -237,34 +230,22 @@ namespace Inedo.Extensions.GitHub.Clients
 
         public async Task<object> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target, string name, string body, bool? draft, bool? prerelease, CancellationToken cancellationToken)
         {
-            var data = new Dictionary<string, object>();
-            data["tag_name"] = tag;
+            var data = new Dictionary<string, object> { ["tag_name"] = tag };
             if (target != null)
-            {
                 data["target_commitish"] = target;
-            }
             if (name != null)
-            {
                 data["name"] = name;
-            }
             if (body != null)
-            {
                 data["body"] = body;
-            }
             if (draft.HasValue)
-            {
                 data["draft"] = draft.Value;
-            }
             if (prerelease.HasValue)
-            {
                 data["prerelease"] = prerelease.Value;
-            }
 
             var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (existingRelease != null)
-            {
                 return await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{Esc(existingRelease["id"])}", data, cancellationToken).ConfigureAwait(false);
-            }
+
             return await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", data, cancellationToken).ConfigureAwait(false);
         }
 
@@ -272,9 +253,7 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             var release = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (release == null)
-            {
                 throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
-            }
 
             string uploadUrl = FormatTemplateUri((string)release["upload_url"], name);
 
@@ -299,14 +278,12 @@ namespace Inedo.Extensions.GitHub.Clients
 
                 try
                 {
-                    using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                    using (var responseStream = response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                    {
-                        string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        var responseJson = JsonConvert.DeserializeObject(responseText);
-                        return responseJson;
-                    }
+                    using var response = await request.GetResponseAsync().ConfigureAwait(false);
+                    using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
+
+                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    var responseJson = JsonConvert.DeserializeObject(responseText);
+                    return responseJson;
                 }
                 catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
                 {
@@ -315,12 +292,9 @@ namespace Inedo.Extensions.GitHub.Clients
                 }
                 catch (WebException ex) when (ex.Response != null)
                 {
-                    using (var responseStream = ex.Response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                    {
-                        string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        throw new Exception(message, ex);
-                    }
+                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
+                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    throw new Exception(message, ex);
                 }
             }
         }
@@ -354,20 +328,10 @@ namespace Inedo.Extensions.GitHub.Clients
 
             using (cancellationToken.Register(() => request.Abort()))
             {
-                var cacheKey = $"github-{this.UserName ?? string.Empty}-{uri}";
-                var cachedResponse = method == "GET" ? (Tuple<string, string, object>)MemoryCache.Default.Get(cacheKey) : null;
-                if (cachedResponse != null)
-                {
-                    request.Headers.Add("If-None-Match", cachedResponse.Item1);
-                }
-
                 if (data != null)
                 {
-                    using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
-                    using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
-                    {
-                        await writer.WriteAsync(JsonConvert.SerializeObject(data)).ConfigureAwait(false);
-                    }
+                    using var writer = new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false), InedoLib.UTF8Encoding);
+                    await writer.WriteAsync(JsonConvert.SerializeObject(data)).ConfigureAwait(false);
                 }
 
                 string linkHeader;
@@ -375,41 +339,23 @@ namespace Inedo.Extensions.GitHub.Clients
 
                 try
                 {
-                    using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
-                    {
-                        linkHeader = response.Headers["Link"] ?? string.Empty;
+                    using var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false);
+                    linkHeader = response.Headers["Link"] ?? string.Empty;
 
-                        using (var responseStream = response.GetResponseStream())
-                        using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                        {
-                            string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                            responseJson = JsonConvert.DeserializeObject(responseText);
-                        }
-
-                        if (method == "GET")
-                        {
-                            MemoryCache.Default.Set(cacheKey, Tuple.Create(response.Headers.Get("ETag"), linkHeader, responseJson), null);
-                        }
-                    }
+                    using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
+                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    responseJson = JsonConvert.DeserializeObject(responseText);
                 }
                 catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
-                catch (WebException ex) when ((ex.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotModified)
-                {
-                    responseJson = cachedResponse.Item3;
-                    linkHeader = cachedResponse.Item2;
-                }
                 catch (WebException ex) when (ex.Response != null)
                 {
-                    using (var responseStream = ex.Response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                    {
-                        string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        throw new Exception(message, ex);
-                    }
+                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
+                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    throw new Exception(message, ex);
                 }
 
 
@@ -417,9 +363,7 @@ namespace Inedo.Extensions.GitHub.Clients
                 {
                     var nextPage = NextPageLinkPattern.Match(linkHeader);
                     if (nextPage.Success)
-                    {
                         responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
-                    }
                 }
 
                 return responseJson;
@@ -435,43 +379,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(this.UserName))
                 request.Headers[HttpRequestHeader.Authorization] = "token " + AH.Unprotect(this.Password);
 
-
             return request;
-        }
-    }
-
-    internal sealed class GitHubIssueFilter
-    {
-        private string milestone;
-
-        public string Milestone
-        {
-            get { return this.milestone; }
-            set
-            {
-                if (value != null && AH.ParseInt(value) == null && value != "*" && !string.Equals("none", value, StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException("milestone must be an integer, or a string of '*' or 'none'.");
-
-                this.milestone = value;
-            }
-        }
-        public string Labels { get; set; }
-        public string CustomFilterQueryString { get; set; }
-
-        public string ToQueryString()
-        {
-            if (!string.IsNullOrEmpty(this.CustomFilterQueryString))
-                return this.CustomFilterQueryString;
-
-            var buffer = new StringBuilder(128);
-            buffer.Append("?state=all");
-            if (!string.IsNullOrEmpty(this.Milestone))
-                buffer.Append("&milestone=" + Uri.EscapeDataString(this.Milestone));
-            if (!string.IsNullOrEmpty(this.Labels))
-                buffer.Append("&labels=" + Uri.EscapeDataString(this.Labels));
-            buffer.Append("&per_page=100");
-
-            return buffer.ToString();
         }
     }
 }

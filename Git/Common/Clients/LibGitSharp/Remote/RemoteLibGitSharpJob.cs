@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
+using Inedo.Serialization;
 
 namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 {
@@ -78,35 +78,27 @@ namespace Inedo.Extensions.Clients.LibGitSharp.Remote
 
         public override void Serialize(Stream stream)
         {
-            var writer = new BinaryWriter(stream, InedoLib.UTF8Encoding);
-            writer.Write((int)this.Command);
-            new BinaryFormatter().Serialize(stream, this.Context);
+            using (var writer = new BinaryWriter(stream, InedoLib.UTF8Encoding, true))
+            {
+                writer.Write((int)this.Command);
+            }
+
+            SlimBinaryFormatter.Serialize(this.Context, stream);
         }
 
         public override void Deserialize(Stream stream)
         {
-            var reader = new BinaryReader(stream, InedoLib.UTF8Encoding);
-            this.Command = (ClientCommand)reader.ReadInt32();
-            this.Context = (RemoteLibGitSharpContext)new BinaryFormatter().Deserialize(stream);
+            using (var reader = new BinaryReader(stream, InedoLib.UTF8Encoding, true))
+            {
+                this.Command = (ClientCommand)reader.ReadInt32();
+            }
+
+            this.Context = (RemoteLibGitSharpContext)SlimBinaryFormatter.Deserialize(stream);
         }
 
-        public override void SerializeResponse(Stream stream, object result)
-        {
-            if (result != null)
-                new BinaryFormatter().Serialize(stream, result);
-        }
+        public override void SerializeResponse(Stream stream, object result) => SlimBinaryFormatter.Serialize(result, stream);
+        public override object DeserializeResponse(Stream stream) => SlimBinaryFormatter.Deserialize(stream);
 
-        public override object DeserializeResponse(Stream stream)
-        {
-            if (stream.Length > 0)
-                return new BinaryFormatter().Deserialize(stream);
-            else
-                return null;
-        }
-
-        void ILogSink.Log(IMessage message)
-        {
-            this.Log(message.Level, message.Message);
-        }
+        void ILogSink.Log(IMessage message) => this.Log(message.Level, message.Message);
     }
 }

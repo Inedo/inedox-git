@@ -18,13 +18,13 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         public string ApiVersion { get; set; } = "2.0";
         public string Expand { get; set; }
-        
+
         public string BuildNumber { get; set; }
         public int Definition { get; set; }
         public int? Top { get; set; }
         public string ResultFilter { get; set; }
         public string StatusFilter { get; set; }
-        
+
         public IEnumerable<int> Ids { get; set; }
         public string Timeframe { get; set; }
 
@@ -130,10 +130,10 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         public async Task<GetWorkItemResponse[]> GetWorkItemsAsync(string wiql)
         {
             var wiqlResponse = await this.InvokeAsync<GetWiqlResponse>(
-                "POST", 
-                null, 
-                "wit/wiql", 
-                new QueryString { ApiVersion = "1.0" }, 
+                "POST",
+                null,
+                "wit/wiql",
+                new QueryString { ApiVersion = "1.0" },
                 new { query = wiql }
             ).ConfigureAwait(false);
 
@@ -208,10 +208,10 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         public async Task<GetBuildResponse> QueueBuildAsync(string project, int definitionId)
         {
             return await this.InvokeAsync<GetBuildResponse>(
-                "POST", 
+                "POST",
                 project,
-                "build/builds", 
-                QueryString.Default, 
+                "build/builds",
+                QueryString.Default,
                 new
                 {
                     definition = new { id = definitionId }
@@ -231,7 +231,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             var artifact = response.value.FirstOrDefault(a => string.Equals(a.name, artifactName, StringComparison.OrdinalIgnoreCase));
             if (artifact == null)
                 throw new InvalidOperationException($"Artifact \"{artifactName}\" could not be found for build ID # {buildId}.");
-            
+
             return await this.DownloadStreamAsync(artifact.resource.downloadUrl).ConfigureAwait(false);
         }
 
@@ -257,20 +257,20 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
                 if (ex.Response == null)
                     throw;
 
-                using (var responseStream = ex.Response.GetResponseStream())
+                using var responseStream = ex.Response.GetResponseStream();
+                string message = null;
+                try
                 {
-                    string message;
-                    try
-                    {
-                        message = new StreamReader(responseStream).ReadToEnd();
-                    }
-                    catch
-                    {
-                        throw ex;
-                    }
-
-                    throw new Exception(message, ex);
+                    message = new StreamReader(responseStream).ReadToEnd();
                 }
+                catch
+                {
+                }
+
+                if (message == null)
+                    throw;
+
+                throw new Exception(message, ex);
             }
         }
 
@@ -295,22 +295,16 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
             if (data != null)
             {
-                using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
-                using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
-                {
-                    JsonSerializer.CreateDefault().Serialize(writer, data);
-                }
+                using var writer = new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false), InedoLib.UTF8Encoding);
+                JsonSerializer.CreateDefault().Serialize(writer, data);
             }
 
             this.SetCredentials(request);
 
             try
             {
-                using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                {
-                    
-                    return DeserializeJson<T>(response);
-                }
+                using var response = await request.GetResponseAsync().ConfigureAwait(false);
+                return DeserializeJson<T>(response);
             }
             catch (WebException ex) when (ex.Response != null)
             {
@@ -320,20 +314,17 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         internal static T DeserializeJson<T>(WebResponse response)
         {
-            using (var responseStream = response.GetResponseStream())
-            using (var reader = new StreamReader(responseStream))
-            using (var jsonReader = new JsonTextReader(reader))
+            using var reader = new StreamReader(response.GetResponseStream());
+            using var jsonReader = new JsonTextReader(reader);
+            try
             {
-                try
-                {
-                    return JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
-                }
-                catch (JsonReaderException ex)
-                {
-                    int code = (int?)(response as HttpWebResponse)?.StatusCode ?? 500;
-                    throw new AzureDevOpsRestException(code, "Unable to parse API response, this is likely due to authentication " +
-                        $"redirects. Ensure a valid personal access token is configured in the resource credentials. Status code: {code}", ex);
-                }
+                return JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+            }
+            catch (JsonReaderException ex)
+            {
+                int code = (int?)(response as HttpWebResponse)?.StatusCode ?? 500;
+                throw new AzureDevOpsRestException(code, "Unable to parse API response, this is likely due to authentication " +
+                    $"redirects. Ensure a valid personal access token is configured in the resource credentials. Status code: {code}", ex);
             }
         }
 

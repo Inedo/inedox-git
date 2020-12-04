@@ -1,16 +1,15 @@
-﻿using System;
+﻿using Inedo.Serialization;
 
 namespace Inedo.Extensions.Clients
 {
-    [Serializable]
+    [SlimSerializable]
     public sealed class GitUpdateOptions
     {
-        public GitUpdateOptions()
-        {
-        }
-
+        [SlimSerializable]
         public string Ref { get; set; }
+        [SlimSerializable]
         public string Branch { get; set; }
+        [SlimSerializable]
         public bool RecurseSubmodules { get; set; }
     }
 }

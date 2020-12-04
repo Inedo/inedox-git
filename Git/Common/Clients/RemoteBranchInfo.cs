@@ -1,18 +1,24 @@
 ﻿using System;
+using Inedo.Serialization;
 
 namespace Inedo.Extensions.Clients
 {
-    [Serializable]
+    [SlimSerializable]
     public sealed class RemoteBranchInfo : IEquatable<RemoteBranchInfo>
     {
+        public RemoteBranchInfo()
+        {
+        }
         public RemoteBranchInfo(string name, string commitHash)
         {
             this.Name = name;
             this.CommitHash = commitHash;
         }
 
-        public string Name { get; }
-        public string CommitHash { get; }
+        [SlimSerializable]
+        public string Name { get; set; }
+        [SlimSerializable]
+        public string CommitHash { get; set; }
 
         public bool Equals(RemoteBranchInfo other)
         {
