@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Inedo.Extensibility;
 
-[assembly: AppliesTo(InedoProduct.BuildMaster)]
+[assembly: AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
 [assembly: ScriptNamespace("AzureDevOps", PreferUnqualified = false)]
 
 [assembly: AssemblyTitle("AzureDevOps")]
