@@ -5,14 +5,11 @@ using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients;
-using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.IO;
 using Inedo.Web;
-using Inedo.Web.Plans.ArgumentEditors;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
@@ -51,8 +48,8 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 
         [ScriptAlias("TargetDirectory")]
         [DisplayName("Target directory")]
-        [FilePathEditor]
         [PlaceholderText("$WorkingDirectory")]
+        [FieldEditMode(FieldEditMode.ServerDirectoryPath)]
         public string TargetDirectory { get; set; }
 
         [ScriptAlias("ExtractFiles")]

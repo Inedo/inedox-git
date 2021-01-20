@@ -598,20 +598,18 @@ namespace Inedo.Extensions.Git.RaftRepositories
             {
                 var repo = this.lazyRepository.Value;
 
-                using (var buffer = new SlimMemoryStream())
-                {
-                    var writer = new StreamWriter(buffer, InedoLib.UTF8Encoding);
-                    WriteStandardVariableData(this.lazyVariables.Value, writer);
-                    writer.Flush();
+                using var buffer = new TemporaryStream();
+                var writer = new StreamWriter(buffer, InedoLib.UTF8Encoding);
+                WriteStandardVariableData(this.lazyVariables.Value, writer);
+                writer.Flush();
 
-                    buffer.Position = 0;
+                buffer.Position = 0;
 
-                    var blob = repo.ObjectDatabase.CreateBlob(buffer, "variables");
+                var blob = repo.ObjectDatabase.CreateBlob(buffer, "variables");
 
-                    this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
+                this.lazyCurrentTree.Value.Add(string.IsNullOrEmpty(this.RepositoryRoot) ? "variables" : PathEx.Combine('/', this.RepositoryRoot, "variables"), blob, Mode.NonExecutableFile);
 
-                    this.Dirty = true;
-                }
+                this.Dirty = true;
             }
             finally
             {

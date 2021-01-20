@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
@@ -8,8 +7,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
-using Inedo.Extensions.Credentials;
-using Inedo.Web.Plans.ArgumentEditors;
+using Inedo.Web;
 
 namespace Inedo.Extensions.Operations
 {
@@ -17,8 +15,8 @@ namespace Inedo.Extensions.Operations
     {
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]
-        [FilePathEditor]
         [PlaceholderText("$WorkingDirectory")]
+        [FieldEditMode(FieldEditMode.ServerDirectoryPath)]
         public string DiskPath { get; set; }
 
         [ScriptAlias("Branch")]
