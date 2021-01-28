@@ -22,7 +22,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 {
     [DisplayName("Git")]
     [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
-    [AppliesTo(InedoProduct.BuildMaster)]
+    [AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
     public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
     {
         private static readonly Lazy<bool> isBM627OrLater = new Lazy<bool>(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
