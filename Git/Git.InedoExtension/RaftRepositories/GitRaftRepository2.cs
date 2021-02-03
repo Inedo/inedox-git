@@ -489,17 +489,24 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private void Fetch(Repository repository)
         {
-            if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
+            try
             {
-                Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
-                if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
+                if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                 {
-                    //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
-                    var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
-                    repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
-                }
+                    Commands.Fetch(repository, "origin", Enumerable.Empty<string>(), new FetchOptions { CredentialsProvider = CredentialsHandler }, null);
+                    if (repository.Refs["refs/heads/" + this.CurrentBranchName] == null)
+                    {
+                        //Must use an ObjectId to create a DirectReference (SymbolicReferences will cause an error when committing)
+                        var objId = new ObjectId(repository.Refs["refs/remotes/origin/" + this.CurrentBranchName].TargetIdentifier);
+                        repository.Refs.Add("refs/heads/" + this.CurrentBranchName, objId);
+                    }
 
-                repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
+                    repository.Refs.UpdateTarget("refs/heads/" + this.CurrentBranchName, "refs/remotes/origin/" + this.CurrentBranchName);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to fetch repository: {ex.Message}", ex);
             }
         }
         private Repository OpenRepository()
