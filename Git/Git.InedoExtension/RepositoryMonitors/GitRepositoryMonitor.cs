@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Security;
 using System.Threading.Tasks;
 using Inedo.Agents;
 using Inedo.Diagnostics;
@@ -22,7 +23,6 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
     [Description("Monitors a Git repository for new commits.")]
     public sealed class GitRepositoryMonitor : RepositoryMonitor, IMissingPersistentPropertyHandler
     {
-        [Required]
         [Persistent]
         [DisplayName("From Git resource")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitSecureResourceBase>))]
@@ -33,6 +33,22 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
             if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
                 this.ResourceName = value;
         }
+
+        [Persistent]
+        [DisplayName("Repository URL")]
+        [Category("Connection/Identity")]
+        public string RepositoryUrl { get; set; }
+
+        [Persistent]
+        [DisplayName("User name")]
+        [Category("Connection/Identity")]
+        public string UserName { get; set; }
+
+        [Persistent]
+        [DisplayName("Password")]
+        [Category("Connection/Identity")]
+        public SecureString Password { get; set; }
+
 
         [Persistent]
         [Category("Advanced")]
@@ -57,28 +73,44 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
         {
             return new RichDescription(
                 "Git repository at ",
-                new Hilite(this.ResourceName)
+                new Hilite(string.IsNullOrWhiteSpace(this.RepositoryUrl) ? this.ResourceName : this.RepositoryUrl)
             );
         }
 
         private async Task<GitClient> CreateClientAsync(IRepositoryMonitorContext context)
         {
-            var credctx = (ICredentialResolutionContext)context;
-            var resource = (GitSecureResourceBase)SecureResource.Create(this.ResourceName, credctx);
-            var credential = resource?.GetCredentials(credctx);
-            if (resource == null)
+            if(string.IsNullOrWhiteSpace(this.ResourceName) && string.IsNullOrWhiteSpace(this.RepositoryUrl))
             {
-                var rc = SecureCredentials.Create(this.ResourceName, credctx) as GitCredentialsBase;
-                resource = (GitSecureResourceBase)rc?.ToSecureResource();
-                credential = rc?.ToSecureCredentials();
+                throw new InvalidOperationException("You must specify either a From Git resource or a Repository URL");
             }
 
-            var repositoryUrl = await resource.GetRepositoryUrlAsync(credctx, context.CancellationToken);
-            var upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
-            if (credential is GitSecureCredentialsBase gitcreds)
-                upcreds = gitcreds.ToUsernamePassword();
-            else if (credential != null && upcreds == null)
-                throw new InvalidOperationException("Invalid credential type for Git repository monitor.");
+            var credctx = (ICredentialResolutionContext)context;
+            GitSecureResourceBase resource = null;
+            SecureCredentials credential = null;
+            Extensions.Credentials.UsernamePasswordCredentials upcreds = null;
+            if (!string.IsNullOrWhiteSpace(this.ResourceName))
+            {
+                resource = (GitSecureResourceBase)SecureResource.Create(this.ResourceName, credctx);
+                credential = resource?.GetCredentials(credctx);
+                if (resource == null)
+                {
+                    var rc = SecureCredentials.Create(this.ResourceName, credctx) as GitCredentialsBase;
+                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
+                    credential = rc?.ToSecureCredentials();
+                }
+
+                upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
+                if (credential is GitSecureCredentialsBase gitcreds)
+                    upcreds = gitcreds.ToUsernamePassword();
+                else if (credential != null && upcreds == null)
+                    throw new InvalidOperationException("Invalid credential type for Git repository monitor.");
+            }
+            var repositoryUrl = !string.IsNullOrWhiteSpace(this.RepositoryUrl) ? this.RepositoryUrl : await resource.GetRepositoryUrlAsync(credctx, context.CancellationToken);
+
+            if(!string.IsNullOrWhiteSpace(this.UserName) || this.Password != null)
+            {
+                upcreds = new Extensions.Credentials.UsernamePasswordCredentials { UserName = this.UserName, Password = this.Password };
+            }
 
             if (!string.IsNullOrEmpty(this.GitExePath))
             {
