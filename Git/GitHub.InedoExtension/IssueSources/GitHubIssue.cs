@@ -2,23 +2,24 @@
 using System.Collections.Generic;
 using System.Linq;
 using Inedo.Extensibility.IssueSources;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitHub.IssueSources
 {
     public sealed class GitHubIssue : IIssueTrackerIssue
     {
-        public GitHubIssue(Dictionary<string, object> issue, string overrideStatus = null, bool? overrideClosed = null)
+        public GitHubIssue(JObject issue, string overrideStatus = null, bool? overrideClosed = null)
         {
             this.Id = issue["number"].ToString();
             this.Title = issue["title"].ToString();
-            var labels = issue["labels"] as IEnumerable<Dictionary<string, object>>;
+            var labels = issue["labels"] as IEnumerable<JObject>;
             this.Type = labels?.FirstOrDefault()?["name"]?.ToString();
             this.Description = issue["body"]?.ToString() ?? string.Empty;
             this.Status = overrideStatus ?? issue["state"].ToString();
             this.IsClosed = overrideClosed ?? string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
             var created = issue["created_at"].ToString();
             this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
-            if (issue["user"] is Dictionary<string, object> user)
+            if (issue["user"] is JObject user)
                 this.Submitter = user["login"].ToString();
             this.Url = issue["html_url"].ToString();
         }

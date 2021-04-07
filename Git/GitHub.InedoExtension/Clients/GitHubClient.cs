@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitHub.Clients
 {
@@ -56,13 +57,13 @@ namespace Inedo.Extensions.GitHub.Clients
         public string UserName { get; }
         public SecureString Password { get; }
 
-        public async Task<IList<Dictionary<string, object>>> GetOrganizationsAsync(CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetOrganizationsAsync(CancellationToken cancellationToken)
         {
             var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100", cancellationToken).ConfigureAwait(false);
-            return results.Cast<Dictionary<string, object>>().ToList();
+            return results.Cast<JObject>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetRepositoriesAsync(CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetRepositoriesAsync(CancellationToken cancellationToken)
         {
             string url;
             if (!string.IsNullOrEmpty(this.OrganizationName))
@@ -80,29 +81,30 @@ namespace Inedo.Extensions.GitHub.Clients
                 url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
                 results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
             }
-            return results.Cast<Dictionary<string, object>>().ToList();
+            return results.Cast<JObject>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {
             var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
-            return issues.Cast<Dictionary<string, object>>().ToList();
+            return issues.Cast<JObject>().ToList();
         }
 
-        internal async Task<Dictionary<string, object>> GetIssueAsync(string issueUrl, CancellationToken cancellationToken)
+        internal async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken)
         {
             var issue = await this.InvokeAsync("GET", issueUrl, cancellationToken).ConfigureAwait(false);
-            return (Dictionary<string, object>)issue;
+            return (JObject)issue;
         }
-        public async Task<Dictionary<string, object>> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
+        [Obsolete("Not in use?", true)]
+        public async Task<JObject> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
-            return (Dictionary<string, object>)issue;
+            return (JObject)issue;
         }
         public async Task<int> CreateIssueAsync(string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
         {
-            var issue = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues", data, cancellationToken).ConfigureAwait(false);
-            return (int)issue["number"];
+            var issue = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues", data, cancellationToken).ConfigureAwait(false);
+            return int.TryParse(issue["number"]?.ToString(), out int number) ? number : 0;
         }
         public Task UpdateIssueAsync(int issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
         {
@@ -115,8 +117,8 @@ namespace Inedo.Extensions.GitHub.Clients
             if (milestoneNumber.HasValue)
                 return milestoneNumber.Value;
 
-            var data = (Dictionary<string, object>)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
-            return (int)data["number"];
+            var data = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
+            return int.TryParse(data["number"]?.ToString(), out int number) ? number : 0;
         }
         public async Task CloseMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
@@ -145,23 +147,22 @@ namespace Inedo.Extensions.GitHub.Clients
         public async Task<int?> FindMilestoneAsync(string title, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             var milestones = await this.GetMilestonesAsync(ownerName, repositoryName, "all", cancellationToken).ConfigureAwait(false);
-
             return milestones
                 .Where(m => string.Equals(m["title"]?.ToString() ?? string.Empty, title, StringComparison.OrdinalIgnoreCase))
-                .Select(m => m["number"] as int?)
+                .Select(m => int.TryParse(m["number"]?.ToString(), out int number) ? number : (int?)null)
                 .FirstOrDefault();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetMilestonesAsync(string ownerName, string repositoryName, string state, CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetMilestonesAsync(string ownerName, string repositoryName, string state, CancellationToken cancellationToken)
         {
             var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones?state={Uri.EscapeDataString(state)}&sort=due_on&direction=desc&per_page=100", cancellationToken).ConfigureAwait(false);
             if (milestones == null)
-                return new Dictionary<string, object>[0];
+                return new JObject[0];
 
-            return milestones.Cast<Dictionary<string, object>>().ToList();
+            return milestones.Cast<JObject>().ToList();
         }
 
-        public async Task<IList<Dictionary<string, object>>> GetProjectsAsync(string ownerName, string repositoryName, CancellationToken cancellationToken)
+        public async Task<IList<JObject>> GetProjectsAsync(string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             var url = $"{this.apiBaseUrl}/orgs/{Esc(ownerName)}/projects?state=all";
             if (!string.IsNullOrEmpty(repositoryName))
@@ -169,34 +170,34 @@ namespace Inedo.Extensions.GitHub.Clients
 
             var projects = await this.InvokePagesAsync("GET", url, cancellationToken);
             if (projects == null)
-                return new Dictionary<string, object>[0];
+                return new JObject[0];
 
-            return projects.Cast<Dictionary<string, object>>().ToList();
+            return projects.Cast<JObject>().ToList();
         }
 
-        internal async Task<IList<KeyValuePair<string, IList<Dictionary<string, object>>>>> GetProjectColumnsAsync(string projectColumnsUrl, CancellationToken cancellationToken)
+        internal async Task<IList<KeyValuePair<string, IList<JObject>>>> GetProjectColumnsAsync(string projectColumnsUrl, CancellationToken cancellationToken)
         {
             var columnData = await this.InvokePagesAsync("GET", projectColumnsUrl, cancellationToken);
             if (columnData == null)
-                return new KeyValuePair<string, IList<Dictionary<string, object>>>[0];
+                return new KeyValuePair<string, IList<JObject>>[0];
 
-            var columns = new List<KeyValuePair<string, IList<Dictionary<string, object>>>>();
+            var columns = new List<KeyValuePair<string, IList<JObject>>>();
             foreach (var column in columnData.Cast<Dictionary<string, object>>())
             {
                 var cardData = await this.InvokePagesAsync("GET", (string)column["cards_url"], cancellationToken);
-                var cards = cardData?.Cast<Dictionary<string, object>>().ToArray() ?? new Dictionary<string, object>[0];
-                columns.Add(new KeyValuePair<string, IList<Dictionary<string, object>>>((string)column["name"], cards));
+                var cards = cardData?.Cast<JObject>().ToArray() ?? new JObject[0];
+                columns.Add(new KeyValuePair<string, IList<JObject>>((string)column["name"], cards.ToList()));
             }
 
             return columns;
         }
 
-        public async Task<Dictionary<string, object>> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
+        public async Task<JObject> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
         {
             try
             {
                 var releases = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", cancellationToken).ConfigureAwait(false);
-                return releases.Cast<Dictionary<string, object>>().SingleOrDefault(r => string.Equals(r["tag_name"], tag));
+                return releases.Cast<JObject>().SingleOrDefault(r => string.Equals((string)r["tag_name"], tag));
             }
             catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
             {
@@ -214,7 +215,7 @@ namespace Inedo.Extensions.GitHub.Clients
 
             var refs = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/git/{prefix}", cancellationToken).ConfigureAwait(false);
 
-            return refs.Cast<Dictionary<string, object>>().Select(r => trim((string)r["ref"]));
+            return refs.Cast<JObject>().Select(r => trim((string)r["ref"]));
 
             string trim(string s)
             {

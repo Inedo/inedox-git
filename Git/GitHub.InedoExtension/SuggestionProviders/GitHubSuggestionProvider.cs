@@ -32,8 +32,11 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
                 this.Credentials = SecureCredentials.TryCreate(credentialName, context) as GitHubSecureCredentials;
 
             var resourceName = config[nameof(IGitHubConfiguration.ResourceName)];
-            if (!string.IsNullOrEmpty(resourceName))
+            var resouceNameValue = resourceName.AsEnumerable()?.FirstOrDefault(r => string.IsNullOrWhiteSpace(r)) ?? (string)config[nameof(IGitHubConfiguration.ResourceName)];
+            if (!string.IsNullOrEmpty(resouceNameValue))
+            {
                 this.Resource = SecureResource.TryCreate(resourceName, context) as GitHubSecureResource;
+            }
 
             if (this.Credentials == null && this.Resource != null)
                 this.Credentials = this.Resource.GetCredentials(context) as GitHubSecureCredentials;
