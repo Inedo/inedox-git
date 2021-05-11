@@ -526,6 +526,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         return repo;
                     }
 
+#warning This should be more descriptive of an error.  This is the local temp directory, may need cleared.
                     if (DirectoryEx.GetFileSystemInfos(this.LocalRepositoryPath, MaskingContext.Default).Any())
                         throw new InvalidOperationException("The specified local repository path does not appear to be a Git repository but already contains files or directories.");
                 }
@@ -701,10 +702,27 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 var itemType = TryParseStandardTypeName(rootItem.Name);
                 if (itemType != null && (!type.HasValue || type == itemType))
                 {
-                    foreach (var item in (Tree)rootItem.Target)
+                    foreach(var item in GetItems((Tree)rootItem.Target, itemType.Value))
                     {
-                        if (item.TargetType != TreeEntryTargetType.Tree)
-                            yield return this.CreateGitRaftItem(itemType.Value, item, useCommitCache: true);
+                        yield return item;
+                    }
+                }
+            }
+
+            IEnumerable<RaftItem2> GetItems(Tree treeItem, RaftItemType itemType, string parentFolder = null)
+            {
+                foreach (var item in treeItem)
+                {
+                    if (item.TargetType != TreeEntryTargetType.Tree)
+                    {
+                        yield return this.CreateGitRaftItem(itemType, item, useCommitCache: true, folder: parentFolder);
+                    }
+                    else
+                    {
+                        foreach (var subItem in GetItems((Tree)item.Target, itemType, AH.CoalesceString(parentFolder, "") + item.Name + "/"))
+                        {
+                           yield return subItem;
+                        }
                     }
                 }
             }
@@ -724,12 +742,12 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 CredentialName = this.CredentialName
             };
         }
-        private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false)
+        private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false, string folder = null)
         {
             if (isBM627OrLater.Value)
-                return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache);
+                return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
             else
-                return new EagerGitRaftItem2(type, treeEntry, this, commit, useCommitCache);
+                return new EagerGitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
         }
 
         private static IEnumerable<TreeEntry> IterateFullTree(Tree root)

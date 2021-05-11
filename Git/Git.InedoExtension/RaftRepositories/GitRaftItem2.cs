@@ -14,8 +14,8 @@ namespace Inedo.Extensions.Git.RaftRepositories
         private readonly Commit explicitCommit;
         private readonly bool useCommitCache;
 
-        public GitRaftItem2(RaftItemType type, TreeEntry treeEntry, GitRaftRepository2 raft, Commit commit = null, bool useCommitCache = false)
-            : base(type, treeEntry.Name)
+        public GitRaftItem2(RaftItemType type, TreeEntry treeEntry, GitRaftRepository2 raft, Commit commit = null, bool useCommitCache = false, string folder = null)
+            : base(type, AH.CoalesceString(folder, string.Empty) + treeEntry.Name)
         {
             this.latestCommit = new Lazy<Commit>(this.GetLatestCommit);
             this.treeEntry = treeEntry;
