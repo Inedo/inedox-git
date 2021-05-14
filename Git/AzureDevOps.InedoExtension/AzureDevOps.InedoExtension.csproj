@@ -16,8 +16,8 @@
     <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="1.0.185" />
   </ItemGroup>
   <ItemGroup Condition="$(TargetFramework) == 'net5.0'">
-    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
-    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" />
+    <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0096" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.312" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Inedo.SDK" Version="1.10.0" ExcludeAssets="runtime" />
