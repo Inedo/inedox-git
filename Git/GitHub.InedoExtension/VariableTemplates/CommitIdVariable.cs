@@ -12,17 +12,13 @@ using Inedo.Web;
 using Inedo.Web.Controls;
 using Inedo.Web.Controls.SimpleHtml;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Inedo.Extensions.GitHub.ListVariableSources
+namespace Inedo.Extensions.GitHub.VariableTemplates
 {
-    [DisplayName("GitHub Branches")]
-    [Description("Branches from a GitHub repository.")]
-    public sealed class BranchListVariableSource : DynamicListVariableType, IMissingPersistentPropertyHandler
+    [DisplayName("GitHub CommitId")]
+    [Description("CommitId within a GitHub repository.")]
+    public sealed class CommitIdVariable : VariableTemplateType
     {
         [Persistent]
         [DisplayName("From GitHub resource")]
@@ -36,28 +32,6 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
-        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
-        {
-            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
-                this.ResourceName = value;
-        }
-        public override Task<IEnumerable<string>> EnumerateListValuesAsync(VariableTemplateContext context)
-        {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
-            var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
-            if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
-                resource = (GitHubSecureResource)rc?.ToSecureResource();
-                credential = (GitHubSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
-                return Task.FromResult(Enumerable.Empty<string>());
-
-            var client = new GitHubClient(resource.ApiUrl, credential?.UserName, credential?.Password, resource.OrganizationName);
-
-            return client.ListRefsAsync(resource.OrganizationName, resource.RepositoryName, RefType.Branch, CancellationToken.None);
-        }
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
@@ -71,16 +45,17 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention
             var hostName = parsedUri.Host == "api.github.com" ? "github.com" : parsedUri.Host;
-            return new A($"https://{hostName}/{resource.OrganizationName}/{resource.RepositoryName}/tree/{value.AsString()}", value.AsString()) 
-            { 
+            return new A($"https://{hostName}/{resource.OrganizationName}/{resource.RepositoryName}/commit/{value.AsString()}", value.AsString().Substring(0, 7))
+            {
                 Class = "ci-icon github",
                 Target = "_blank"
             };
         }
+
         public override RichDescription GetDescription()
         {
             var repoName = AH.CoalesceString(this.ResourceName, this.RepositoryName);
-            return new RichDescription("GitHub (", new Hilite(repoName), ") branches.");
+            return new RichDescription("GitHub (", new Hilite(repoName), ") commit.");
         }
     }
 }
