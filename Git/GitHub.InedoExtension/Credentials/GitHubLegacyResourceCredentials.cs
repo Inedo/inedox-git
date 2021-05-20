@@ -5,6 +5,7 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
+using Inedo.Extensibility.VariableTemplates;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Serialization;
@@ -51,7 +52,7 @@ namespace Inedo.Extensions.GitHub.Credentials
             return desc;            
         }
 
-        internal static GitHubLegacyResourceCredentials TryCreate(string name, ValueEnumerationContext context)
+        internal static GitHubLegacyResourceCredentials TryCreate(string name, VariableTemplateContext context)
         {
             return (GitHubLegacyResourceCredentials)ResourceCredentials.TryCreate(GitHubLegacyResourceCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
         }

@@ -6,6 +6,7 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.ListVariableSources;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
+using Inedo.Extensibility.VariableTemplates;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Serialization;
@@ -63,7 +64,7 @@ namespace Inedo.Extensions.GitLab.Credentials
             return desc;            
         }
 
-        internal static GitLabLegacyResourceCredentials TryCreate(string name, ValueEnumerationContext context)
+        internal static GitLabLegacyResourceCredentials TryCreate(string name, VariableTemplateContext context)
         {
             return (GitLabLegacyResourceCredentials)ResourceCredentials.TryCreate(GitLabLegacyResourceCredentials.TypeName, name, environmentId: null, applicationId: context.ProjectId, inheritFromParent: false);
         }

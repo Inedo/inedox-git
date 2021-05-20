@@ -4,8 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Serialization;
+using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Credentials
 {
@@ -24,11 +26,13 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [DisplayName("Project name")]
         [Description("While not required, if you don't specify then you'll need to specify a project in each repository")]
         [PlaceholderText("e.g. MyProjectName")]
+        [SuggestableValue(typeof(ProjectNameSuggestionProvider))]
         public string ProjectName { get; set; }
 
         [Persistent]
         [DisplayName("Repository name")]
         [PlaceholderText("use the project name")]
+                [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
         public string RepositoryName { get; set; }
 
         public override RichDescription GetDescription()

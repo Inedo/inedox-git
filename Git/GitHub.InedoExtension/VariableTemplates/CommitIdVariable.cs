@@ -1,4 +1,6 @@
-﻿using Inedo.Documentation;
+﻿using System;
+using System.ComponentModel;
+using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
@@ -11,8 +13,6 @@ using Inedo.Serialization;
 using Inedo.Web;
 using Inedo.Web.Controls;
 using Inedo.Web.Controls.SimpleHtml;
-using System;
-using System.ComponentModel;
 
 namespace Inedo.Extensions.GitHub.VariableTemplates
 {
@@ -45,7 +45,7 @@ namespace Inedo.Extensions.GitHub.VariableTemplates
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention
             var hostName = parsedUri.Host == "api.github.com" ? "github.com" : parsedUri.Host;
-            return new A($"https://{hostName}/{resource.OrganizationName}/{resource.RepositoryName}/commit/{value.AsString()}", value.AsString().Substring(0, 7))
+            return new A($"https://{hostName}/{resource.OrganizationName}/{AH.CoalesceString(this.RepositoryName, resource.RepositoryName)}/commit/{value.AsString()}", value.AsString().Substring(0, 7))
             {
                 Class = "ci-icon github",
                 Target = "_blank"
