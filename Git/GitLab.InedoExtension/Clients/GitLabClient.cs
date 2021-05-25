@@ -191,14 +191,13 @@ namespace Inedo.Extensions.GitLab.Clients
             }
         }
 
-        public async Task<IList<string>> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
         {
             var branchData = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/branches", cancellationToken).ConfigureAwait(false);
             return branchData
                 .Cast<JObject>()
                 .Select(b => b["name"].ToString())
-                .OrderBy(b => b)
-                .ToList();
+                .OrderBy(b => b);
         }
 
         private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);

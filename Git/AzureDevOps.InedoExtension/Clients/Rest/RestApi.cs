@@ -274,6 +274,21 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             }
         }
 
+        public async Task<GitRepository[]> GetRepositoriesAsync(string project)
+        {
+            var query = new QueryString() { ApiVersion = "4.1" };
+
+           var response = await this.InvokeAsync<GitRepositoryResponse>("GET", project, "git/repositories", query).ConfigureAwait(false);
+            return response.value;
+        }
+        public async Task<GitRef[]> GetBranchesAsync(string project, string repository)
+        {
+            var query = new QueryString() { ApiVersion = "4.1" };
+
+           var response = await this.InvokeAsync<GitRefResponse>("GET", project, $"git/repositories/{repository}/refs", query).ConfigureAwait(false);
+            return response.value;
+        }
+
         private async Task<T> InvokeAsync<T>(string method, string project, string relativeUrl, QueryString query, object data = null, string contentType = "application/json")
         {
             string apiBaseUrl;
