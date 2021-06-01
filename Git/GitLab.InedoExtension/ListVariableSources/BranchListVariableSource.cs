@@ -82,7 +82,7 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
         public override RichDescription GetDescription()
         {
-            return new RichDescription("GitLab (", new Hilite(this.ProjectName), ") branches.");
+            return new RichDescription("GitLab (", new Hilite(AH.CoalesceString(this.ProjectName, this.ResourceName)), ") branches.");
         }
     }
 }
