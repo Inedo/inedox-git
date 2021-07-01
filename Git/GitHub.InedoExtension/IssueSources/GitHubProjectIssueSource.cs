@@ -58,7 +58,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 if (this.FailIfMissing)
                     throw new InvalidOperationException($"No project named {this.ProjectName} was found.");
 
-                return new IIssueTrackerIssue[0];
+                return InedoLib.EmptyArray<IIssueTrackerIssue>();
             }
 
             var columns = await client.GetProjectColumnsAsync((string)project["columns_url"], CancellationToken.None);
@@ -71,7 +71,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                     if (string.IsNullOrEmpty(issueUrl))
                         continue;
 
-                    var issue = await client.GetIssueAsync(issueUrl, CancellationToken.None);
+                    var issue = await client.GetIssueAsync(issueUrl);
                     issues.Add(new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase)));
                 }
             }
@@ -79,9 +79,6 @@ namespace Inedo.Extensions.GitHub.IssueSources
             return issues;
         }
 
-        public override RichDescription GetDescription()
-        {
-            return new RichDescription($"GitHub project ", new Hilite(this.ProjectName), " issue source");
-        }
+        public override RichDescription GetDescription() => new($"GitHub project ", new Hilite(this.ProjectName), " issue source");
     }
 }

@@ -21,6 +21,8 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
     public sealed class GitHubUploadReleaseAssetsOperation : GitHubOperationBase
     {
+        private OperationProgress progress;
+
         [Required]
         [ScriptAlias("Tag")]
         [DisplayName("Tag")]
@@ -45,13 +47,10 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
         [DefaultValue("application/octet-stream")]
         public string ContentType { get; set; } = "application/octet-stream";
 
-        private OperationProgress progress = null;
         public override OperationProgress GetProgress() => this.progress;
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            this.progress = null;
-
             var sourceDirectory = context.ResolvePath(this.SourceDirectory);
 
             var fileOps = await context.Agent.GetServiceAsync<IFileOperationsExecuter>().ConfigureAwait(false);
@@ -70,19 +69,16 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
 
             foreach (var info in files)
             {
-                var file = info as SlimFileInfo;
-                if (file == null)
+                if (info is not SlimFileInfo file)
                 {
                     this.LogWarning($"Not a file: {info.FullName}");
                     continue;
                 }
 
-                using (var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false))
-                {
-                    this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
-                    await github.UploadReleaseAssetAsync(ownerName, resource.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
-                    this.progress = null;
-                }
+                using var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false);
+
+                this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
+                await github.UploadReleaseAssetAsync(ownerName, resource.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
             }
         }
 

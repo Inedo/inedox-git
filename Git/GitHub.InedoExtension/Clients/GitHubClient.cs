@@ -17,6 +17,11 @@ namespace Inedo.Extensions.GitHub.Clients
     internal sealed class GitHubClient
     {
         public const string GitHubComUrl = "https://api.github.com";
+        private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static readonly string[] EnabledPreviews = new[]
+        {
+            "application/vnd.github.inertia-preview+json", // projects
+        };
         private readonly string apiBaseUrl;
 
 #if NET452
@@ -25,14 +30,6 @@ namespace Inedo.Extensions.GitHub.Clients
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
         }
 #endif
-
-        private static readonly string[] EnabledPreviews = new[]
-        {
-            "application/vnd.github.inertia-preview+json", // projects
-        };
-
-        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
-        private static string Esc(object part) => Esc(part?.ToString());
 
         public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
         {
@@ -44,13 +41,12 @@ namespace Inedo.Extensions.GitHub.Clients
             this.Password = password;
             this.OrganizationName = AH.NullIf(organizationName, string.Empty);
         }
-
         public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
         {
-            this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
+            this.apiBaseUrl = AH.CoalesceString(resource?.ApiUrl, GitHubComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
             this.Password = credentials?.Password;
-            this.OrganizationName = AH.NullIf(resource.OrganizationName, string.Empty);
+            this.OrganizationName = AH.NullIf(resource?.OrganizationName, string.Empty);
         }
 
         public string OrganizationName { get; }
@@ -62,7 +58,6 @@ namespace Inedo.Extensions.GitHub.Clients
             var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100", cancellationToken).ConfigureAwait(false);
             return results.Cast<JObject>().ToList();
         }
-
         public async Task<IList<JObject>> GetRepositoriesAsync(CancellationToken cancellationToken)
         {
             string url;
@@ -83,22 +78,15 @@ namespace Inedo.Extensions.GitHub.Clients
             }
             return results.Cast<JObject>().ToList();
         }
-
         public async Task<IList<JObject>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {
             var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
             return issues.Cast<JObject>().ToList();
         }
 
-        internal async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken)
+        public async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken = default)
         {
             var issue = await this.InvokeAsync("GET", issueUrl, cancellationToken).ConfigureAwait(false);
-            return (JObject)issue;
-        }
-        [Obsolete("Not in use?", true)]
-        public async Task<JObject> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
-        {
-            var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
             return (JObject)issue;
         }
         public async Task<int> CreateIssueAsync(string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
@@ -308,8 +296,8 @@ namespace Inedo.Extensions.GitHub.Clients
             int index = templateUri.IndexOf('{');
             return templateUri.Substring(0, index) + "?name=" + Uri.EscapeDataString(name);
         }
-
-        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
+        private static string Esc(object part) => Esc(part?.ToString());
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
         {
