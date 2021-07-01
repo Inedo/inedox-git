@@ -26,12 +26,6 @@ namespace Inedo.Extensions.GitHub.Configurations
         [IgnoreConfigurationDrift]
         public string ResourceName { get; set; }
 
-        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
-        {
-            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
-                this.ResourceName = value;
-        }
-
         [Persistent]
         [Category("Connection/Identity")]
         [ScriptAlias("UserName")]
@@ -119,13 +113,10 @@ namespace Inedo.Extensions.GitHub.Configurations
         public override Task<ComparisonResult> CompareAsync(PersistedConfiguration other, IOperationCollectionContext context)
         {
             if (other == null)
-            {
                 throw new ArgumentNullException(nameof(other));
-            }
-            if (!(other is GitHubReleaseConfiguration c))
-            {
+
+            if (other is not GitHubReleaseConfiguration c)
                 throw new InvalidOperationException("Cannot compare configurations of different types.");
-            }
 
             return Task.FromResult(this.Compare(c));
         }
@@ -133,47 +124,38 @@ namespace Inedo.Extensions.GitHub.Configurations
         private ComparisonResult Compare(GitHubReleaseConfiguration other)
         {
             if (!this.Exists && !other.Exists)
-            {
                 return ComparisonResult.Identical;
-            }
+
             if (!this.Exists || !other.Exists)
-            {
                 return new ComparisonResult(new[] { new Difference(nameof(Exists), this.Exists, other.Exists) });
-            }
 
             var differences = new List<Difference>();
 
             if (!string.Equals(this.Tag, other.Tag, StringComparison.OrdinalIgnoreCase))
-            {
                 differences.Add(new Difference(nameof(Tag), this.Tag, other.Tag));
-            }
 
             if (this.Target != null && !string.Equals(this.Target, other.Target))
-            {
                 differences.Add(new Difference(nameof(Target), this.Target, other.Target));
-            }
 
             if (this.Title != null && !string.Equals(this.Title, other.Title))
-            {
                 differences.Add(new Difference(nameof(Title), this.Title, other.Title));
-            }
 
             if (this.Description != null && !string.Equals(this.Description, other.Description))
-            {
                 differences.Add(new Difference(nameof(Description), this.Description, other.Description));
-            }
 
             if (this.Draft.HasValue && this.Draft != other.Draft)
-            {
                 differences.Add(new Difference(nameof(Draft), this.Draft, other.Draft));
-            }
 
             if (this.Prerelease.HasValue && this.Prerelease != other.Prerelease)
-            {
                 differences.Add(new Difference(nameof(Prerelease), this.Prerelease, other.Prerelease));
-            }
 
             return new ComparisonResult(differences);
+        }
+
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
+                this.ResourceName = value;
         }
     }
 }

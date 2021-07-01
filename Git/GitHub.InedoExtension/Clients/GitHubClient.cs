@@ -7,6 +7,7 @@ using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.IO;
 using Newtonsoft.Json;
@@ -242,21 +243,17 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             var release = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (release == null)
-                throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
+                throw new ExecutionFailureException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}");
 
             string uploadUrl = FormatTemplateUri((string)release["upload_url"], name);
 
             var request = this.CreateRequest("POST", uploadUrl);
             request.ContentType = contentType;
             request.AllowWriteStreamBuffering = false;
-            try
-            {
-                request.ContentLength = contents.Length;
-            }
-            catch
-            {
+            if (contents.CanSeek)
+                request.ContentLength = contents.Length - contents.Position;
+            else
                 request.SendChunked = true;
-            }
 
             using (cancellationToken.Register(() => request.Abort()))
             {
@@ -279,11 +276,9 @@ namespace Inedo.Extensions.GitHub.Clients
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
-                catch (WebException ex) when (ex.Response != null)
+                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
                 {
-                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
-                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
+                    throw GetErrorResponseException(errorResponse);
                 }
             }
         }
@@ -340,13 +335,10 @@ namespace Inedo.Extensions.GitHub.Clients
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
-                catch (WebException ex) when (ex.Response != null)
+                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
                 {
-                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
-                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
+                    throw GetErrorResponseException(errorResponse);
                 }
-
 
                 if (allPages)
                 {
@@ -369,6 +361,35 @@ namespace Inedo.Extensions.GitHub.Clients
                 request.Headers[HttpRequestHeader.Authorization] = "token " + AH.Unprotect(this.Password);
 
             return request;
+        }
+        private static Exception GetErrorResponseException(HttpWebResponse response)
+        {
+            using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
+            var errorMessage = $"Server replied with {(int)response.StatusCode}";
+
+            if (response.ContentType?.StartsWith("application/json") == true)
+            {
+                var obj = JObject.Load(new JsonTextReader(reader));
+
+                var parsedMessage = (string)obj?.Property("message");
+                if (!string.IsNullOrWhiteSpace(parsedMessage))
+                    errorMessage += ": " + parsedMessage;
+
+                if (obj?.Property("errors")?.Value is JArray errorsArray && errorsArray.Count > 0)
+                {
+                    var moreDetails = errorsArray.OfType<JObject>().Select(o => (string)o.Property("resource") + " " + (string)o.Property("code")).ToList();
+                    if (moreDetails.Count > 0)
+                        errorMessage += " (" + string.Join(", ", moreDetails) + ")";
+                }
+            }
+            else
+            {
+                var details = reader.ReadToEnd();
+                if (!string.IsNullOrWhiteSpace(details))
+                    errorMessage += ": " + details;
+            }
+
+            return new ExecutionFailureException(errorMessage);
         }
     }
 }
