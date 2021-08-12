@@ -7,6 +7,7 @@ using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.IO;
 using Newtonsoft.Json;
@@ -17,6 +18,11 @@ namespace Inedo.Extensions.GitHub.Clients
     internal sealed class GitHubClient
     {
         public const string GitHubComUrl = "https://api.github.com";
+        private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static readonly string[] EnabledPreviews = new[]
+        {
+            "application/vnd.github.inertia-preview+json", // projects
+        };
         private readonly string apiBaseUrl;
 
 #if NET452
@@ -25,14 +31,6 @@ namespace Inedo.Extensions.GitHub.Clients
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
         }
 #endif
-
-        private static readonly string[] EnabledPreviews = new[]
-        {
-            "application/vnd.github.inertia-preview+json", // projects
-        };
-
-        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
-        private static string Esc(object part) => Esc(part?.ToString());
 
         public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
         {
@@ -44,13 +42,12 @@ namespace Inedo.Extensions.GitHub.Clients
             this.Password = password;
             this.OrganizationName = AH.NullIf(organizationName, string.Empty);
         }
-
         public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
         {
-            this.apiBaseUrl = AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
+            this.apiBaseUrl = AH.CoalesceString(resource?.ApiUrl, GitHubComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
             this.Password = credentials?.Password;
-            this.OrganizationName = AH.NullIf(resource.OrganizationName, string.Empty);
+            this.OrganizationName = AH.NullIf(resource?.OrganizationName, string.Empty);
         }
 
         public string OrganizationName { get; }
@@ -62,7 +59,6 @@ namespace Inedo.Extensions.GitHub.Clients
             var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100", cancellationToken).ConfigureAwait(false);
             return results.Cast<JObject>().ToList();
         }
-
         public async Task<IList<JObject>> GetRepositoriesAsync(CancellationToken cancellationToken)
         {
             string url;
@@ -83,22 +79,15 @@ namespace Inedo.Extensions.GitHub.Clients
             }
             return results.Cast<JObject>().ToList();
         }
-
         public async Task<IList<JObject>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {
             var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
             return issues.Cast<JObject>().ToList();
         }
 
-        internal async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken)
+        public async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken = default)
         {
             var issue = await this.InvokeAsync("GET", issueUrl, cancellationToken).ConfigureAwait(false);
-            return (JObject)issue;
-        }
-        [Obsolete("Not in use?", true)]
-        public async Task<JObject> GetIssueAsync(string issueId, string ownerName, string repositoryName, CancellationToken cancellationToken)
-        {
-            var issue = await this.InvokeAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", cancellationToken).ConfigureAwait(false);
             return (JObject)issue;
         }
         public async Task<int> CreateIssueAsync(string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
@@ -254,21 +243,17 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             var release = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (release == null)
-                throw new ArgumentException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}", nameof(tag));
+                throw new ExecutionFailureException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}");
 
             string uploadUrl = FormatTemplateUri((string)release["upload_url"], name);
 
             var request = this.CreateRequest("POST", uploadUrl);
             request.ContentType = contentType;
             request.AllowWriteStreamBuffering = false;
-            try
-            {
-                request.ContentLength = contents.Length;
-            }
-            catch
-            {
+            if (contents.CanSeek)
+                request.ContentLength = contents.Length - contents.Position;
+            else
                 request.SendChunked = true;
-            }
 
             using (cancellationToken.Register(() => request.Abort()))
             {
@@ -291,11 +276,9 @@ namespace Inedo.Extensions.GitHub.Clients
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
-                catch (WebException ex) when (ex.Response != null)
+                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
                 {
-                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
-                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
+                    throw GetErrorResponseException(errorResponse);
                 }
             }
         }
@@ -308,8 +291,8 @@ namespace Inedo.Extensions.GitHub.Clients
             int index = templateUri.IndexOf('{');
             return templateUri.Substring(0, index) + "?name=" + Uri.EscapeDataString(name);
         }
-
-        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
+        private static string Esc(object part) => Esc(part?.ToString());
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
         {
@@ -352,13 +335,10 @@ namespace Inedo.Extensions.GitHub.Clients
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
-                catch (WebException ex) when (ex.Response != null)
+                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
                 {
-                    using var reader = new StreamReader(ex.Response.GetResponseStream(), InedoLib.UTF8Encoding);
-                    string message = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    throw new Exception(message, ex);
+                    throw GetErrorResponseException(errorResponse);
                 }
-
 
                 if (allPages)
                 {
@@ -381,6 +361,35 @@ namespace Inedo.Extensions.GitHub.Clients
                 request.Headers[HttpRequestHeader.Authorization] = "token " + AH.Unprotect(this.Password);
 
             return request;
+        }
+        private static Exception GetErrorResponseException(HttpWebResponse response)
+        {
+            using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
+            var errorMessage = $"Server replied with {(int)response.StatusCode}";
+
+            if (response.ContentType?.StartsWith("application/json") == true)
+            {
+                var obj = JObject.Load(new JsonTextReader(reader));
+
+                var parsedMessage = (string)obj?.Property("message");
+                if (!string.IsNullOrWhiteSpace(parsedMessage))
+                    errorMessage += ": " + parsedMessage;
+
+                if (obj?.Property("errors")?.Value is JArray errorsArray && errorsArray.Count > 0)
+                {
+                    var moreDetails = errorsArray.OfType<JObject>().Select(o => (string)o.Property("resource") + " " + (string)o.Property("code")).ToList();
+                    if (moreDetails.Count > 0)
+                        errorMessage += " (" + string.Join(", ", moreDetails) + ")";
+                }
+            }
+            else
+            {
+                var details = reader.ReadToEnd();
+                if (!string.IsNullOrWhiteSpace(details))
+                    errorMessage += ": " + details;
+            }
+
+            return new ExecutionFailureException(errorMessage);
         }
     }
 }

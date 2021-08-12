@@ -10,48 +10,67 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.IO;
+using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.Operations.Releases
 {
     [DisplayName("Upload GitHub Release Assets")]
     [Description("Uploads files as attachments to a GitHub release.")]
-    [Tag("source-control")]
+    [Tag("source-control"), Tag("git"), Tag("github")]
     [ScriptAlias("Upload-ReleaseAssets")]
     [ScriptAlias("GitHub-Upload-Release-Assets", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
     public sealed class GitHubUploadReleaseAssetsOperation : GitHubOperationBase
     {
+        private readonly object progressLock = new();
+        private SlimFileInfo currentFile;
+        private long currentPosition;
+
         [Required]
         [ScriptAlias("Tag")]
-        [DisplayName("Tag")]
         [Description("The tag associated with the release. The release must already exist.")]
         public string Tag { get; set; }
 
-        [Required]
         [ScriptAlias("Include")]
+        [Category("File Masks")]
+        [DisplayName("Include files")]
         [MaskingDescription]
-        [PlaceholderText("* (top-level items)")]
         public IEnumerable<string> Includes { get; set; }
         [ScriptAlias("Exclude")]
+        [Category("File Masks")]
+        [DisplayName("Exclude files")]
         [MaskingDescription]
         public IEnumerable<string> Excludes { get; set; }
         [ScriptAlias("Directory")]
+        [DisplayName("From directory")]
+        [PlaceholderText("$WorkingDirectory")]
         public string SourceDirectory { get; set; }
 
+        [Category("Advanced")]
         [ScriptAlias("ContentType")]
         [DisplayName("Content type")]
-        [Description(@"The content type of the assets. For a list of acceptable types, see the IANA list of <a href=""https://www.iana.org/assignments/media-types/media-types.xhtml"">media types</a>.")]
-        [Example("application/zip")]
-        [DefaultValue("application/octet-stream")]
-        public string ContentType { get; set; } = "application/octet-stream";
+        [PlaceholderText("detect from file extension")]
+        public string ContentType { get; set; }
 
-        private OperationProgress progress = null;
-        public override OperationProgress GetProgress() => this.progress;
+        public override OperationProgress GetProgress()
+        {
+            SlimFileInfo file;
+            long pos;
+
+            lock (this.progressLock)
+            {
+                if (this.currentFile == null)
+                    return null;
+
+                file = this.currentFile;
+                pos = this.currentPosition;
+            }
+
+            return new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})");
+        }
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
-            this.progress = null;
-
             var sourceDirectory = context.ResolvePath(this.SourceDirectory);
 
             var fileOps = await context.Agent.GetServiceAsync<IFileOperationsExecuter>().ConfigureAwait(false);
@@ -70,19 +89,35 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
 
             foreach (var info in files)
             {
-                var file = info as SlimFileInfo;
-                if (file == null)
+                if (info is not SlimFileInfo file)
                 {
                     this.LogWarning($"Not a file: {info.FullName}");
                     continue;
                 }
 
-                using (var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false))
+                lock (this.progressLock)
                 {
-                    this.LogDebug($"Uploading {file.Name} ({AH.FormatSize(file.Size)})");
-                    await github.UploadReleaseAssetAsync(ownerName, resource.RepositoryName, this.Tag, file.Name, this.ContentType, new PositionStream(stream, file.Size), pos => this.progress = new OperationProgress((int)(100 * pos / file.Size), $"Uploading {file.Name} ({AH.FormatSize(pos)} / {AH.FormatSize(file.Size)})"), context.CancellationToken).ConfigureAwait(false);
-                    this.progress = null;
+                    this.currentFile = file;
+                    this.currentPosition = 0;
                 }
+
+                using var stream = await fileOps.OpenFileAsync(file.FullName, FileMode.Open, FileAccess.Read).ConfigureAwait(false);
+
+                var contentType = (string.IsNullOrWhiteSpace(this.ContentType) ? MimeMapping.GetMimeMapping(file.Name) : null) ?? "application/octet-stream";
+
+                this.LogDebug($"Uploading {file.FullName} as {contentType} ({AH.FormatSize(file.Size)})...");
+                await github.UploadReleaseAssetAsync(
+                    ownerName,
+                    resource.RepositoryName,
+                    this.Tag,
+                    file.Name,
+                    contentType,
+                    stream,
+                    this.ReportProgress,
+                    context.CancellationToken
+                ).ConfigureAwait(false);
+
+                this.LogInformation($"{file.FullName} uploaded.");
             }
         }
 
@@ -92,6 +127,14 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
                new RichDescription("Upload ", new MaskHilite(config[nameof(this.Includes)], config[nameof(this.Excludes)]), " from ", new DirectoryHilite(config[nameof(this.SourceDirectory)]), " to GitHub"),
                new RichDescription("in ", new Hilite(config.DescribeSource()), " release ", new Hilite(config[nameof(this.Tag)]))
             );
+        }
+
+        private void ReportProgress(long pos)
+        {
+            lock (this.progressLock)
+            {
+                this.currentPosition = pos;
+            }
         }
     }
 }

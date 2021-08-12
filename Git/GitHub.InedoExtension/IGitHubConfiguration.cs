@@ -1,5 +1,4 @@
 ﻿using System.Security;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
@@ -16,6 +15,7 @@ namespace Inedo.Extensions.GitHub
         SecureString Password { get; }
         string UserName { get; }
     }
+
     internal static class GitHubOperationExtensions
     {
         public static string DescribeSource(this IOperationConfiguration config)
@@ -53,6 +53,7 @@ namespace Inedo.Extensions.GitHub
                 credentials.UserName = AH.CoalesceString(operation.UserName, credentials.UserName);
                 credentials.Password = operation.Password ?? credentials.Password;
             }
+
             if (resource != null)
             {
                 resource.ApiUrl = AH.CoalesceString(operation.ApiUrl, resource.ApiUrl);
