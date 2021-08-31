@@ -1,7 +1,9 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
@@ -49,6 +51,10 @@ Create-WorkItem
         [DisplayName("State")]
         [PlaceholderText("Unchanged")]
         public string State { get; set; }
+        [ScriptAlias("OtherFields")]
+        [ScriptAlias("OtherFields")]
+        [Description("A map variable containing other fields and values to update.")]
+        public IDictionary<string, RuntimeValue> OtherFields {get;set;}
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
@@ -57,7 +63,7 @@ Create-WorkItem
             var client = new RestApi(c?.Token, r.InstanceUrl, this);
             try
             {
-                await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State).ConfigureAwait(false);
+                await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State, this.OtherFields).ConfigureAwait(false);
             }
             catch (AzureDevOpsRestException ex)
             {

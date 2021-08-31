@@ -7,6 +7,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
+using Inedo.ExecutionEngine;
 using Inedo.Extensions.AzureDevOps.VisualStudioOnline.Model;
 using Newtonsoft.Json;
 
@@ -26,6 +27,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         public string StatusFilter { get; set; }
 
         public IEnumerable<int> Ids { get; set; }
+        public IEnumerable<string> Fields { get; set; }
         public string Timeframe { get; set; }
 
         public override string ToString()
@@ -46,6 +48,8 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
                 buffer.AppendFormat("statusFilter={0}&", this.StatusFilter);
             if (this.Ids != null)
                 buffer.AppendFormat("ids={0}&", string.Join(",", this.Ids));
+            if (this.Fields != null)
+                buffer.AppendFormat("fields={0}&", string.Join(",", this.Fields));
             if (this.Timeframe != null)
                 buffer.AppendFormat("$timeframe={0}&", this.Timeframe);
             if (this.Expand != null)
@@ -89,7 +93,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             return response;
         }
 
-        public async Task<GetWorkItemResponse> UpdateWorkItemAsync(string id, string title, string description, string iterationPath, string state)
+        public async Task<GetWorkItemResponse> UpdateWorkItemAsync(string id, string title, string description, string iterationPath, string state, IDictionary<string, RuntimeValue> otherFields)
         {
             var args = new List<object>(8);
 
@@ -114,6 +118,15 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
                 args.Add(new { op = "remove", path = "/fields/System.State" });
                 args.Add(new { op = "add", path = "/fields/System.State", value = state });
             }
+            if(otherFields?.Keys.Any() ?? false)
+            {
+                foreach(var field in otherFields)
+                {
+                    args.Add(new { op = "remove", path = $"/fields/{field.Key}" });
+                    args.Add(new { op = "add", path = $"/fields/{field.Key}", value = field.Value.AsString() });
+
+                }
+            }
 
             var response = await this.InvokeAsync<GetWorkItemResponse>(
                 "PATCH",
@@ -129,13 +142,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         public async Task<GetWorkItemResponse[]> GetWorkItemsAsync(string wiql)
         {
-            var wiqlResponse = await this.InvokeAsync<GetWiqlResponse>(
-                "POST",
-                null,
-                "wit/wiql",
-                new QueryString { ApiVersion = "1.0" },
-                new { query = wiql }
-            ).ConfigureAwait(false);
+            var wiqlResponse = await this.GetWiqlResponse(wiql);
 
             var workItemsResponse = await this.InvokeAsync<GetWorkItemsResponse>(
                 "GET",
@@ -150,6 +157,38 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             ).ConfigureAwait(false);
 
             return workItemsResponse.value;
+        }
+        public async Task<GetWorkItemResponse[]> GetWorkItemsFromWiqlAsync(string wiql)
+        {
+            var wiqlResponse = await this.GetWiqlResponse(wiql);
+
+            var workItemsResponse = await this.InvokeAsync<GetWorkItemsResponse>(
+                "GET",
+                null,
+                "wit/workitems",
+                new QueryString
+                {
+                    ApiVersion = "1.0",
+                    Ids = wiqlResponse.workItems.Select(w => w.id),
+                    Fields = wiqlResponse.columns.Select(c => c.referenceName),
+                    Expand = "links"
+                }
+            ).ConfigureAwait(false);
+
+            return workItemsResponse.value;
+        }
+
+        public async Task<GetWiqlResponse> GetWiqlResponse(string wiql)
+        {
+            var wiqlResponse = await this.InvokeAsync<GetWiqlResponse>(
+                "POST",
+                null,
+                "wit/wiql",
+                new QueryString { ApiVersion = "1.0" },
+                new { query = wiql }
+            ).ConfigureAwait(false);
+
+            return wiqlResponse;
         }
 
         public async Task<GetIterationResponse[]> GetIterationsAsync(string project)

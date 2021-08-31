@@ -11,6 +11,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
+using Inedo.Extensions.AzureDevOps.VisualStudioOnline.Model;
 using Inedo.Serialization;
 using Inedo.Web;
 
@@ -54,7 +55,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         [Output]
         [DisplayName("Output variable")]
         [ScriptAlias("Output")]
-        [Description("The output variable should be a list variable. For example: @YouTrackIssueIDs")]
+        [Description("The output variable should be a list variable where each item is a map variable. This will include all columns from your WIQL SELECT and \"Id\", \"URL\", and \"IsClosed\". For example: @AzureDevOpsIssueIDs.")]
         public RuntimeValue Output { get; set; }
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
@@ -64,20 +65,33 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
             string wiql = this.GetWiql(context.Log);
             var closedStates = this.ClosedStates.Split(',');
 
-            var workItems = (await client.GetWorkItemsAsync(wiql).ConfigureAwait(false)).Select(wi => new AzureDevOpsWorkItem(wi, closedStates));
-            this.Output = new RuntimeValue(
-                    workItems.Select(
-                        i => new RuntimeValue(
-                            new Dictionary<string, RuntimeValue>
-                            {
-                                ["Id"] = i.Id,
-                                ["Title"] = i.Title ?? string.Empty,
-                                ["Description"] = i.Description ?? string.Empty,
-                                ["Status"] = i.Status
-                            }
-                        )
-                    ).ToList()
-                );
+            var workItemsResponse = (await client.GetWorkItemsFromWiqlAsync(wiql).ConfigureAwait(false));
+            var columns = workItemsResponse.SelectMany(wi => wi.fields.Select(f => f.Key)).Distinct().ToArray();
+            this.Output = new RuntimeValue(workItemsResponse.Select(wi => getItem(wi)).ToArray());
+
+            RuntimeValue getItem(GetWorkItemResponse wi)
+            {
+                var item = new Dictionary<string, RuntimeValue>
+                {
+                    { "Id", wi.id.ToString() },
+                    { "URL", wi._links.html.href }
+                };
+
+                if (columns.Contains("System.State"))
+                {
+                    if (wi.fields.ContainsKey("System.State"))
+                        item.Add("IsClosed", closedStates.Contains(wi.fields.GetValueOrDefault("System.State")?.ToString(), StringComparer.OrdinalIgnoreCase));
+                    else
+                        item.Add("IsClosed", false);
+                }
+
+                foreach (var column in columns)
+                {
+                    if (!item.ContainsKey(column) && wi.fields.ContainsKey(column))
+                        item.Add(column, wi.fields.GetValueOrDefault(column)?.ToString());
+                }
+                return new RuntimeValue(item);
+            };
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
