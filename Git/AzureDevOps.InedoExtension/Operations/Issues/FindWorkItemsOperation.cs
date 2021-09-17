@@ -89,6 +89,8 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
                 {
                     if (!item.ContainsKey(column) && wi.fields.ContainsKey(column))
                         item.Add(column, wi.fields.GetValueOrDefault(column)?.ToString());
+                    else if(!item.ContainsKey(column))
+                        item.Add(column, null);
                 }
                 return new RuntimeValue(item);
             };
