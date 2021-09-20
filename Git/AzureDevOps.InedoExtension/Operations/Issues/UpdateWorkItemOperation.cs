@@ -52,7 +52,7 @@ Create-WorkItem
         [PlaceholderText("Unchanged")]
         public string State { get; set; }
         [ScriptAlias("OtherFields")]
-        [ScriptAlias("OtherFields")]
+        [DisplayName("OtherFields")]
         [Description("A map variable containing other fields and values to update.")]
         public IDictionary<string, RuntimeValue> OtherFields {get;set;}
 
