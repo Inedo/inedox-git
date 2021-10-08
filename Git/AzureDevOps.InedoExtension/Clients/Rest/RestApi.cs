@@ -100,31 +100,29 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             // have to use "remove" then "add" because "replace" errors out if a value is missing
             if (!string.IsNullOrEmpty(title))
             {
-                args.Add(new { op = "remove", path = "/fields/System.Title" });
+                //args.Add(new { op = "remove", path = "/fields/System.Title" });
                 args.Add(new { op = "add", path = "/fields/System.Title", value = title });
             }
             if (!string.IsNullOrEmpty(description))
             {
-                args.Add(new { op = "remove", path = "/fields/System.Description" });
+                //args.Add(new { op = "remove", path = "/fields/System.Description" });
                 args.Add(new { op = "add", path = "/fields/System.Description", value = description });
             }
             if (!string.IsNullOrEmpty(iterationPath))
             {
-                args.Add(new { op = "remove", path = "/fields/System.IterationPath" });
+                //args.Add(new { op = "remove", path = "/fields/System.IterationPath" });
                 args.Add(new { op = "add", path = "/fields/System.IterationPath", value = iterationPath });
             }
             if (!string.IsNullOrEmpty(state))
             {
-                args.Add(new { op = "remove", path = "/fields/System.State" });
+               // args.Add(new { op = "remove", path = "/fields/System.State" });
                 args.Add(new { op = "add", path = "/fields/System.State", value = state });
             }
             if(otherFields?.Keys.Any() ?? false)
             {
                 foreach(var field in otherFields)
                 {
-                    args.Add(new { op = "remove", path = $"/fields/{field.Key}" });
                     args.Add(new { op = "add", path = $"/fields/{field.Key}", value = field.Value.AsString() });
-
                 }
             }
 
