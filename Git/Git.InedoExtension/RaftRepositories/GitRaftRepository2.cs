@@ -97,7 +97,27 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             var entry = this.FindEntry(type, name, version);
             if (entry != null)
-                return this.CreateGitRaftItem(type, entry, commit: string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version));
+            {
+                string folder = null;
+                if(!string.IsNullOrWhiteSpace(entry.Path))
+                {
+                    var pathString = entry.Path;
+                    if (!string.IsNullOrEmpty(this.RepositoryRoot) && pathString.StartsWith(this.RepositoryRoot))
+                        pathString = pathString.Substring(this.RepositoryRoot.Length + 1);
+
+                    var typeFolder = GetStandardTypeName(type);
+                    if (pathString.StartsWith(typeFolder))
+                        pathString = pathString.Substring(typeFolder.Length + 1);
+
+                    
+                    if(pathString.Replace("\\", "/").Contains("/"))
+                    {
+                        folder = pathString.Substring(0, pathString.LastIndexOf("/")).TrimEnd('/') + "/";
+                    }
+
+                }
+                return this.CreateGitRaftItem(type, entry, commit: string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version), folder: folder);
+            }
             else
                 return null;
         }
