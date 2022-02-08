@@ -101,7 +101,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 string folder = null;
                 if(!string.IsNullOrWhiteSpace(entry.Path))
                 {
-                    var pathString = entry.Path;
+                    var pathString = entry.Path.Replace("\\", "/");
                     if (!string.IsNullOrEmpty(this.RepositoryRoot) && pathString.StartsWith(this.RepositoryRoot))
                         pathString = pathString.Substring(this.RepositoryRoot.Length + 1);
 
@@ -110,7 +110,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         pathString = pathString.Substring(typeFolder.Length + 1);
 
                     
-                    if(pathString.Replace("\\", "/").Contains("/"))
+                    if(pathString.Contains("/"))
                     {
                         folder = pathString.Substring(0, pathString.LastIndexOf("/")).TrimEnd('/') + "/";
                     }
