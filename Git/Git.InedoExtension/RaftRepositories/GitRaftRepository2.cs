@@ -23,7 +23,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [DisplayName("Git")]
     [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
     [AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
-    public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
+    public sealed class GitRaftRepository2 : RaftRepository2
     {
         private static readonly Lazy<bool> isBM627OrLater = new Lazy<bool>(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
@@ -381,20 +381,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 return ConfigurationTestResult.Failure("Remote repository URL is not specified.");
 
             return ConfigurationTestResult.Success;
-        }
-
-        Task ISyncRaft.SynchronizeAsync(ILogSink logSink)
-        {
-            GitRepoLock.EnterLock(this.LocalRepositoryPath);
-            try
-            {
-                this.Fetch(this.Repo);
-                return InedoLib.NullTask;
-            }
-            finally
-            {
-                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
-            }
         }
 
         protected override void Dispose(bool disposing)

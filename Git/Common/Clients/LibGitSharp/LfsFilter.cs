@@ -50,7 +50,7 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                         await outputCopy.ConfigureAwait(false);
                         process.StandardOutput.Close();
 
-                        await process.DelayUntilExitAsync().ConfigureAwait(false);
+                        await process.WaitForExitAsync().ConfigureAwait(false);
 
                         var errorText = await errorRead.ConfigureAwait(false);
 

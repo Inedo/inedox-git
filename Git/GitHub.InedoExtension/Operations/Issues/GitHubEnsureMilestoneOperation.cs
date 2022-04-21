@@ -52,7 +52,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };
             if (this.Template.DueDate != null)
-                data.Add("due_on", AH.NullIf(AH.ConcatNE(this.Template.DueDate, "T", DateTime.UtcNow.ToString("HH:mm:ss"), "Z"), string.Empty));
+                data.Add("due_on", this.Template.DueDate + "T" + DateTime.UtcNow.ToString("HH:mm:ss"));
             if (this.Template.Description != null)
                 data.Add("description", this.Template.Description);
             if (this.Template.State.HasValue)

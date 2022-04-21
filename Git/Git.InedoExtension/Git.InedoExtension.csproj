@@ -1,31 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net452;net5.0</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>Inedo.Extensions.Git</RootNamespace>
     <AssemblyName>Git</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  <ItemGroup Condition="$(TargetFramework) == 'net452'">
-    <Reference Include="System.Web" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-    <PackageReference Include="LibGit2Sharp" Version="0.24.0" />
-    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="1.0.185" />
-  </ItemGroup>
-  <ItemGroup Condition="$(TargetFramework) == 'net5.0'">
+  <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0096" />
     <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.312" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Inedo.SDK" Version="1.12.0" ExcludeAssets="runtime" />
+    <PackageReference Include="Inedo.SDK" Version="2.0.0-ci.12" ExcludeAssets="runtime" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
-  <ItemGroup>
-    <Folder Include="SuggestionProviders\" />
-  </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(TargetFramework) == 'net452'">
-    <Exec Command="powershell -Command &quot;if ((Test-Path C:\LocalDev\Tools\inedoxpack\inedoxpack.exe) -And (Test-Path C:\LocalDev\Otter\Extensions -PathType Container)) { C:\LocalDev\Tools\inedoxpack\inedoxpack.exe '$(TargetDir)..\$(TargetFileName)' 'C:\LocalDev\Otter\Extensions\$(TargetName).upack' 0.0.0 }&quot;" />
-  </Target>
 </Project>

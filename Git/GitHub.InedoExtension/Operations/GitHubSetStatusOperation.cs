@@ -97,7 +97,7 @@ GitHub::Set-Status (
             else
                 url = $"{SDK.BaseUrl.TrimEnd('/')}/executions/execution-in-progress?executionId={context.ExecutionId}";
 
-            var statusContext = "ci/" + SDK.ProductName.ToLower() + AH.ConcatNE("/", this.AdditionalContext);
+            var statusContext = ("ci/" + SDK.ProductName.ToLower() + "/" + this.AdditionalContext).TrimEnd('/');
 
             if (this.Status == StatusType.auto)
             {
