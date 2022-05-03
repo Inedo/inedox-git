@@ -34,18 +34,12 @@ namespace Inedo.Extensions.GitLab.VariableTemplates
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
-            if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
-                resource = (GitLabSecureResource)rc?.ToSecureResource();
-            }
-            if (resource == null || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not GitLabSecureResource resource || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
                 return new LiteralHtml(value.AsString());
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention
             var hostName = parsedUri.Host == "api.gitlab.com" ? "gitlab.com" : parsedUri.Host;
-            return new A($"https://{hostName}/{resource.GroupName}/{AH.CoalesceString(this.ProjectName, resource.ProjectName)}/-/commit/{value.AsString()}", value.AsString().Substring(0, 7))
+            return new A($"https://{hostName}/{resource.GroupName}/{AH.CoalesceString(this.ProjectName, resource.ProjectName)}/-/commit/{value.AsString()}", value.AsString()[..7])
             {
                 Class = "ci-icon gitlab",
                 Target = "_blank"

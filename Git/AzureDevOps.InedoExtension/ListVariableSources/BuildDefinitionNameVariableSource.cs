@@ -39,12 +39,6 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
             var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsCredentials;
-                resource = (AzureDevOpsSecureResource)rc?.ToSecureResource();
-                credential = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
                 return Enumerable.Empty<string>();
 
             var projectName = AH.CoalesceString(this.ProjectName, resource.ProjectName);
@@ -57,15 +51,7 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
-            var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
-            if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsCredentials;
-                resource = (AzureDevOpsSecureResource)rc?.ToSecureResource();
-                credential = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null || !Uri.TryCreate(resource.InstanceUrl.TrimEnd('/'), UriKind.Absolute, out var parsedUri))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not AzureDevOpsSecureResource resource || !Uri.TryCreate(resource.InstanceUrl.TrimEnd('/'), UriKind.Absolute, out _))
                 return new LiteralHtml(value.AsString());
 
             return new A($"{resource.InstanceUrl.TrimEnd('/')}/{AH.CoalesceString(this.ProjectName, resource.ProjectName)}/{value.AsString()}/_build", value.AsString())

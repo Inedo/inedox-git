@@ -39,9 +39,7 @@ namespace Inedo.Extensions.GitLab
                 resource = (GitLabSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
-                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GitLabLegacyResourceCredentials;
-                    resource = (GitLabSecureResource)rc?.ToSecureResource();
-                    credentials = (GitLabSecureCredentials)rc?.ToSecureCredentials();
+                    credentials = null;
                 }
                 else
                 {

@@ -15,7 +15,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 {
     internal sealed class QueryString
     {
-        public static QueryString Default = new QueryString();
+        public static QueryString Default = new();
 
         public string ApiVersion { get; set; } = "2.0";
         public string Expand { get; set; }
@@ -74,8 +74,11 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
 
         public async Task<GetWorkItemResponse> CreateWorkItemAsync(string project, string workItemType, string title, string description, string iterationPath)
         {
-            var args = new List<object>(8);
-            args.Add(new { op = "add", path = "/fields/System.Title", value = title });
+            var args = new List<object>(8)
+            {
+                new { op = "add", path = "/fields/System.Title", value = title }
+            };
+
             if (!string.IsNullOrEmpty(description))
                 args.Add(new { op = "add", path = "/fields/System.Description", value = description });
             if (!string.IsNullOrEmpty(iterationPath))
@@ -275,8 +278,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
         private async Task<Stream> DownloadStreamAsync(string url)
         {
             var request = WebRequest.CreateHttp(url);
-            var httpRequest = request as HttpWebRequest;
-            if (httpRequest != null)
+            if (request is HttpWebRequest httpRequest)
                 httpRequest.UserAgent = "BuildMasterAzureDevOpsExtension/" + typeof(RestApi).Assembly.GetName().Version.ToString();
             request.Method = "GET";
 
@@ -337,8 +339,7 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             string url = apiBaseUrl + relativeUrl + query.ToString();
 
             var request = WebRequest.CreateHttp(url);
-            var httpRequest = request as HttpWebRequest;
-            if (httpRequest != null)
+            if (request is HttpWebRequest httpRequest)
                 httpRequest.UserAgent = "BuildMasterAzureDevOpsExtension/" + typeof(RestApi).Assembly.GetName().Version.ToString();
             request.ContentType = contentType;
             request.Method = method;
@@ -416,22 +417,20 @@ namespace Inedo.Extensions.AzureDevOps.Clients.Rest
             }
             catch
             {
-                using (var responseStream = ex.Response.GetResponseStream())
+                using var responseStream = ex.Response.GetResponseStream();
+                try
                 {
-                    try
-                    {
-                        string errorText = new StreamReader(responseStream).ReadToEnd();
-                        return new AzureDevOpsRestException((int)response.StatusCode, errorText, ex);
-                    }
-                    catch
-                    {
-                        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
-                            return new AzureDevOpsRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.", ex);
-                        if (response.StatusCode == HttpStatusCode.NotFound)
-                            return new AzureDevOpsRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to '{url}').", ex);
+                    string errorText = new StreamReader(responseStream).ReadToEnd();
+                    return new AzureDevOpsRestException((int)response.StatusCode, errorText, ex);
+                }
+                catch
+                {
+                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                        return new AzureDevOpsRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.", ex);
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                        return new AzureDevOpsRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to '{url}').", ex);
 
-                        throw ex;
-                    }
+                    throw ex;
                 }
             }
         }

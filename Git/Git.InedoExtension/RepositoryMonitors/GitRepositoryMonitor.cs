@@ -86,18 +86,13 @@ namespace Inedo.Extensions.Git.RepositoryMonitors
 
             var credctx = (ICredentialResolutionContext)context;
             GitSecureResourceBase resource = null;
-            SecureCredentials credential = null;
             Extensions.Credentials.UsernamePasswordCredentials upcreds = null;
             if (!string.IsNullOrWhiteSpace(this.ResourceName))
             {
                 resource = (GitSecureResourceBase)SecureResource.Create(this.ResourceName, credctx);
-                credential = resource?.GetCredentials(credctx);
+                var credential = resource?.GetCredentials(credctx);
                 if (resource == null)
-                {
-                    var rc = SecureCredentials.Create(this.ResourceName, credctx) as GitCredentialsBase;
-                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
-                    credential = rc?.ToSecureCredentials();
-                }
+                    credential = null;
 
                 upcreds = credential as Extensions.Credentials.UsernamePasswordCredentials;
                 if (credential is GitSecureCredentialsBase gitcreds)

@@ -38,9 +38,7 @@ namespace Inedo.Extensions.GitHub
                 resource = (GitHubSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
-                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GitHubLegacyResourceCredentials;
-                    resource = (GitHubSecureResource)rc?.ToSecureResource();
-                    credentials = (GitHubSecureCredentials)rc?.ToSecureCredentials();
+                    credentials = null;
                 }
                 else
                 {

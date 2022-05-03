@@ -23,7 +23,7 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [Required]
         public SecureString Token { get; set; }
 
-        public override RichDescription GetDescription() => new RichDescription(this.UserName);
+        public override RichDescription GetDescription() => new(this.UserName);
 
         public override UsernamePasswordCredentials ToUsernamePassword() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
         {

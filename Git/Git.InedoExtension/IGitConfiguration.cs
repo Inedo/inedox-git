@@ -36,9 +36,7 @@ namespace Inedo.Extensions.Git
                 resource = (GitSecureResourceBase)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
-                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as GeneralGitLegacyResourceCredentials;
-                    resource = (GitSecureResourceBase)rc?.ToSecureResource();
-                    credentials = (UsernamePasswordCredentials)rc?.ToSecureCredentials();
+                    credentials = null;
                 }
                 else
                 {

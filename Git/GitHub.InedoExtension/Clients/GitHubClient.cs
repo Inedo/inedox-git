@@ -146,7 +146,7 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones?state={Uri.EscapeDataString(state)}&sort=due_on&direction=desc&per_page=100", cancellationToken).ConfigureAwait(false);
             if (milestones == null)
-                return new JObject[0];
+                return Array.Empty<JObject>();
 
             return milestones.Cast<JObject>().ToList();
         }
@@ -159,7 +159,7 @@ namespace Inedo.Extensions.GitHub.Clients
 
             var projects = await this.InvokePagesAsync("GET", url, cancellationToken);
             if (projects == null)
-                return new JObject[0];
+                return Array.Empty<JObject>();
 
             return projects.Cast<JObject>().ToList();
         }
@@ -168,13 +168,13 @@ namespace Inedo.Extensions.GitHub.Clients
         {
             var columnData = await this.InvokePagesAsync("GET", projectColumnsUrl, cancellationToken);
             if (columnData == null)
-                return new KeyValuePair<string, IList<JObject>>[0];
+                return Array.Empty<KeyValuePair<string, IList<JObject>>>();
 
             var columns = new List<KeyValuePair<string, IList<JObject>>>();
             foreach (var column in columnData.Cast<Dictionary<string, object>>())
             {
                 var cardData = await this.InvokePagesAsync("GET", (string)column["cards_url"], cancellationToken);
-                var cards = cardData?.Cast<JObject>().ToArray() ?? new JObject[0];
+                var cards = cardData?.Cast<JObject>().ToArray() ?? Array.Empty<JObject>();
                 columns.Add(new KeyValuePair<string, IList<JObject>>((string)column["name"], cards.ToList()));
             }
 
@@ -209,10 +209,10 @@ namespace Inedo.Extensions.GitHub.Clients
             string trim(string s)
             {
                 if (s.StartsWith(prefix))
-                    s = s.Substring(prefix.Length);
+                    s = s[prefix.Length..];
 
                 if (s.StartsWith("/"))
-                    s = s.Substring(1);
+                    s = s[1..];
 
                 return s;
             }
@@ -289,7 +289,7 @@ namespace Inedo.Extensions.GitHub.Clients
             // The format of templatedUploadUri is: https://host/repos/org/repoName/releases/1000/assets{?name,label}
 
             int index = templateUri.IndexOf('{');
-            return templateUri.Substring(0, index) + "?name=" + Uri.EscapeDataString(name);
+            return templateUri[..index] + "?name=" + Uri.EscapeDataString(name);
         }
         private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
         private static string Esc(object part) => Esc(part?.ToString());

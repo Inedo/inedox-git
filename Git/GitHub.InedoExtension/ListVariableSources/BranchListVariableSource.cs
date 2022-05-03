@@ -46,12 +46,6 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
             var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
-                resource = (GitHubSecureResource)rc?.ToSecureResource();
-                credential = (GitHubSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
                 return Task.FromResult(Enumerable.Empty<string>());
 
             var client = new GitHubClient(resource.ApiUrl, credential?.UserName, credential?.Password, resource.OrganizationName);
@@ -60,13 +54,7 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
         }
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
-            if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
-                resource = (GitHubSecureResource)rc?.ToSecureResource();
-            }
-            if (resource == null || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not GitHubSecureResource resource || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitHubClient.GitHubComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
                 return new LiteralHtml(value.AsString());
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention

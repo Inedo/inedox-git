@@ -59,12 +59,6 @@ namespace Inedo.Extensions.GitLab.IssueSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
             var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
-                resource = (GitLabSecureResource)rc?.ToSecureResource();
-                credentials = (GitLabSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate GitLab issues.");
 
             string projectName = AH.CoalesceString(this.ProjectName, resource.ProjectName);

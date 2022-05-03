@@ -18,16 +18,9 @@ namespace Inedo.Extensions.GitLab.Clients
     {
         public const string GitLabComUrl = "https://gitlab.com/api";
 
-        static GitLabClient()
-        {
-            // Ensure TLS 1.2 is supported. See https://about.gitlab.com/2018/10/15/gitlab-to-deprecate-older-tls/
-            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
-        }
-
-        private string apiBaseUrl;
+        private readonly string apiBaseUrl;
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
-        private static string Esc(object part) => Esc(part?.ToString());
         private string EscapeFullProjectPath(string project)
         {
             if (!string.IsNullOrEmpty(this.GroupName))
@@ -154,7 +147,7 @@ namespace Inedo.Extensions.GitLab.Clients
         {
             var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones?per_page=100{(string.IsNullOrEmpty(state) ? string.Empty : "&state=" + Uri.EscapeDataString(state))}", cancellationToken).ConfigureAwait(false);
             if (milestones == null)
-                return new JObject[0];
+                return Array.Empty<JObject>();
 
             return milestones.Cast<JObject>().ToList();
         }
@@ -178,7 +171,7 @@ namespace Inedo.Extensions.GitLab.Clients
             var data = new
             {
                 tag_name = tag,
-                description = description
+                description
             };
 
             try
@@ -200,7 +193,7 @@ namespace Inedo.Extensions.GitLab.Clients
                 .OrderBy(b => b);
         }
 
-        private static LazyRegex NextPageLinkPattern = new LazyRegex("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
         {
@@ -227,31 +220,27 @@ namespace Inedo.Extensions.GitLab.Clients
             {
                 if (data != null)
                 {
-                    using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
-                    using (var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding))
-                    {
-                        JsonSerializer.CreateDefault().Serialize(writer, data);
-                    }
+                    using var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false);
+                    using var writer = new StreamWriter(requestStream, InedoLib.UTF8Encoding);
+                    JsonSerializer.CreateDefault().Serialize(writer, data);
                 }
 
                 try
                 {
-                    using (var response = await request.GetResponseAsync().ConfigureAwait(false))
-                    using (var responseStream = response.GetResponseStream())
-                    using (var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding))
-                    using (var jsonReader = new JsonTextReader(reader))
+                    using var response = await request.GetResponseAsync().ConfigureAwait(false);
+                    using var responseStream = response.GetResponseStream();
+                    using var reader = new StreamReader(responseStream, InedoLib.UTF8Encoding);
+                    using var jsonReader = new JsonTextReader(reader);
+                    var responseJson = JsonSerializer.CreateDefault().Deserialize(jsonReader);
+                    if (allPages)
                     {
-                        var responseJson = JsonSerializer.CreateDefault().Deserialize(jsonReader);
-                        if (allPages)
+                        var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? "");
+                        if (nextPage.Success)
                         {
-                            var nextPage = NextPageLinkPattern.Match(response.Headers["Link"] ?? "");
-                            if (nextPage.Success)
-                            {
-                                responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
-                            }
+                            responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
                         }
-                        return responseJson;
                     }
+                    return responseJson;
                 }
                 catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
                 {
@@ -303,26 +292,24 @@ namespace Inedo.Extensions.GitLab.Clients
         {
             var response = (HttpWebResponse)ex.Response;
 
-            using (var responseStream = ex.Response.GetResponseStream())
-            using (var reader = new StreamReader(responseStream))
-            using (var jsonReader = new JsonTextReader(reader))
+            using var responseStream = ex.Response.GetResponseStream();
+            using var reader = new StreamReader(responseStream);
+            using var jsonReader = new JsonTextReader(reader);
+            try
             {
-                try
-                {
-                    var obj = JObject.ReadFrom(jsonReader);
-                    string errorText = obj["message"].ToString();
-                    return new GitLabRestException((int)response.StatusCode, errorText, ex);
-                }
-                catch
-                {
-                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
-                        return new GitLabRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.", ex);
-                    if (response.StatusCode == HttpStatusCode.NotFound)
-                        return new GitLabRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to '{url}').", ex);
+                var obj = JObject.ReadFrom(jsonReader);
+                string errorText = obj["message"].ToString();
+                return new GitLabRestException((int)response.StatusCode, errorText, ex);
+            }
+            catch
+            {
+                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                    return new GitLabRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.", ex);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    return new GitLabRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to '{url}').", ex);
 
-                    throw ex;
-                }
-            }            
+                throw ex;
+            }
         }
     }
 }

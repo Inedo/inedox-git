@@ -47,12 +47,6 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
             var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
-                resource = (GitLabSecureResource)rc?.ToSecureResource();
-                credential = (GitLabSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
                 throw new InvalidOperationException($"Could not find resource \"{this.ResourceName}\".");
 
             var client = new GitLabClient(resource.ApiUrl, credential?.UserName, credential?.PersonalAccessToken, resource.GroupName);
@@ -62,13 +56,7 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
-            if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitLabLegacyResourceCredentials;
-                resource = (GitLabSecureResource)rc?.ToSecureResource();
-            }
-            if (resource == null || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not GitLabSecureResource resource || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
                 return new LiteralHtml(value.AsString());
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention

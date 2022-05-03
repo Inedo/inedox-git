@@ -5,8 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Threading;
-using System.Threading.Tasks;
-using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
@@ -25,12 +23,12 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
     public sealed class GitRaftRepository2 : RaftRepository2
     {
-        private static readonly Lazy<bool> isBM627OrLater = new Lazy<bool>(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<bool> isBM627OrLater = new(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
         private readonly Lazy<TreeDefinition> lazyCurrentTree;
-        private readonly object commitCacheLock = new object();
+        private readonly object commitCacheLock = new();
         private Dictionary<string, CachedItemCommit> commitCache;
         private bool variablesDirty;
         private bool disposed;
@@ -103,16 +101,16 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 {
                     var pathString = entry.Path.Replace("\\", "/");
                     if (!string.IsNullOrEmpty(this.RepositoryRoot) && pathString.StartsWith(this.RepositoryRoot))
-                        pathString = pathString.Substring(this.RepositoryRoot.Length + 1);
+                        pathString = pathString[(this.RepositoryRoot.Length + 1)..];
 
                     var typeFolder = GetStandardTypeName(type);
                     if (pathString.StartsWith(typeFolder))
-                        pathString = pathString.Substring(typeFolder.Length + 1);
+                        pathString = pathString[(typeFolder.Length + 1)..];
 
                     
-                    if(pathString.Contains("/"))
+                    if(pathString.Contains('/'))
                     {
-                        folder = pathString.Substring(0, pathString.LastIndexOf("/")).TrimEnd('/') + "/";
+                        folder = pathString[..pathString.LastIndexOf("/")].TrimEnd('/') + "/";
                     }
 
                 }
@@ -222,23 +220,19 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         public override void WriteRaftItem(RaftItemType type, string name, byte[] content, DateTimeOffset? timestamp = null, string userName = null)
         {
-            using (var stream = new MemoryStream(content, false))
-            {
-                this.WriteRaftItem(type, name, stream, timestamp, userName);
-            }
+            using var stream = new MemoryStream(content, false);
+            this.WriteRaftItem(type, name, stream, timestamp, userName);
         }
         public override void WriteRaftItem(RaftItemType type, string name, string content, DateTimeOffset? timestamp = null, string userName = null)
         {
-            using (var stream = new MemoryStream())
+            using var stream = new MemoryStream();
+            using (var writer = new StreamWriter(stream, InedoLib.UTF8Encoding, 16, true))
             {
-                using (var writer = new StreamWriter(stream, InedoLib.UTF8Encoding, 16, true))
-                {
-                    writer.Write(content ?? string.Empty);
-                }
-
-                stream.Position = 0;
-                this.WriteRaftItem(type, name, stream, timestamp, userName);
+                writer.Write(content ?? string.Empty);
             }
+
+            stream.Position = 0;
+            this.WriteRaftItem(type, name, stream, timestamp, userName);
         }
 
         public override void DeleteRaftItem(RaftItemType type, string name)
@@ -599,11 +593,9 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 return new Dictionary<RuntimeVariableName, string>();
 
             var blob = entry.Target as Blob;
-            using (var stream = blob.GetContentStream())
-            using (var reader = new StreamReader(stream, InedoLib.UTF8Encoding))
-            {
-                return ReadStandardVariableData(reader).ToDictionary(p => p.Key, p => p.Value);
-            }
+            using var stream = blob.GetContentStream();
+            using var reader = new StreamReader(stream, InedoLib.UTF8Encoding);
+            return ReadStandardVariableData(reader).ToDictionary(p => p.Key, p => p.Value);
         }
         private void SaveVariables()
         {

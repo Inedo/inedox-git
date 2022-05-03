@@ -53,13 +53,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
             var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsCredentials;
-                resource = (AzureDevOpsSecureResource)rc?.ToSecureResource();
-                credentials = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
-                throw new InvalidOperationException($"A resource must be supplied to enumerate AzureDevOps issues.");
+                throw new InvalidOperationException("A resource must be supplied to enumerate AzureDevOps issues.");
 
             var client = new RestApi(credentials?.Token, resource.InstanceUrl, context.Log);
             string wiql = this.GetWiql(context.Log);

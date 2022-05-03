@@ -41,7 +41,7 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
 
             var proj = new Hilite(AH.CoalesceString(this.ProjectName, "(unspecified)"));
             var inst = (this.InstanceUrl?.StartsWith(prefix) ?? false)
-                ? this.InstanceUrl.Substring(prefix.Length)
+                ? this.InstanceUrl[prefix.Length..]
                 : this.InstanceUrl;
             return new RichDescription(proj, "@", inst);
         }

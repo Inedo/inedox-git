@@ -59,12 +59,6 @@ namespace Inedo.Extensions.GitHub.IssueSources
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
             var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
             if (resource == null)
-            {
-                var rc = SecureCredentials.TryCreate(this.ResourceName, new CredentialResolutionContext(context.ProjectId, null)) as GitHubLegacyResourceCredentials;
-                resource = (GitHubSecureResource)rc?.ToSecureResource();
-                credentials = (GitHubSecureCredentials)rc?.ToSecureCredentials();
-            }
-            if (resource == null)
                 throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");
 
             string repositoryName = AH.CoalesceString(this.RepositoryName, resource.RepositoryName);

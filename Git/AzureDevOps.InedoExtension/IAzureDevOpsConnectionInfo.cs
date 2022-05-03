@@ -1,5 +1,4 @@
 ﻿using System.Security;
-using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
@@ -40,15 +39,9 @@ namespace Inedo.Extensions.AzureDevOps
             {
                 resource = (AzureDevOpsSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
-                {
-                    var rc = SecureCredentials.TryCreate(operation.ResourceName, context) as AzureDevOpsCredentials;
-                    resource = (AzureDevOpsSecureResource)rc?.ToSecureResource();
-                    credentials = (AzureDevOpsSecureCredentials)rc?.ToSecureCredentials();
-                }
+                    credentials = null;
                 else
-                {
                     credentials = (AzureDevOpsSecureCredentials)resource.GetCredentials(context);
-                }
             }
 
             if (credentials != null)
