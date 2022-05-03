@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
@@ -48,7 +48,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
                 this.ResourceName = value;
         }
 
-        public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
+        public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
             var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
@@ -61,8 +61,8 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             var workItems = await client.GetWorkItemsAsync(wiql).ConfigureAwait(false);
             var closedStates = this.ClosedStates.Split(',');
 
-            return from w in workItems
-                   select new AzureDevOpsWorkItem(w, closedStates);
+            foreach (var w in workItems)
+                yield return new AzureDevOpsWorkItem(w, closedStates);
         }
 
         private string GetWiql(ILogSink log)

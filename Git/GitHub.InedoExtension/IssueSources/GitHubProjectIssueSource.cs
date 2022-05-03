@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
@@ -43,7 +43,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
         [DefaultValue(true)]
         public bool FailIfMissing { get; set; } = true;
 
-        public override async Task<IEnumerable<IIssueTrackerIssue>> EnumerateIssuesAsync(IIssueSourceEnumerationContext context)
+        public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var resource = (GitHubSecureResource)this.GetResource(new ResourceResolutionContext(context.ProjectId));
             if (resource == null)
@@ -58,7 +58,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 if (this.FailIfMissing)
                     throw new InvalidOperationException($"No project named {this.ProjectName} was found.");
 
-                return InedoLib.EmptyArray<IIssueTrackerIssue>();
+                yield break;
             }
 
             var columns = await client.GetProjectColumnsAsync((string)project["columns_url"], CancellationToken.None);
@@ -71,12 +71,10 @@ namespace Inedo.Extensions.GitHub.IssueSources
                     if (string.IsNullOrEmpty(issueUrl))
                         continue;
 
-                    var issue = await client.GetIssueAsync(issueUrl);
-                    issues.Add(new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase)));
+                    var issue = await client.GetIssueAsync(issueUrl, cancellationToken);
+                    yield return new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase));
                 }
             }
-
-            return issues;
         }
 
         public override RichDescription GetDescription() => new($"GitHub project ", new Hilite(this.ProjectName), " issue source");
