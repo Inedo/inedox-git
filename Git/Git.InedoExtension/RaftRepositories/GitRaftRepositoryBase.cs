@@ -328,8 +328,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
         {
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepositoryBase));
-            if (user == null)
-                throw new ArgumentNullException(nameof(user));
             if (this.ReadOnly)
                 throw new NotSupportedException();
 
@@ -338,7 +336,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             if (this.Dirty)
             {
-                var signature = new Signature(AH.CoalesceString(user.DisplayName, user.Name), AH.CoalesceString(user.EmailAddress ?? "none@example.com"), DateTime.Now);
+                var signature = new Signature(AH.CoalesceString(user?.DisplayName, user?.Name, "SYSTEM"), AH.CoalesceString(user?.EmailAddress ?? "none@example.com"), DateTime.Now);
 
                 var repo = this.lazyRepository.Value;
                 var tree = repo.ObjectDatabase.CreateTree(this.lazyCurrentTree.Value);
