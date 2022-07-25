@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Threading;
+using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
@@ -21,7 +22,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [DisplayName("Git")]
     [Description("The raft is persisted as a Git repository that is synchronized with an external Git repository.")]
     [AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
-    public sealed class GitRaftRepository2 : RaftRepository2
+    public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
     {
         private static readonly Lazy<bool> isBM627OrLater = new(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
@@ -764,6 +765,20 @@ namespace Inedo.Extensions.Git.RaftRepositories
             }
         }
         private static bool IsBM627OrLater() => SDK.ProductName != "BuildMaster" || SDK.ProductVersion >= new System.Version(6, 2, 7);
+
+        Task ISyncRaft.SynchronizeAsync(CancellationToken cancellationToken)
+        {
+            GitRepoLock.EnterLock(this.LocalRepositoryPath);
+            try
+            {
+                this.Fetch(this.Repo);
+                return Task.CompletedTask;
+            }
+            finally
+            {
+                GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
+            }
+        }
 
         private readonly struct CachedItemCommit
         {
