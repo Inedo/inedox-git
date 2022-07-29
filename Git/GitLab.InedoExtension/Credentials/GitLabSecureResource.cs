@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,14 +54,43 @@ namespace Inedo.Extensions.GitLab.Credentials
             return new RichDescription($"{group}{this.ProjectName} @ {host}");
         }
 
-        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
+        {
+            return (await this.GetRepositoryInfoAsync(context, cancellationToken).ConfigureAwait(false)).RepositoryUrl;
+        }
+        public override async Task<IGitRepositoryInfo> GetRepositoryInfoAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
             var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
             var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
             if (project == null)
-                throw new InvalidOperationException($"Project '{this.ProjectName}' not found on GitLab.");
+                throw new InvalidOperationException($"Project {this.ProjectName} not found on GitLab.");
 
-            return (string)project["http_url_to_repo"];
+            return new RepoInfo
+            {
+                RepositoryUrl = (string)project["http_url_to_repo"],
+                BrowseUrl = (string)project["web_url"],
+                DefaultBranch = (string)project["default_branch"]
+            };
+        }
+
+        private sealed class RepoInfo : IGitRepositoryInfo
+        {
+            public string RepositoryUrl { get; init; }
+            public string BrowseUrl { get; init; }
+            public string DefaultBranch { get; init; }
+
+            public string GetBrowseUrlForTarget(GitBrowseTarget target)
+            {
+                var url = this.BrowseUrl.AsSpan().TrimEnd('/');
+
+                return target.Type switch
+                {
+                    GitBrowseTargetType.Commit => $"{url}/-/commit/{target.Value}",
+                    GitBrowseTargetType.Tag => $"{url}/-/tags/{Uri.EscapeDataString(target.Value)}",
+                    GitBrowseTargetType.Branch => $"{url}/-/tree/{Uri.EscapeDataString(target.Value)}",
+                    _ => null
+                };
+            }
         }
     }
 }
