@@ -32,8 +32,14 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [Persistent]
         [DisplayName("Repository name")]
         [PlaceholderText("use the project name")]
-                [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
-        public string RepositoryName { get; set; }
+        [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
+        public override string RepositoryName { get; set; }
+
+        public override string Namespace
+        {
+            get => this.ProjectName;
+            set => this.ProjectName = value;
+        }
 
         public override RichDescription GetDescription()
         {
@@ -48,5 +54,10 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
 
         public override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) =>
             Task.FromResult($"{this.InstanceUrl.Trim('/')}/{Uri.EscapeDataString(this.ProjectName)}/_git/{Uri.EscapeDataString(this.RepositoryName ?? this.ProjectName ?? "")}");
+
+        public override Task<IGitRepositoryInfo> GetRepositoryInfoAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
+        {
+            return base.GetRepositoryInfoAsync(context, cancellationToken);
+        }
     }
 }

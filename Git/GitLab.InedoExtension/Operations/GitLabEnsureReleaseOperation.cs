@@ -7,7 +7,6 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.Configurations;
-using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.Operations
 {
@@ -25,17 +24,13 @@ namespace Inedo.Extensions.GitLab.Operations
             var gitlab = new GitLabClient(credentials, resource);
 
             var tag = await gitlab.GetTagAsync(resource.ProjectName, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
-
-            if (tag == null || !tag.ContainsKey("release") || tag["release"] == null)
-            {
+            if (tag == null)
                 return new GitLabReleaseConfiguration { Exists = false };
-            }
 
-            var release = (JObject)tag["release"];
             return new GitLabReleaseConfiguration
             {
-                Tag = release.Value<string>("tag_name"),
-                Description = release.Value<string>("description")
+                Tag = tag.Name,
+                Description = tag.Description
             };
         }
 

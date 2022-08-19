@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
@@ -24,8 +23,18 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var milestones = await gitlab.GetMilestonesAsync(resource.ProjectName, null, context.CancellationToken).ConfigureAwait(false);
-            var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
+
+            GitLabMilestone milestone = null;
+
+            await foreach (var m in gitlab.GetMilestonesAsync(resource.ProjectName, null, context.CancellationToken))
+            {
+                if (string.Equals(m.Title, this.Template.Title, StringComparison.OrdinalIgnoreCase))
+                {
+                    milestone = m;
+                    break;
+                }
+            }
+
             if (milestone == null)
             {
                 return new GitLabMilestoneConfiguration
@@ -37,11 +46,11 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             return new GitLabMilestoneConfiguration
             {
                 Exists = true,
-                Title = milestone["title"]?.ToString() ?? string.Empty,
-                Description = milestone["description"]?.ToString() ?? string.Empty,
-                StartDate = milestone["start_date"]?.ToString(),
-                DueDate = milestone["due_date"]?.ToString(),
-                State = (GitLabMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitLabMilestoneConfiguration.OpenOrClosed), milestone["state"]?.ToString())
+                Title = milestone.Title,
+                Description = milestone.Description ?? string.Empty,
+                StartDate = milestone.StartDate,
+                DueDate = milestone.DueDate,
+                State = (GitLabMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitLabMilestoneConfiguration.OpenOrClosed), milestone.State)
             };
         }
 

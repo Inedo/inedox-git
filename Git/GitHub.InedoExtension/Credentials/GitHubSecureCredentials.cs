@@ -16,15 +16,15 @@ namespace Inedo.Extensions.GitHub.Credentials
         [Persistent]
         [DisplayName("User name")]
         [Required]
-        public string UserName { get; set; }
+        public override string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [DisplayName("Personal access token")]
         [FieldEditMode(FieldEditMode.Password)]
         [Required]
-        public SecureString Password { get; set; }
+        public override SecureString Password { get; set; }
 
-        public override RichDescription GetDescription() => new RichDescription(this.UserName);
+        public override RichDescription GetDescription() => new(this.UserName);
 
         public override UsernamePasswordCredentials ToUsernamePassword() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
         {

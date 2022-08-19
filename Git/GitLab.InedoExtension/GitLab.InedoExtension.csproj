@@ -8,9 +8,8 @@
     <NoWarn>SYSLIB0014</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Inedo.SDK" Version="2.2.0-ci.5" ExcludeAssets="runtime" />
+    <PackageReference Include="Inedo.SDK" Version="2.2.0-ci.9" ExcludeAssets="runtime" />
     <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0182" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
   <Import Project="..\Common\Common.projitems" Label="Shared" />
 </Project>

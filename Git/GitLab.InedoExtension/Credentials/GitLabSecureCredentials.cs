@@ -15,7 +15,7 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Persistent]
         [DisplayName("User name")]
         [Required]
-        public string UserName { get; set; }
+        public override string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [DisplayName("Personal access token")]
@@ -23,7 +23,13 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Required]
         public SecureString PersonalAccessToken { get; set; }
 
-        public override RichDescription GetDescription() => new RichDescription(this.UserName);
+        public override SecureString Password
+        {
+            get => this.PersonalAccessToken;
+            set => this.PersonalAccessToken = value;
+        }
+
+        public override RichDescription GetDescription() => new(this.UserName);
 
         public override UsernamePasswordCredentials ToUsernamePassword() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
         {

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
-using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -39,6 +36,17 @@ namespace Inedo.Extensions.GitLab.Credentials
         [Required]
         public string ProjectName { get; set; }
 
+        public override string Namespace
+        { 
+            get => this.GroupName;
+            set => this.GroupName = value;
+        }
+        public override string RepositoryName
+        {
+            get => this.ProjectName;
+            set => this.ProjectName = value;
+        }
+
         public override RichDescription GetDescription()
         {
             var host = "GitLab.com";
@@ -65,32 +73,7 @@ namespace Inedo.Extensions.GitLab.Credentials
             if (project == null)
                 throw new InvalidOperationException($"Project {this.ProjectName} not found on GitLab.");
 
-            return new RepoInfo
-            {
-                RepositoryUrl = (string)project["http_url_to_repo"],
-                BrowseUrl = (string)project["web_url"],
-                DefaultBranch = (string)project["default_branch"]
-            };
-        }
-
-        private sealed class RepoInfo : IGitRepositoryInfo
-        {
-            public string RepositoryUrl { get; init; }
-            public string BrowseUrl { get; init; }
-            public string DefaultBranch { get; init; }
-
-            public string GetBrowseUrlForTarget(GitBrowseTarget target)
-            {
-                var url = this.BrowseUrl.AsSpan().TrimEnd('/');
-
-                return target.Type switch
-                {
-                    GitBrowseTargetType.Commit => $"{url}/-/commit/{target.Value}",
-                    GitBrowseTargetType.Tag => $"{url}/-/tags/{Uri.EscapeDataString(target.Value)}",
-                    GitBrowseTargetType.Branch => $"{url}/-/tree/{Uri.EscapeDataString(target.Value)}",
-                    _ => null
-                };
-            }
+            return project;
         }
     }
 }

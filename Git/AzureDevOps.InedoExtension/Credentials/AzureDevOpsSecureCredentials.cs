@@ -15,13 +15,19 @@ namespace Inedo.Extensions.AzureDevOps.Credentials
         [Persistent]
         [DisplayName("User name")]
         [Required]
-        public string UserName { get; set; }
+        public override string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
         [DisplayName("Personal access token")]
         [FieldEditMode(FieldEditMode.Password)]
         [Required]
         public SecureString Token { get; set; }
+
+        public override SecureString Password
+        {
+            get => this.Token;
+            set => this.Token = value;
+        }
 
         public override RichDescription GetDescription() => new(this.UserName);
 

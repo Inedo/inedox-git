@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
@@ -20,7 +17,7 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
         public IComponentConfiguration ComponentConfiguration { get; private set; }
         internal GitLabClient Client { get; private set; }
 
-        internal abstract Task<IEnumerable<string>> GetSuggestionsAsync();
+        private protected abstract Task<IEnumerable<string>> GetSuggestionsAsync();
 
         public Task<IEnumerable<string>> GetSuggestionsAsync(IComponentConfiguration config)
         {
@@ -54,6 +51,14 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
                 groupName);
 
             return this.GetSuggestionsAsync();
+        }
+
+        private protected static async Task<IEnumerable<T>> MakeAsync<T>(IAsyncEnumerable<T> value)
+        {
+            var list = new List<T>();
+            await foreach (var v in value.ConfigureAwait(false))
+                list.Add(v);
+            return list;
         }
     }
 }

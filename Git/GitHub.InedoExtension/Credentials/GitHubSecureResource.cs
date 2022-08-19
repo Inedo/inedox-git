@@ -33,7 +33,13 @@ namespace Inedo.Extensions.GitHub.Credentials
         [DisplayName("Repository")]
         [PlaceholderText("e.g. log4net")]
         [SuggestableValue(typeof(RepositoryNameSuggestionProvider))]
-        public string RepositoryName { get; set; }
+        public override string RepositoryName { get; set; }
+
+        public override string Namespace
+        {
+            get => this.OrganizationName;
+            set => this.OrganizationName = value;
+        }
 
         public override RichDescription GetDescription()
         {

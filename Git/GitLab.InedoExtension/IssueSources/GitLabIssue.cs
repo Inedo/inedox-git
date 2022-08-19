@@ -1,28 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Text.Json;
 using Inedo.Extensibility.IssueSources;
-using Newtonsoft.Json.Linq;
 
 namespace Inedo.Extensions.GitLab.IssueSources
 {
-    public sealed class GitLabIssue : IIssueTrackerIssue
+    internal sealed class GitLabIssue : IIssueTrackerIssue
     {
-        public GitLabIssue(JObject issue)
+        public GitLabIssue(JsonElement obj)
         {
-            this.Id = issue["iid"].ToString();
-            this.Title = issue["title"].ToString();
-            var labels = issue["labels"] as IEnumerable<string>;
-            this.Type = labels?.FirstOrDefault();
-            this.Description = issue["description"].ToString();
-            this.Status = issue["state"].ToString();
+            this.Id = obj.GetProperty("iid").GetString();
+            this.Title = GetValueOrDefault(obj, "title");
+            this.Description = GetValueOrDefault(obj, "description");
+            this.Status = GetValueOrDefault(obj, "state");
             this.IsClosed = string.Equals(this.Status, "closed", StringComparison.OrdinalIgnoreCase);
-            var created = issue["created_at"].ToString();
-            this.SubmittedDate = DateTime.Parse(created).ToUniversalTime();
-            if (issue["author"] is JObject author)
-                this.Submitter = author["username"].ToString();
-            this.Url = issue["web_url"].ToString();
-        }
+            this.SubmittedDate = obj.GetProperty("created_at").GetDateTime().ToUniversalTime();
+
+            if (obj.TryGetProperty("author", out var authorElement) && authorElement.ValueKind == JsonValueKind.Object)
+                this.Submitter = GetValueOrDefault(authorElement, "username");
+
+            this.Url = GetValueOrDefault(obj, "web_url");
+
+            if (obj.TryGetProperty("labels", out var labelsArray) && labelsArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in labelsArray.EnumerateArray())
+                {
+                    this.Type = item.GetString();
+                    break;
+                }
+            }
+       }
 
         public string Id { get; }
         public string Title { get; }
@@ -33,5 +39,13 @@ namespace Inedo.Extensions.GitLab.IssueSources
         public DateTime SubmittedDate { get; }
         public string Submitter { get; }
         public string Url { get; }
+
+        private static string GetValueOrDefault(JsonElement obj, string name)
+        {
+            if (obj.TryGetProperty(name, out var value))
+                return value.GetString();
+            else
+                return null;
+        }
     }
 }

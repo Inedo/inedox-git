@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
@@ -53,7 +52,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
                 this.ResourceName = value;
         }
 
-        public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, CancellationToken cancellationToken = default)
         {
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
             var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
@@ -73,10 +72,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
                 CustomFilterQueryString = this.CustomFilterQueryString
             };
 
-            var issues = await client.GetIssuesAsync(projectName, filter, CancellationToken.None).ConfigureAwait(false);
-
-            foreach (var i in issues)
-                yield return new GitLabIssue(i);
+            return client.GetIssuesAsync(projectName, filter, cancellationToken);
         }
 
         public override RichDescription GetDescription()

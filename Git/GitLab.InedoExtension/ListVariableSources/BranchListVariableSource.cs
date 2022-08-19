@@ -51,7 +51,11 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
             var client = new GitLabClient(resource.ApiUrl, credential?.UserName, credential?.PersonalAccessToken, resource.GroupName);
 
-            return await client.GetBranchesAsync(this.ProjectName, CancellationToken.None).ConfigureAwait(false);
+            var branches = new List<string>();
+            await foreach (var b in client.GetBranchesAsync(this.ProjectName, CancellationToken.None).ConfigureAwait(false))
+                branches.Add(b);
+
+            return branches;
         }
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
