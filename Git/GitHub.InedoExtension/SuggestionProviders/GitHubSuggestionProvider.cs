@@ -52,5 +52,13 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
 
             return this.GetSuggestionsAsync();
         }
+
+        private protected static async Task<IEnumerable<T>> MakeAsync<T>(IAsyncEnumerable<T> value)
+        {
+            var list = new List<T>();
+            await foreach (var v in value.ConfigureAwait(false))
+                list.Add(v);
+            return list;
+        }
     }
 }

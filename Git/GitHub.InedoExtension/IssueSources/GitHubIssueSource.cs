@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
@@ -78,7 +79,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
             if (!string.IsNullOrEmpty(this.MilestoneTitle))
             {
-                int? milestoneId = await client.FindMilestoneAsync(this.MilestoneTitle, ownerName, repositoryName, CancellationToken.None).ConfigureAwait(false);
+                int? milestoneId = await client.FindMilestoneAsync(this.MilestoneTitle, ownerName, repositoryName, cancellationToken).ConfigureAwait(false);
                 if (milestoneId == null)
                     throw new InvalidOperationException($"Milestone '{this.MilestoneTitle}' not found in repository '{repositoryName}' owned by '{ownerName}'.");
 
@@ -89,10 +90,8 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 filter.Milestone = "*";
             }
 
-            var issues = await client.GetIssuesAsync(ownerName, repositoryName, filter, CancellationToken.None).ConfigureAwait(false);
-
-            foreach (var i in issues)
-                yield return new GitHubIssue(i);
+            await foreach (var i in client.GetIssuesAsync(ownerName, repositoryName, filter, cancellationToken).ConfigureAwait(false))
+                yield return i;
         }
 
         public override RichDescription GetDescription()

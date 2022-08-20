@@ -51,8 +51,16 @@ namespace Inedo.Extensions.GitHub.IssueSources
             var credentials = (GitHubSecureCredentials)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
 
             var client = new GitHubClient(credentials, resource);
-            var projects = await client.GetProjectsAsync(resource.OrganizationName, this.RepositoryName, CancellationToken.None);
-            var project = projects.FirstOrDefault(p => string.Equals(p["name"]?.ToString(), this.ProjectName, StringComparison.OrdinalIgnoreCase));
+            GitHubProject project = null;
+            await foreach (var p in client.GetProjectsAsync(resource.OrganizationName, this.RepositoryName, cancellationToken))
+            {
+                if (string.Equals(p.Name, this.ProjectName, StringComparison.OrdinalIgnoreCase))
+                {
+                    project = p;
+                    break;
+                }
+            }
+
             if (project == null)
             {
                 if (this.FailIfMissing)
@@ -61,22 +69,16 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 yield break;
             }
 
-            var columns = await client.GetProjectColumnsAsync((string)project["columns_url"], CancellationToken.None);
-            var issues = new List<IIssueTrackerIssue>();
-            foreach (var column in columns)
+            await foreach (var column in client.GetProjectColumnsAsync(project.ColumnsUrl, cancellationToken))
             {
-                foreach (var card in column.Value)
+                foreach (var issueUrl in column.IssueUrls)
                 {
-                    var issueUrl = (string)card["content_url"];
-                    if (string.IsNullOrEmpty(issueUrl))
-                        continue;
-
-                    var issue = await client.GetIssueAsync(issueUrl, cancellationToken);
-                    yield return new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase));
+                    var issue = await client.GetIssueAsync(issueUrl, column.Name, this.ClosedStates.Split('\n').Contains(column.Name, StringComparer.OrdinalIgnoreCase), cancellationToken);
+                    yield return issue;
                 }
             }
         }
 
-        public override RichDescription GetDescription() => new($"GitHub project ", new Hilite(this.ProjectName), " issue source");
+        public override RichDescription GetDescription() => new("GitHub project ", new Hilite(this.ProjectName), " issue source");
     }
 }

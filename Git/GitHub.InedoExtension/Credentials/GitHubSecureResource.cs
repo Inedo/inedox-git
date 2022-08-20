@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
@@ -56,18 +55,14 @@ namespace Inedo.Extensions.GitHub.Credentials
             return new RichDescription($"{group}{this.RepositoryName} @ {host}");
         }
 
-        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken)
+        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
+        {
+            return (await this.GetRepositoryInfoAsync(context, cancellationToken).ConfigureAwait(false)).RepositoryUrl;
+        }
+        public override async Task<IGitRepositoryInfo> GetRepositoryInfoAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
             var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
-
-            var repo = (from r in await github.GetRepositoriesAsync(cancellationToken).ConfigureAwait(false)
-                        where string.Equals((string)r["name"], this.RepositoryName, StringComparison.OrdinalIgnoreCase)
-                        select r).FirstOrDefault();
-
-            if (repo == null)
-                throw new InvalidOperationException($"Repository '{this.RepositoryName}' not found on GitHub.");
-
-            return (string)repo["clone_url"];
+            return await github.GetRepositoryAsync(this.RepositoryName, cancellationToken).ConfigureAwait(false);
         }
     }
 }

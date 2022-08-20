@@ -32,12 +32,12 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
 
             return new GitHubReleaseConfiguration
             {
-                Tag = release["tag_name"]?.ToString(),
-                Target = release["target_commitish"]?.ToString(),
-                Title = release["name"]?.ToString(),
-                Description = release["body"]?.ToString(),
-                Draft = bool.TryParse(release["draft"]?.ToString(), out bool draftBool) && draftBool,
-                Prerelease = bool.TryParse(release["prerelease"]?.ToString(), out bool preReleaseBool) && preReleaseBool
+                Tag = release.Tag,
+                Target = release.Target,
+                Title = release.Title,
+                Description = release.Description,
+                Draft = release.Draft,
+                Prerelease = release.Prerelease
             };
         }
 

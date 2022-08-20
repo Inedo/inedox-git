@@ -2,9 +2,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Inedo.Extensibility;
-using Inedo.Extensions.GitHub.Clients;
-using Inedo.Web;
 
 namespace Inedo.Extensions.GitHub.SuggestionProviders
 {
@@ -20,18 +17,8 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
             if (string.IsNullOrEmpty(ownerName) || string.IsNullOrEmpty(repositoryName))
                 return Enumerable.Empty<string>();
 
-            var milestones = await this.Client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None).ConfigureAwait(false);
-
-            var titles = from m in milestones
-                         let title = m["title"]?.ToString()
-                         where !string.IsNullOrEmpty(title)
-                         select title;
-
-            if (SDK.ProductName == "BuildMaster")
-            {
-                titles = new[] { "$ReleaseName", "$ReleaseNumber" }.Concat(titles);
-            }
-            return titles;
+            var milestones = await MakeAsync(this.Client.GetMilestonesAsync(ownerName, repositoryName, "open", CancellationToken.None)).ConfigureAwait(false);
+            return milestones.Select(m => m.Title);
         }
     }
 }

@@ -11,11 +11,7 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
         internal override async Task<IEnumerable<string>> GetSuggestionsAsync()
         {
             var repositoryName = AH.NullIf(this.ComponentConfiguration[nameof(GitHubProjectIssueSource.RepositoryName)], string.Empty);
-            var projects = await this.Client.GetProjectsAsync(this.Resource.OrganizationName, repositoryName, CancellationToken.None);
-            return from p in projects
-                   let name = p["name"]?.ToString()
-                   where !string.IsNullOrEmpty(name)
-                   select name;
+            return (await MakeAsync(this.Client.GetProjectsAsync(this.Resource.OrganizationName, repositoryName, CancellationToken.None)).ConfigureAwait(false)).Select(p => p.Name);
         }
     }
 }

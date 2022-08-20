@@ -41,16 +41,20 @@ namespace Inedo.Extensions.GitHub.ListVariableSources
             if (string.IsNullOrEmpty(this.ResourceName) && missingProperties.TryGetValue("CredentialName", out var value))
                 this.ResourceName = value;
         }
-        public override Task<IEnumerable<string>> EnumerateListValuesAsync(VariableTemplateContext context)
+        public override async Task<IEnumerable<string>> EnumerateListValuesAsync(VariableTemplateContext context)
         {
             var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
             var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
             if (resource == null)
-                return Task.FromResult(Enumerable.Empty<string>());
+                return Enumerable.Empty<string>();
 
             var client = new GitHubClient(resource.ApiUrl, credential?.UserName, credential?.Password, resource.OrganizationName);
 
-            return client.ListRefsAsync(resource.OrganizationName, resource.RepositoryName, RefType.Branch, CancellationToken.None);
+            var refs = new List<string>();
+            await foreach (var r in client.ListRefsAsync(resource.OrganizationName, resource.RepositoryName, RefType.Branch).ConfigureAwait(false))
+                refs.Add(r);
+
+            return refs;
         }
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
