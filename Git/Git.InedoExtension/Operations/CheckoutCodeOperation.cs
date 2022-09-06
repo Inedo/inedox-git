@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
@@ -126,20 +127,26 @@ namespace Inedo.Extensions.Git.Operations
                 throw new ExecutionFailureException("RepositoryUrl was not specified and could not be determined using the repository connection.");
         }
 
-        protected override Task<object?> RemoteExecuteAsync(IRemoteOperationExecutionContext context)
+        protected override async Task<object?> RemoteExecuteAsync(IRemoteOperationExecutionContext context)
         {
             var gitRepoRoot = Path.Combine(context.TempDirectory, ".gitrepos");
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
 
-            using var repo = RepoMan.FetchOrClone(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this, this.HandleTransferProgress);
+            this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
+
+            using var repo = await RepoMan.FetchOrCloneAsync(
+                new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this, this.HandleTransferProgress),
+                context.CancellationToken
+            );
 
             lock (this.progressLock)
             {
                 this.currentProgress = null;
             }
 
-            repo.Export(outputDirectory, this.Objectish!, this.RecurseSubmodules);
-            return Task.FromResult<object?>(repo.GetCommitHash(this.Objectish!));
+            this.LogInformation($"Exporting files to {outputDirectory}...");
+            await repo.ExportAsync(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), context.CancellationToken);
+            return repo.GetCommitHash(this.Objectish!);
         }
 
         protected override Task AfterRemoteExecuteAsync(object? result)

@@ -11,37 +11,29 @@ namespace Inedo.Extensions.Git;
 
 internal sealed class RepoMan : IDisposable
 {
+    private static readonly Dictionary<string, RepoLock> repoLocks = new();
     private readonly Repository repo;
-    private readonly string rootPath;
-    private readonly string? userName;
-    private readonly string? password;
-    private readonly Uri repositoryUri;
-    private readonly ILogSink? log;
-    private readonly Action<RepoTransferProgress>? transferProgress;
+    private readonly RepoManConfig config;
+    private bool disposed;
 
-    private RepoMan(Repository repo, Uri repositoryUri, string rootPath, string? userName, string? password, ILogSink? log, Action<RepoTransferProgress>? transferProgress)
+    private RepoMan(Repository repo, RepoManConfig config)
     {
         this.repo = repo;
-        this.repositoryUri = repositoryUri;
-        this.rootPath = rootPath;
-        this.userName = userName;
-        this.password = password;
-        this.log = log;
-        this.transferProgress = transferProgress;
+        this.config = config;
     }
 
-    public static RepoMan FetchOrClone(string rootPath, Uri repositoryUri, string? userName, string? password, ILogSink? log, Action<RepoTransferProgress>? transferProgress)
+    public static async Task<RepoMan> FetchOrCloneAsync(RepoManConfig config, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(rootPath);
-        if (!Path.IsPathRooted(rootPath))
+        ArgumentNullException.ThrowIfNull(config);
+        if (!Path.IsPathRooted(config.RootPath))
             throw new ArgumentException("Root path must be rooted.");
-        ArgumentNullException.ThrowIfNull(repositoryUri);
 
         Repository? repo = null;
+        await AcquireLockAsync(config, cancellationToken).ConfigureAwait(false);
         try
         {
-            var repoPath = Path.Combine(rootPath, GetRepositoryDiskName(repositoryUri));
-            log?.LogDebug($"Repository path is {repoPath}");
+            var repoPath = Path.Combine(config.RootPath, GetRepositoryDiskName(config.RepositoryUri));
+            config.Log?.LogDebug($"Repository path is {repoPath}");
 
             if (Directory.Exists(repoPath) && Repository.IsValid(repoPath))
             {
@@ -50,7 +42,7 @@ internal sealed class RepoMan : IDisposable
                 if (origin == null)
                     throw new InvalidOperationException("Repository has no origin.");
 
-                log?.LogDebug($"Fetching from origin ({origin.Url})...");
+                config.Log?.LogDebug($"Fetching from origin ({origin.Url})...");
                 var sw = Stopwatch.StartNew();
 
                 Commands.Fetch(
@@ -59,52 +51,56 @@ internal sealed class RepoMan : IDisposable
                     Enumerable.Empty<string>(),
                     new FetchOptions
                     {
-                        CredentialsProvider = getCredentials,
+                        CredentialsProvider = config.GetCredentials,
                         TagFetchMode = TagFetchMode.All,
-                        OnTransferProgress = transferProgress != null ? handleTransferProgress : null
+                        OnTransferProgress = config.TransferProgressHandler,
+                        OnProgress = progressHandler
                     },
                     null
                 );
 
                 sw.Stop();
-                log?.LogDebug($"Fetch completed in {sw.Elapsed}.");
+                config.Log?.LogDebug($"Fetch completed in {sw.Elapsed}.");
             }
             else
             {
-                log?.LogDebug($"Repository does not exist or is not valid. Cloning from {repositoryUri}...");
+                config.Log?.LogDebug($"Repository does not exist or is not valid. Cloning from {config.RepositoryUri}...");
 
                 Directory.CreateDirectory(repoPath);
                 var sw = Stopwatch.StartNew();
 
                 Repository.Clone(
-                    repositoryUri.ToString(),
+                    config.RepositoryUri.ToString(),
                     repoPath,
                     new CloneOptions
                     {
                         IsBare = true,
-                        CredentialsProvider = getCredentials,
-                        OnTransferProgress = transferProgress != null ? handleTransferProgress : null
+                        CredentialsProvider = config.GetCredentials,
+                        OnTransferProgress = config.TransferProgressHandler,
+                        OnProgress = progressHandler
                     }
                 );
 
                 sw.Stop();
-                log?.LogDebug($"Clone completed in {sw.Elapsed}.");
+                config.Log?.LogDebug($"Clone completed in {sw.Elapsed}.");
 
                 repo = new Repository(repoPath);
             }
 
-            return new RepoMan(repo, repositoryUri, rootPath, userName, password, log, transferProgress);
-
-            LibGit2Sharp.Credentials getCredentials(string u, string n, SupportedCredentialTypes t) => string.IsNullOrEmpty(userName) ? new DefaultCredentials() : new UsernamePasswordCredentials { Username = userName, Password = password };
-
-            bool handleTransferProgress(TransferProgress p)
+            bool progressHandler(string serverProgressOutput)
             {
-                transferProgress!(new RepoTransferProgress(p.TotalObjects, p.ReceivedObjects, p.ReceivedBytes));
+                if (cancellationToken.IsCancellationRequested)
+                    return false;
+
+                config.Log?.LogDebug(serverProgressOutput);
                 return true;
             }
+
+            return new RepoMan(repo, config);
         }
         catch
         {
+            ReleaseLock(config);
             repo?.Dispose();
             throw;
         }
@@ -119,26 +115,26 @@ internal sealed class RepoMan : IDisposable
         return commit.Sha;
     }
 
-    public void Export(string outputDirectory, string objectish, bool recurseSubmodules)
+    public async Task ExportAsync(string outputDirectory, string objectish, bool recurseSubmodules, bool createSymbolicLinks, CancellationToken cancellationToken = default)
     {
-        this.log?.LogDebug($"Checking out code from {objectish} to {outputDirectory}...");
+        this.config.Log?.LogDebug($"Checking out code from {objectish} to {outputDirectory}...");
 
         var commit = this.repo.Lookup<Commit>(objectish) ?? this.repo.Lookup<Commit>("refs/remotes/origin/" + objectish);
         if (commit == null)
             throw new ArgumentException($"Could not find commit for {objectish}.");
 
-        this.log?.LogDebug($"Lookup succeeded; found commit {commit.Sha}.");
+        this.config.Log?.LogDebug($"Lookup succeeded; found commit {commit.Sha}.");
 
         var tree = commit.Tree;
         IReadOnlyDictionary<string, RepoMan>? submodules = null;
         try
         {
             if (recurseSubmodules)
-                submodules = this.UpdateSubmodules(tree);
+                submodules = await this.UpdateSubmodulesAsync(tree, cancellationToken).ConfigureAwait(false);
 
-            exportTree(tree, outputDirectory, string.Empty);
+            await exportTree(tree, outputDirectory, string.Empty).ConfigureAwait(false);
 
-            void exportTree(Tree tree, string outdir, string repopath)
+            async Task exportTree(Tree tree, string outdir, string repopath)
             {
                 Directory.CreateDirectory(outdir);
 
@@ -147,14 +143,22 @@ internal sealed class RepoMan : IDisposable
                     if (entry.TargetType == TreeEntryTargetType.Blob)
                     {
                         var blob = entry.Target.Peel<Blob>();
-                        using var stream = blob.GetContentStream();
-                        using var output = File.Create(Path.Combine(outdir, entry.Path), 8192, FileOptions.SequentialScan);
-                        stream.CopyTo(output);
-                        // handle file modes
+
+                        if (createSymbolicLinks && entry.Mode == Mode.SymbolicLink)
+                        {
+                            var linkTarget = blob.GetContentText().Trim();
+                            File.CreateSymbolicLink(Path.Combine(outdir, entry.Path), linkTarget);
+                        }
+                        else
+                        {
+                            using var stream = blob.GetContentStream();
+                            using var output =  CreateFile(Path.Combine(outdir, entry.Path), entry.Mode);
+                            stream.CopyTo(output);
+                        }
                     }
                     else if (entry.TargetType == TreeEntryTargetType.Tree)
                     {
-                        exportTree(entry.Target.Peel<Tree>(), Path.Combine(outdir, entry.Name), (repopath + "/" + entry.Name).Trim('/'));
+                        await exportTree(entry.Target.Peel<Tree>(), Path.Combine(outdir, entry.Name), (repopath + "/" + entry.Name).Trim('/')).ConfigureAwait(false);
                     }
                     else if (entry.TargetType == TreeEntryTargetType.GitLink)
                     {
@@ -165,7 +169,7 @@ internal sealed class RepoMan : IDisposable
                         else if (submodules.TryGetValue((repopath + "/" + entry.Name).Trim('/'), out var subrepo))
                         {
                             var hash = entry.Target.Id.Sha;
-                            subrepo.Export(Path.Combine(outdir, entry.Name), hash, true);
+                            await subrepo.ExportAsync(Path.Combine(outdir, entry.Name), hash, true, createSymbolicLinks, cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {
@@ -196,19 +200,27 @@ internal sealed class RepoMan : IDisposable
         this.repo.Network.Push(
             this.repo.Network.Remotes["origin"],
             force ? '+' + pushRef : pushRef,
-            new PushOptions { CredentialsProvider = getCredentials }
+            new PushOptions { CredentialsProvider = this.config.GetCredentials }
         );
-
-        LibGit2Sharp.Credentials getCredentials(string u, string n, SupportedCredentialTypes t) => string.IsNullOrEmpty(userName) ? new DefaultCredentials() : new UsernamePasswordCredentials { Username = this.userName, Password = this.password };
     }
 
-    private IReadOnlyDictionary<string, RepoMan>? UpdateSubmodules(Tree tree)
+    public void Dispose()
     {
-        this.log?.LogDebug("Looking for submodules...");
+        if (!this.disposed)
+        {
+            this.repo.Dispose();
+            ReleaseLock(this.config);
+            this.disposed = true;
+        }
+    }
+
+    private async Task<IReadOnlyDictionary<string, RepoMan>?> UpdateSubmodulesAsync(Tree tree, CancellationToken cancellationToken = default)
+    {
+        this.config.Log?.LogDebug("Looking for submodules...");
 
         if (tree[".gitmodules"] is not TreeEntry entry || entry.TargetType != TreeEntryTargetType.Blob)
         {
-            this.log?.LogDebug("No submodules in repository.");
+            this.config.Log?.LogDebug("No submodules in repository.");
             return ImmutableDictionary.Create<string, RepoMan>();
         }
 
@@ -219,10 +231,10 @@ internal sealed class RepoMan : IDisposable
             using var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8);
             foreach (var (name, path, url) in GetSubmodules(reader))
             {
-                this.log?.LogDebug($"Found {name} submodule (path={path}, url={url})");
-                var rubbish = new Uri(this.repositoryUri.ToString().TrimEnd('/') + "/");
+                this.config.Log?.LogDebug($"Found {name} submodule (path={path}, url={url})");
+                var rubbish = new Uri(this.config.RepositoryUri.ToString().TrimEnd('/') + "/");
                 var submoduleUri = new Uri(rubbish, url);
-                var subrepo = FetchOrClone(this.rootPath, submoduleUri, this.userName, this.password, this.log, this.transferProgress);
+                var subrepo = await FetchOrCloneAsync(config with { RepositoryUri = submoduleUri }, cancellationToken).ConfigureAwait(false);
                 dict.Add(path, subrepo);
             }
 
@@ -234,6 +246,19 @@ internal sealed class RepoMan : IDisposable
                 r.Dispose();
 
             throw;
+        }
+    }
+
+    private static Stream CreateFile(string fileName, Mode mode)
+    {
+        if (OperatingSystem.IsLinux() && mode == Mode.ExecutableFile)
+        {
+            var info = new Mono.Unix.UnixFileInfo(fileName);
+            return info.Create(Mono.Unix.FileAccessPermissions.UserReadWriteExecute);
+        }
+        else
+        {
+            return File.Create(fileName, 8192, FileOptions.SequentialScan);
         }
     }
 
@@ -279,10 +304,86 @@ internal sealed class RepoMan : IDisposable
             yield return (name, path, url);
     }
 
-    public void Dispose()
+    private static async Task AcquireLockAsync(RepoManConfig config, CancellationToken cancellationToken = default)
     {
-        this.repo.Dispose();
+        var key = GetRepositoryDiskName(config.RepositoryUri);
+
+        SemaphoreSlim semaphore;
+        RepoLock? l;
+
+        lock (repoLocks)
+        {
+            if (!repoLocks.TryGetValue(key, out l))
+            {
+                l = new RepoLock();
+                repoLocks[key] = l;
+            }
+
+            l.Count++;
+            semaphore = l.Semaphore;
+
+            if (l.Count > 1)
+                config.Log?.LogDebug($"Lock is taken for {config.RepositoryUri}; waiting...");
+        }
+
+        try
+        {
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (repoLocks)
+            {
+                l.Count--;
+            }
+
+            throw;
+        }
+    }
+
+    private static void ReleaseLock(RepoManConfig config)
+    {
+        var key = GetRepositoryDiskName(config.RepositoryUri);
+        lock (repoLocks)
+        {
+            if (repoLocks.TryGetValue(key, out var l))
+            {
+                l.Count--;
+                l.Semaphore.Release();
+                if (l.Count <= 0)
+                {
+                    l.Semaphore.Dispose();
+                    repoLocks.Remove(key);
+                }
+            }
+        }
+    }
+
+    private sealed class RepoLock
+    {
+        public SemaphoreSlim Semaphore { get; } = new(1, 1);
+        public int Count { get; set; }
     }
 }
 
 internal readonly record struct RepoTransferProgress(int TotalObjects, int ReceivedObjects, long ReceivedBytes);
+
+internal sealed record class RepoManConfig(string RootPath, Uri RepositoryUri, string? UserName = null, string? Password = null, ILogSink? Log = null, Action<RepoTransferProgress>? TransferProgress = null)
+{
+    public LibGit2Sharp.Handlers.TransferProgressHandler? TransferProgressHandler => this.TransferProgress != null ? this.HandleTransferProgress : null;
+
+#pragma warning disable IDE0060 // Remove unused parameter
+    public LibGit2Sharp.Credentials GetCredentials(string u, string n, SupportedCredentialTypes t)
+#pragma warning restore IDE0060 // Remove unused parameter
+    {
+        return string.IsNullOrEmpty(this.UserName)
+            ? new DefaultCredentials()
+            : new UsernamePasswordCredentials { Username = this.UserName, Password = this.Password };
+    }
+
+    private bool HandleTransferProgress(TransferProgress p)
+    {
+        this.TransferProgress?.Invoke(new RepoTransferProgress(p.TotalObjects, p.ReceivedObjects, p.ReceivedBytes));
+        return true;
+    }
+}
