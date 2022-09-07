@@ -190,13 +190,37 @@ internal sealed class RepoMan : IDisposable
         }
     }
 
-    public void Tag(string objectish, string tag, bool force)
+    public void Tag(string commitSha, string tag, bool force)
     {
-        var createdTag = this.repo.Tags.Add(tag, objectish, force);
+        var t = this.repo.Tags[tag];
+        if (t != null)
+        {
+            if (t.Target.Sha.Equals(commitSha, StringComparison.OrdinalIgnoreCase))
+            {
+                this.config.Log?.LogDebug($"Tag {tag} already exists for {commitSha}.");
+                return;
+            }
+            else
+            {
+                if (force)
+                {
+                    this.config.Log?.LogWarning($"Tag {tag} already exists but refers to {t.Target.Sha}. Attempt to retag to {commitSha}...");
+                }
+                else
+                {
+                    this.config.Log?.LogError($"Tag {tag} already exists but refers to {t.Target.Sha}.");
+                    return;
+                }
+            }
+        }
+
+        this.config.Log?.LogDebug("Creating tag...");
+        var createdTag = this.repo.Tags.Add(tag, commitSha, force);
         var pushRef = $"{createdTag.CanonicalName}:{createdTag.CanonicalName}";
         if (force)
             pushRef = $"+{pushRef}";
 
+        this.config.Log?.LogDebug("Pushing tag...");
         this.repo.Network.Push(
             this.repo.Network.Remotes["origin"],
             force ? '+' + pushRef : pushRef,
