@@ -4,7 +4,6 @@ using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Credentials.Git;
 
 #nullable enable
 
@@ -22,7 +21,6 @@ namespace Inedo.Extensions.Git.Operations
         [PlaceholderText("$WorkingDirectory")]
         public string? OutputDirectory { get; set; }
 
-#warning this name is rubbish
         [ScriptAlias("BranchOrCommit")]
         [PlaceholderText("default")]
         public string? Objectish { get; set; }

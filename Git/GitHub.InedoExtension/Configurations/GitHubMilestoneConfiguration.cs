@@ -7,7 +7,6 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Editors;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
@@ -83,7 +82,6 @@ namespace Inedo.Extensions.GitHub.Configurations
         [Persistent]
         [DisplayName("Due date")]
         [ScriptAlias("DueDate")]
-        [CustomEditor(typeof(DateEditor))]
         public string DueDate { get; set; }
 
         [Persistent]
