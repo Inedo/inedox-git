@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitLab.Operations
     [ScriptAlias("Tag")]
     [ScriptAlias("GitLab-Tag", Obsolete = true)]
     [ScriptNamespace("GitLab", PreferUnqualified = false)]
-    public sealed class GitLabTagOperation : TagOperation, ILegacyGitLabOperation
+    public sealed class GitLabTagOperation : LegacyTagOperation, ILegacyGitLabOperation
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]

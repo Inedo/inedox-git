@@ -9,7 +9,7 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GetSourceOperation : GitOperation
+    public abstract class LegacyGetSourceOperation : LegacyGitOperation
     {
         [ScriptAlias("DiskPath")]
         [DisplayName("Export to directory")]
@@ -48,6 +48,8 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
+            this.LogWarning("This operation has been deprecated and may be removed in a future version. Use Git::Checkout-Code instead.");
+
             var (creds, resource) = this.GetCredentialsAndResource(context);
 
             string repositoryUrl = await resource.GetRepositoryUrlAsync(context, context.CancellationToken).ConfigureAwait(false);

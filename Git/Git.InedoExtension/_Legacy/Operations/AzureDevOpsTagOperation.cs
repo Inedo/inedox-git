@@ -17,7 +17,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
     [Tag("source-control")]
     [ScriptAlias("Tag")]
     [ScriptNamespace("AzureDevOps", PreferUnqualified = false)]
-    public sealed class AzureDevOpsTagOperation : TagOperation, ILegacyAzureDevOpsOperation
+    public sealed class AzureDevOpsTagOperation : LegacyTagOperation, ILegacyAzureDevOpsOperation
     {
         [Required]
         [DisplayName("From AzureDevOps resource")]

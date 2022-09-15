@@ -20,7 +20,7 @@ namespace Inedo.Extensions.Git.Operations
     [ScriptAlias("Git-Tag", Obsolete = true)]
     [ScriptNamespace("Git", PreferUnqualified = false)]
     [DefaultProperty(nameof(ResourceName))]
-    public sealed class GeneralTagOperation : TagOperation, ILegacyGeneralGitConfiguration
+    public sealed class GeneralTagOperation : LegacyTagOperation, ILegacyGeneralGitConfiguration
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]

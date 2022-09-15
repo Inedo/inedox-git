@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitHub.Operations
     [ScriptAlias("Tag")]
     [ScriptAlias("GitHub-Tag", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
-    public sealed class GitHubTagOperation : TagOperation, ILegacyGitHubOperation
+    public sealed class GitHubTagOperation : LegacyTagOperation, ILegacyGitHubOperation
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]

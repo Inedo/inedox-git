@@ -7,7 +7,7 @@ using Inedo.Extensions.Clients;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class TagOperation : GitOperation
+    public abstract class LegacyTagOperation : LegacyGitOperation
     {
         [Required]
         [ScriptAlias("Tag")]
@@ -38,6 +38,8 @@ namespace Inedo.Extensions.Operations
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
+            this.LogWarning("This operation has been deprecated and may be removed in a future version. Use Git::Ensure-Tag instead.");
+
             var (creds, resource) = this.GetCredentialsAndResource(context);
 
             string repositoryUrl = await resource.GetRepositoryUrlAsync(context, context.CancellationToken);

@@ -13,7 +13,7 @@ using Inedo.Extensions.Credentials.Git;
 
 namespace Inedo.Extensions.Operations
 {
-    public abstract class GitOperation : ExecuteOperation
+    public abstract class LegacyGitOperation : ExecuteOperation
     {
         [Category("Advanced")]
         [ScriptAlias("GitExePath")]

@@ -20,7 +20,7 @@ namespace Inedo.Extensions.Git.Operations
     [ScriptAlias("Git-GetSource", Obsolete = true)]
     [ScriptNamespace("Git", PreferUnqualified = false)]
     [DefaultProperty(nameof(ResourceName))]
-    public sealed class GeneralGetSourceOperation : GetSourceOperation, ILegacyGeneralGitConfiguration
+    public sealed class GeneralGetSourceOperation : LegacyGetSourceOperation, ILegacyGeneralGitConfiguration
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]

@@ -17,7 +17,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
     [Tag("source-control")]
     [ScriptAlias("Get-Source")]
     [ScriptNamespace("AzureDevOps", PreferUnqualified = false)]
-    public sealed class AzureDevOpsGetSourceOperation : GetSourceOperation, ILegacyAzureDevOpsOperation
+    public sealed class AzureDevOpsGetSourceOperation : LegacyGetSourceOperation, ILegacyAzureDevOpsOperation
     {
         [Required]
         [ScriptAlias("From")]

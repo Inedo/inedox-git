@@ -19,7 +19,7 @@ namespace Inedo.Extensions.GitHub.Operations
     [ScriptAlias("GitHub-GetSource", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]
     [DefaultProperty(nameof(ResourceName))]
-    public sealed class GitHubGetSourceOperation : GetSourceOperation, ILegacyGitHubOperation
+    public sealed class GitHubGetSourceOperation : LegacyGetSourceOperation, ILegacyGitHubOperation
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]

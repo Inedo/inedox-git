@@ -19,7 +19,7 @@ namespace Inedo.Extensions.GitLab.Operations
     [ScriptAlias("GitLab-GetSource", Obsolete = true)]
     [ScriptNamespace("GitLab", PreferUnqualified = false)]
     [DefaultProperty(nameof(ResourceName))]
-    public sealed class GitLabGetSourceOperation : GetSourceOperation, ILegacyGitLabOperation
+    public sealed class GitLabGetSourceOperation : LegacyGetSourceOperation, ILegacyGitLabOperation
     {
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
