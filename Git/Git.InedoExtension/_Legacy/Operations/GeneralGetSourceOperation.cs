@@ -54,7 +54,7 @@ namespace Inedo.Extensions.Git.Operations
         {
             return new ExtendedRichDescription(
                new RichDescription("Get Git Source"),
-               new RichDescription("from ", new Hilite(config.DescribeSource()), " to ", new DirectoryHilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
+               new RichDescription("from ", new Hilite(config[nameof(ResourceName)]), " to ", new DirectoryHilite(AH.CoalesceString(config[nameof(this.DiskPath)], "$WorkingDirectory")))
             );
         }
     }

@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Security;
-using System.Threading;
-using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
@@ -24,7 +18,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
     [AppliesTo(InedoProduct.BuildMaster | InedoProduct.Otter)]
     public sealed class GitRaftRepository2 : RaftRepository2, ISyncRaft
     {
-        private static readonly Lazy<bool> isBM627OrLater = new(IsBM627OrLater, LazyThreadSafetyMode.PublicationOnly);
         private readonly Lazy<string> localRepoPath;
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
@@ -520,10 +513,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
                     if (Repository.IsValid(this.LocalRepositoryPath))
                     {
                         var repo = new Repository(this.LocalRepositoryPath);
-                        // versions of BM before this require implicit fetching every time
-                        if (!isBM627OrLater.Value)
-                            this.Fetch(repo);
-
                         return repo;
                     }
 
@@ -743,10 +732,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         }
         private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false, string folder = null)
         {
-            if (isBM627OrLater.Value)
-                return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
-            else
-                return new EagerGitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
+            return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
         }
 
         private static IEnumerable<TreeEntry> IterateFullTree(Tree root)
@@ -764,7 +750,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 }
             }
         }
-        private static bool IsBM627OrLater() => SDK.ProductName != "BuildMaster" || SDK.ProductVersion >= new System.Version(6, 2, 7);
 
         Task ISyncRaft.SynchronizeAsync(CancellationToken cancellationToken)
         {

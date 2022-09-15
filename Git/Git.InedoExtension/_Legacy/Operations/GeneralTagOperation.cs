@@ -54,7 +54,7 @@ namespace Inedo.Extensions.Git.Operations
         {
             return new ExtendedRichDescription(
                new RichDescription("Tag Git Source"),
-               new RichDescription("in ", new Hilite(config.DescribeSource()), " with ", new DirectoryHilite(config[nameof(this.Tag)]))
+               new RichDescription("in ", new Hilite(config[nameof(ResourceName)]), " with ", new DirectoryHilite(config[nameof(this.Tag)]))
             );
         }
     }
