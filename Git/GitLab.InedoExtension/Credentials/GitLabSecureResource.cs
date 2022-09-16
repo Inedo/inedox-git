@@ -17,7 +17,7 @@ namespace Inedo.Extensions.GitLab.Credentials
     public sealed class GitLabSecureResource : GitSecureResourceBase<GitLabSecureCredentials>
     {
         [Persistent]
-        [DisplayName("API URL")]
+        [DisplayName(GitLabClient.ApiUrlDisplayName)]
         [PlaceholderText(GitLabClient.GitLabComUrl)]
         [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
         public string ApiUrl { get; set; }

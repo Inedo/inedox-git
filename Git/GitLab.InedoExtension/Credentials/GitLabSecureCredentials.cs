@@ -18,7 +18,7 @@ namespace Inedo.Extensions.GitLab.Credentials
         public override string UserName { get; set; }
 
         [Persistent(Encrypted = true)]
-        [DisplayName("Personal access token")]
+        [DisplayName(Clients.GitLabClient.PasswordDisplayName)]
         [FieldEditMode(FieldEditMode.Password)]
         [Required]
         public SecureString PersonalAccessToken { get; set; }

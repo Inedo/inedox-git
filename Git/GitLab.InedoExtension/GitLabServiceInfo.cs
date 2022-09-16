@@ -17,6 +17,9 @@ namespace Inedo.Extensions.GitLab
         public override Type ResourceType => typeof(GitLabSecureResource);
         public override string ServiceName => "GitLab";
         public override bool HasDefaultApiUrl => true;
+        public override string PasswordDisplayName => GitLabClient.PasswordDisplayName;
+        public override string ApiUrlDisplayName => GitLabClient.ApiUrlDisplayName;
+        public override string ApiUrlPlaceholderText => GitLabClient.ApiUrlPlaceholderText;
 
         public override IAsyncEnumerable<string> GetNamespacesAsync(GitSecureCredentialsBase credentials, CancellationToken cancellationToken = default)
         {

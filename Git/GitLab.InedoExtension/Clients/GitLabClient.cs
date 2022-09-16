@@ -16,6 +16,10 @@ namespace Inedo.Extensions.GitLab.Clients
     internal sealed class GitLabClient
     {
         public const string GitLabComUrl = "https://gitlab.com/api";
+        public const string PasswordDisplayName = "Personal access token";
+        public const string ApiUrlDisplayName = "API URL";
+        public const string ApiUrlPlaceholderText = GitLabComUrl;
+
         private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private readonly string apiBaseUrl;
