@@ -67,6 +67,8 @@ namespace Inedo.Extensions.Git.Operations
                 if (resource is not GitSecureResourceBase gitResource)
                     throw new ExecutionFailureException($"Invalid secure resource type ({resource.GetType().Name}); expected GitSecureResourceBase.");
 
+                await context.ExpandVariablesInPersistentPropertiesAsync(gitResource);
+
                 this.RepositoryUrl = await gitResource.GetRepositoryUrlAsync(context, context.CancellationToken);
 
                 var credentials = resource.GetCredentials(context);
