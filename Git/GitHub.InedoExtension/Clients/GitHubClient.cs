@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.ExecutionEngine.Executer;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.IssueSources;
 
@@ -87,6 +88,37 @@ namespace Inedo.Extensions.GitHub.Clients
                 BrowseUrl = obj.GetProperty("html_url").GetString(),
                 DefaultBranch = obj.GetProperty("default_branch").GetString()
             };
+        }
+        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(this.OrganizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/branches?per_page=100";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/branches?per_page=100";
+
+            return this.InvokePagesAsync(url, selectBranches, cancellationToken);
+
+            static IEnumerable<GitRemoteBranch> selectBranches(JsonDocument d)
+            {
+                foreach (var e in d.RootElement.EnumerateArray())
+                {
+                    if (!e.TryGetProperty("name", out var nameProp) || nameProp.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    var name = nameProp.GetString();
+
+                    if (!e.TryGetProperty("commit", out var commit) || commit.ValueKind != JsonValueKind.Object || !commit.TryGetProperty("sha", out var sha) || sha.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    if (!GitObjectId.TryParse(sha.GetString(), out var hash))
+                        continue;
+
+                    bool isProtected = e.TryGetProperty("protected", out var p) && p.ValueKind == JsonValueKind.True;
+
+                    yield return new GitRemoteBranch(hash, name, isProtected);
+                }
+            }
         }
 
         public IAsyncEnumerable<GitHubIssue> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)

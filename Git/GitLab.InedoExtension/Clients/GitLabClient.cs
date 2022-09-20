@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.IssueSources;
 
@@ -243,13 +244,34 @@ namespace Inedo.Extensions.GitLab.Clients
                 using var doc = await this.InvokeAsync(HttpMethod.Put, uri, data, cancellationToken).ConfigureAwait(false);
             }
         }
-        public IAsyncEnumerable<string> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
         {
             return this.InvokePagesAsync(
                 $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/branches",
-                d => SelectString(d, "name"),
+                selectBranches,
                 cancellationToken
             );
+
+            static IEnumerable<GitRemoteBranch> selectBranches(JsonDocument d)
+            {
+                foreach (var e in d.RootElement.EnumerateArray())
+                {
+                    if (!e.TryGetProperty("name", out var nameProp) || nameProp.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    var name = nameProp.GetString();
+
+                    if (!e.TryGetProperty("commit", out var commit) || commit.ValueKind != JsonValueKind.Object || !commit.TryGetProperty("id", out var sha) || sha.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    if (!GitObjectId.TryParse(sha.GetString(), out var hash))
+                        continue;
+
+                    bool isProtected = e.TryGetProperty("protected", out var p) && p.ValueKind == JsonValueKind.True;
+
+                    yield return new GitRemoteBranch(hash, name, isProtected);
+                }
+            }
         }
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);

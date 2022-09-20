@@ -53,7 +53,7 @@ namespace Inedo.Extensions.GitLab.ListVariableSources
 
             var branches = new List<string>();
             await foreach (var b in client.GetBranchesAsync(this.ProjectName, CancellationToken.None).ConfigureAwait(false))
-                branches.Add(b);
+                branches.Add(b.Name);
 
             return branches;
         }

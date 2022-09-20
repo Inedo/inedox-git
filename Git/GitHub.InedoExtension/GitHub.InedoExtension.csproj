@@ -9,6 +9,6 @@
     <NoWarn>SYSLIB0013;SYSLIB0014</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Inedo.SDK" Version="2.2.0-ci.24" ExcludeAssets="runtime" />
+    <PackageReference Include="Inedo.SDK" Version="2.2.0-ci.25" ExcludeAssets="runtime" />
   </ItemGroup>
 </Project>

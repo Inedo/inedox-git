@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
@@ -63,6 +65,11 @@ namespace Inedo.Extensions.GitHub.Credentials
         {
             var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
             return await github.GetRepositoryAsync(this.RepositoryName, cancellationToken).ConfigureAwait(false);
+        }
+        public override IAsyncEnumerable<GitRemoteBranch> GetRemoteBranchesAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
+        {
+            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
+            return github.GetBranchesAsync(this.RepositoryName, cancellationToken);
         }
     }
 }

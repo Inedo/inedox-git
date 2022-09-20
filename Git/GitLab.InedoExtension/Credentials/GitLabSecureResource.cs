@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
@@ -74,6 +76,11 @@ namespace Inedo.Extensions.GitLab.Credentials
                 throw new InvalidOperationException($"Project {this.ProjectName} not found on GitLab.");
 
             return project;
+        }
+        public override IAsyncEnumerable<GitRemoteBranch> GetRemoteBranchesAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
+        {
+            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
+            return gitlab.GetBranchesAsync(this.RepositoryName, cancellationToken);
         }
     }
 }
