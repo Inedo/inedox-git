@@ -120,6 +120,39 @@ namespace Inedo.Extensions.GitHub.Clients
                 }
             }
         }
+        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(this.OrganizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/pulls?per_page=100";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls?per_page=100";
+
+            url = $"{url}&state={(includeClosed ? "all" : "open")}";
+
+            return this.InvokePagesAsync(url, selectPullRequests, cancellationToken);
+
+            static IEnumerable<GitPullRequest> selectPullRequests(JsonDocument d)
+            {
+                foreach (var pr in d.RootElement.EnumerateArray())
+                {
+                    // skip requests from other repositories for now
+                    long sourceRepoId = pr.GetProperty("head").GetProperty("repo").GetProperty("id").GetInt64();
+                    long targetRepoId = pr.GetProperty("base").GetProperty("repo").GetProperty("id").GetInt64();
+                    if (sourceRepoId != targetRepoId)
+                        continue;
+
+                    var url = pr.GetProperty("url").GetString();
+                    var id = pr.GetProperty("id").ToString();
+                    bool closed = pr.GetProperty("state").ValueEquals("closed");
+                    var title = pr.GetProperty("title").GetString();
+                    var from = pr.GetProperty("head").GetProperty("ref").GetString();
+                    var to = pr.GetProperty("base").GetProperty("ref").GetString();
+
+                    yield return new GitPullRequest(id, url, title, closed, from, to);
+                }
+            }
+        }
 
         public IAsyncEnumerable<GitHubIssue> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {

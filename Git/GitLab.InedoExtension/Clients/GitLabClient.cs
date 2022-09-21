@@ -273,6 +273,29 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
             }
         }
+        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
+        {
+            return this.InvokePagesAsync(
+                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/merge_requests?state={(includeClosed ? "all" : "opened")}",
+                selectPullRequests,
+                cancellationToken
+            );
+
+            static IEnumerable<GitPullRequest> selectPullRequests(JsonDocument d)
+            {
+                foreach (var pr in d.RootElement.EnumerateArray())
+                {
+                    var url = pr.GetProperty("web_url").GetString();
+                    var id = pr.GetProperty("id").ToString();
+                    bool closed = !pr.GetProperty("state").ValueEquals("opened");
+                    var title = pr.GetProperty("title").GetString();
+                    var from = pr.GetProperty("source_branch").GetString();
+                    var to = pr.GetProperty("target_branch").GetString();
+
+                    yield return new GitPullRequest(id, url, title, closed, from, to);
+                }
+            }
+        }
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
         private string EscapeFullProjectPath(string project)

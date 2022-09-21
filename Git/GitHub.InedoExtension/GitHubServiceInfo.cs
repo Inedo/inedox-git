@@ -11,7 +11,7 @@ namespace Inedo.Extensions.GitHub
 {
     [DisplayName("GitHub")]
     [Description("Provides integration for hosted GitHub repositories.")]
-    public sealed class GitHubServiceInfo : GitServiceInfo
+    public sealed class GitHubServiceInfo : GitService
     {
         public override Type CredentialType => typeof(GitHubSecureCredentials);
         public override Type ResourceType => typeof(GitHubSecureResource);

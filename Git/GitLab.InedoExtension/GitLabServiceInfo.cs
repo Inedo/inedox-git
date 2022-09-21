@@ -11,7 +11,7 @@ namespace Inedo.Extensions.GitLab
 {
     [DisplayName("GitLab")]
     [Description("Provides integration for hosted GitLab repositories.")]
-    public sealed class GitLabServiceInfo : GitServiceInfo
+    public sealed class GitLabServiceInfo : GitService
     {
         public override Type CredentialType => typeof(GitLabSecureCredentials);
         public override Type ResourceType => typeof(GitLabSecureResource);

@@ -71,5 +71,10 @@ namespace Inedo.Extensions.GitHub.Credentials
             var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
             return github.GetBranchesAsync(this.RepositoryName, cancellationToken);
         }
+        public override IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(ICredentialResolutionContext context, bool includeClosed = false, CancellationToken cancellationToken = default)
+        {
+            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
+            return github.GetPullRequestsAsync(this.RepositoryName, includeClosed, cancellationToken);
+        }
     }
 }
