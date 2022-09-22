@@ -16,7 +16,7 @@ namespace Inedo.Extensions.GitHub
 {
     [DisplayName("GitHub Project")]
     [Description("Connect to a GitHub project for source code, issue tracking, etc. integration")]
-    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureResource,GitLab")]
+    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureResource,GitHub")]
     public sealed class GitHubRepository : GitServiceRepository<GitHubAccount>, IMissingPersistentPropertyHandler
     {
         [Persistent]
