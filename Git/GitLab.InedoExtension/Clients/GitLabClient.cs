@@ -296,6 +296,21 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
             }
         }
+        public async Task SetCommitStatusAsync(string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
+        {
+            var url = $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}?state={Uri.EscapeDataString(status)}";
+            if (!string.IsNullOrEmpty(description))
+                url += $"&description={Uri.EscapeDataString(description)}";
+            if (!string.IsNullOrEmpty(context))
+                url += $"&context={Uri.EscapeDataString(context)}";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                null,
+                cancellationToken
+            ).ConfigureAwait(false);
+        }
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
         private string EscapeFullProjectPath(string project)
@@ -313,7 +328,7 @@ namespace Inedo.Extensions.GitLab.Clients
 
             if (data != null)
             {
-                var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(data, data.GetType());
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(data, data.GetType());
                 var content = new ByteArrayContent(bytes);
                 content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("content/json");
                 request.Content = content;

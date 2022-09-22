@@ -87,5 +87,10 @@ namespace Inedo.Extensions.GitLab.Credentials
             var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
             return gitlab.GetPullRequestsAsync(this.RepositoryName, includeClosed, cancellationToken);
         }
+        public override Task SetCommitStatusAsync(ICredentialResolutionContext context, string commit, string status, string description = null, string statusContext = null, CancellationToken cancellationToken = default)
+        {
+            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
+            return gitlab.SetCommitStatusAsync(this.RepositoryName, commit, status, description, statusContext, cancellationToken);
+        }
     }
 }

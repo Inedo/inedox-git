@@ -154,6 +154,27 @@ namespace Inedo.Extensions.GitHub.Clients
             }
         }
 
+        public async Task SetCommitStatusAsync(string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(this.OrganizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    state = status,
+                    description,
+                    context
+                },
+                cancellationToken: cancellationToken
+            );
+        }
+
         public IAsyncEnumerable<GitHubIssue> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
         {
             return this.InvokePagesAsync(

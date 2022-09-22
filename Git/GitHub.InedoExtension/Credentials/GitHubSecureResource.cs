@@ -76,5 +76,10 @@ namespace Inedo.Extensions.GitHub.Credentials
             var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
             return github.GetPullRequestsAsync(this.RepositoryName, includeClosed, cancellationToken);
         }
+        public override Task SetCommitStatusAsync(ICredentialResolutionContext context, string commit, string status, string description = null, string statusContext = null, CancellationToken cancellationToken = default)
+        {
+            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
+            return github.SetCommitStatusAsync(this.RepositoryName, commit, status, description, statusContext, cancellationToken);
+        }
     }
 }
