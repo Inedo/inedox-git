@@ -5,6 +5,7 @@ using Inedo.Extensions.Credentials.Git;
 
 namespace Inedo.Extensions.Git.Legacy
 {
+    [Obsolete]
     internal interface ILegacyGitHubOperation : ILegacyGitOperation
     {
         string OrganizationName { get; }

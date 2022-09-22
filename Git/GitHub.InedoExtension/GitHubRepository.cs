@@ -12,17 +12,18 @@ using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.GitHub.Credentials
+namespace Inedo.Extensions.GitHub
 {
     [DisplayName("GitHub Project")]
     [Description("Connect to a GitHub project for source code, issue tracking, etc. integration")]
-    public sealed class GitHubSecureResource : GitSecureResourceBase<GitHubSecureCredentials>
+    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureResource,GitLab")]
+    public sealed class GitHubRepository : GitServiceRepository<GitHubAccount>, IMissingPersistentPropertyHandler
     {
         [Persistent]
-        [DisplayName("API URL")]
-        [PlaceholderText(GitHubClient.GitHubComUrl)]
-        [Description("Leave this value blank to connect to github.com. For local installations of GitHub enterprise, an API URL must be specified.")]
-        public string ApiUrl { get; set; }
+        [DisplayName("[Obsolete] API Url")]
+        [PlaceholderText("use the credential's URL")]
+        [Description("In earlier versions, the GitHub Enterprise API URL was specified on the repository. This should not be used going forward.")]
+        public string LegacyApiUrl { get; set; }
 
         [Persistent]
         [DisplayName("Organization name")]
@@ -42,44 +43,41 @@ namespace Inedo.Extensions.GitHub.Credentials
             set => this.OrganizationName = value;
         }
 
+
         public override RichDescription GetDescription()
         {
-            var host = "GitHub.com";
-            if (!string.IsNullOrWhiteSpace(this.ApiUrl))
-            {
-                if (Uri.TryCreate(this.ApiUrl, UriKind.Absolute, out var uri))
-                    host = uri.Host;
-                else
-                    host = "(unknown)";
-            }
-
             var group = string.IsNullOrEmpty(this.OrganizationName) ? "" : $"{this.OrganizationName}\\";
-            return new RichDescription($"{group}{this.RepositoryName} @ {host}");
+            return new RichDescription($"{group}{this.RepositoryName}");
         }
 
-        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
-        {
-            return (await this.GetRepositoryInfoAsync(context, cancellationToken).ConfigureAwait(false)).RepositoryUrl;
-        }
         public override async Task<IGitRepositoryInfo> GetRepositoryInfoAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
-            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
-            return await github.GetRepositoryAsync(this.RepositoryName, cancellationToken).ConfigureAwait(false);
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return await github.GetRepositoryAsync(this.OrganizationName, this.RepositoryName, cancellationToken).ConfigureAwait(false);
         }
         public override IAsyncEnumerable<GitRemoteBranch> GetRemoteBranchesAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
-            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
-            return github.GetBranchesAsync(this.RepositoryName, cancellationToken);
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return github.GetBranchesAsync(this.OrganizationName, this.RepositoryName, cancellationToken);
         }
         public override IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(ICredentialResolutionContext context, bool includeClosed = false, CancellationToken cancellationToken = default)
         {
-            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
-            return github.GetPullRequestsAsync(this.RepositoryName, includeClosed, cancellationToken);
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return github.GetPullRequestsAsync(this.OrganizationName, this.RepositoryName, includeClosed, cancellationToken);
         }
         public override Task SetCommitStatusAsync(ICredentialResolutionContext context, string commit, string status, string description = null, string statusContext = null, CancellationToken cancellationToken = default)
         {
-            var github = new GitHubClient((GitHubSecureCredentials)this.GetCredentials(context), this);
-            return github.SetCommitStatusAsync(this.RepositoryName, commit, status, description, statusContext, cancellationToken);
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return github.SetCommitStatusAsync(this.OrganizationName, this.RepositoryName, commit, status, description, statusContext, cancellationToken);
+        }
+        public override Task MergePullRequestAsync(ICredentialResolutionContext context, string id, string headCommit, string commitMessage = null, string method = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (missingProperties.ContainsKey("ApiUrl"))
+                this.LegacyApiUrl = missingProperties["ApiUrl"];
         }
     }
 }

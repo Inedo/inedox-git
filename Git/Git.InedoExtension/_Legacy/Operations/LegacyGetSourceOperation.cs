@@ -9,6 +9,7 @@ using Inedo.Web;
 
 namespace Inedo.Extensions.Operations
 {
+    [Obsolete]
     public abstract class LegacyGetSourceOperation : LegacyGitOperation
     {
         [ScriptAlias("DiskPath")]

@@ -4,6 +4,7 @@ using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
+using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Web;
@@ -23,7 +24,7 @@ namespace Inedo.Extensions.Git.Operations
 
         [ScriptAlias("From")]
         [DisplayName("Repository connection")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitSecureResourceBase>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitRepository>))]
         public string? ResourceName { get; set; }
 
         [Category("Connection/Identity")]
@@ -64,17 +65,25 @@ namespace Inedo.Extensions.Git.Operations
         {
             if (context.TryGetSecureResource(this.ResourceName, out var resource))
             {
-                if (resource is not GitSecureResourceBase gitResource)
-                    throw new ExecutionFailureException($"Invalid secure resource type ({resource.GetType().Name}); expected GitSecureResourceBase.");
+                if (resource is not GitRepository gitResource)
+                    throw new ExecutionFailureException($"Invalid resource type ({resource.GetType().Name}); expected ${nameof(GitRepository)}.");
 
                 await context.ExpandVariablesInPersistentPropertiesAsync(gitResource);
 
-                this.RepositoryUrl = await gitResource.GetRepositoryUrlAsync(context, context.CancellationToken);
+#pragma warning disable CS0618 // Type or member is obsolete
+                this.RepositoryUrl = gitResource switch
+                {
+                    GenericGitRepository genericGit => genericGit.RepositoryUrl,
+                    GitServiceRepository serviceGit => (await serviceGit.GetRepositoryInfoAsync(context, context.CancellationToken).ConfigureAwait(false)).RepositoryUrl,
+                    GitSecureResourceBase legacyGit => await legacyGit.GetRepositoryUrlAsync(context, context.CancellationToken).ConfigureAwait(false),
+                    _ => throw new ExecutionFailureException($"Unexpected resource type ({resource.GetType().Name}).")
+                };
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 var credentials = resource.GetCredentials(context);
                 if (credentials != null)
                 {
-                    if (credentials is not GitSecureCredentialsBase gitCredentials)
+                    if (credentials is not GitServiceCredentials gitCredentials)
                         throw new ExecutionFailureException($"Invalid credential type ({credentials.GetType().Name}); expected GitSecureCredentialsBase.");
 
                     this.UserName = gitCredentials.UserName;

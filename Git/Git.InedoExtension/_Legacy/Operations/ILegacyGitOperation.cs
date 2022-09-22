@@ -2,11 +2,13 @@
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 
 namespace Inedo.Extensions.Git.Legacy
 {
+    [Obsolete]
     internal interface ILegacyGitOperation
     {
         string ResourceName { get; }

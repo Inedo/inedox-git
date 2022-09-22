@@ -5,6 +5,7 @@ using Inedo.Extensions.Credentials.Git;
 
 namespace Inedo.Extensions.Git.Legacy
 {
+    [Obsolete]
     internal interface ILegacyAzureDevOpsOperation : ILegacyGitOperation
     {
         string InstanceUrl { get; }

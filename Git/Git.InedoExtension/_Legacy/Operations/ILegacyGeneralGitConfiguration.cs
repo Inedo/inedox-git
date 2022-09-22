@@ -1,13 +1,14 @@
 ﻿using System.Security;
+using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
-using Inedo.Extensions.Git.Credentials;
 
 namespace Inedo.Extensions.Git.Legacy
 {
+    [Obsolete]
     internal interface ILegacyGeneralGitConfiguration : ILegacyGitOperation
     {
         string RepositoryUrl { get; }
@@ -27,10 +28,18 @@ namespace Inedo.Extensions.Git.Legacy
             }
             else
             {
-                gitResource = new GitSecureResource { RepositoryUrl = o.RepositoryUrl };
+                gitResource = new LegacyGitSecureResourceShim { RepositoryUrl = o.RepositoryUrl };
             }
 
             return GetCredentials(gitResource, context, o.UserName, o.Password);
         }
+    }
+
+    [Obsolete]
+    internal sealed class LegacyGitSecureResourceShim : GitSecureResourceBase<Extensions.Credentials.UsernamePasswordCredentials, GitSecureCredentialsBase>
+    {
+        public string RepositoryUrl { get; set; }
+        public override RichDescription GetDescription() => new RichDescription(this.RepositoryUrl);
+        public override Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken) => Task.FromResult(this.RepositoryUrl);
     }
 }

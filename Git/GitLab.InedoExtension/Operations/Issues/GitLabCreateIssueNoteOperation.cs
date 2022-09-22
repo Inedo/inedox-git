@@ -30,7 +30,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            await gitlab.CreateCommentAsync(this.IssueId, resource.ProjectName, this.Body, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.CreateCommentAsync(this.IssueId, resource, this.Body, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

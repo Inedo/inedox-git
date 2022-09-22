@@ -63,8 +63,8 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             if (this.Assignees != null)
                 data.Add("assignee_ids", (await Task.WhenAll(this.Assignees.Select(name => gitlab.FindUserAsync(name, context.CancellationToken))).ConfigureAwait(false)).Where(id => id.HasValue));
             if (!string.IsNullOrEmpty(this.Milestone))
-                data.Add("milestone_id", await gitlab.CreateMilestoneAsync(this.Milestone, resource.ProjectName, context.CancellationToken).ConfigureAwait(false));
-            this.IssueId = (await gitlab.CreateIssueAsync(resource.ProjectName, data, context.CancellationToken).ConfigureAwait(false)).ToString();
+                data.Add("milestone_id", await gitlab.CreateMilestoneAsync(this.Milestone, resource, context.CancellationToken).ConfigureAwait(false));
+            this.IssueId = (await gitlab.CreateIssueAsync(resource, data, context.CancellationToken).ConfigureAwait(false)).ToString();
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

@@ -9,7 +9,6 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -18,7 +17,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Issue Source")]
     [Description("Issue source for GitHub based on milestones.")]
-    public sealed class GitHubIssueSource : IssueSource<GitHubSecureResource>, IMissingPersistentPropertyHandler
+    public sealed class GitHubIssueSource : IssueSource<GitHubRepository>, IMissingPersistentPropertyHandler
     {
         [Persistent]
         [DisplayName("Repository name")]
@@ -56,8 +55,8 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubSecureResource;
-            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubSecureCredentials;
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitHubRepository;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitHubAccount;
             if (resource == null)
                 throw new InvalidOperationException($"A resource must be supplied to enumerate GitHub issues.");
 

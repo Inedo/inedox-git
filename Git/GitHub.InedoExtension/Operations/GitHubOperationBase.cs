@@ -4,7 +4,6 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Web;
 
@@ -15,7 +14,7 @@ namespace Inedo.Extensions.GitHub.Operations
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From GitHub resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitHubRepository>))]
         public string ResourceName { get; set; }
 
         [Category("Connection/Identity")]

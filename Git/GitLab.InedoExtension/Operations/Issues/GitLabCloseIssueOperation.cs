@@ -24,7 +24,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            await gitlab.UpdateIssueAsync(this.IssueId, resource.ProjectName, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.UpdateIssueAsync(this.IssueId, resource, new { state_event = "close" }, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

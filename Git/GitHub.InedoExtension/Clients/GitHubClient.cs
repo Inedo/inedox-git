@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility.Git;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.IssueSources;
 
 namespace Inedo.Extensions.GitHub.Clients
@@ -35,17 +34,14 @@ namespace Inedo.Extensions.GitHub.Clients
             this.apiBaseUrl = AH.CoalesceString(apiBaseUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
             this.UserName = userName;
             this.Password = password;
-            this.OrganizationName = AH.NullIf(organizationName, string.Empty);
         }
-        public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
+        public GitHubClient(GitHubAccount credentials, GitHubRepository resource)
         {
-            this.apiBaseUrl = AH.CoalesceString(resource?.ApiUrl, GitHubComUrl).TrimEnd('/');
+            this.apiBaseUrl = AH.CoalesceString(resource?.LegacyApiUrl, GitHubComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
             this.Password = credentials?.Password;
-            this.OrganizationName = AH.NullIf(resource?.OrganizationName, string.Empty);
         }
 
-        public string OrganizationName { get; }
         public string UserName { get; }
         public SecureString Password { get; }
 
@@ -57,11 +53,11 @@ namespace Inedo.Extensions.GitHub.Clients
                 cancellationToken
             );
         }
-        public IAsyncEnumerable<string> GetRepositoriesAsync(CancellationToken cancellationToken)
+        public IAsyncEnumerable<string> GetRepositoriesAsync(string organizationName, CancellationToken cancellationToken)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/orgs/{Esc(this.OrganizationName)}/repos?per_page=100";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/orgs/{Esc(organizationName)}/repos?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
@@ -71,11 +67,11 @@ namespace Inedo.Extensions.GitHub.Clients
                 cancellationToken
             );
         }
-        public async Task<GitHubRepositoryInfo> GetRepositoryAsync(string repositoryName, CancellationToken cancellationToken = default)
+        public async Task<GitHubRepositoryInfo> GetRepositoryAsync(string organizationName, string repositoryName, CancellationToken cancellationToken = default)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}";
             else
                 url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}";
 
@@ -89,11 +85,11 @@ namespace Inedo.Extensions.GitHub.Clients
                 DefaultBranch = obj.GetProperty("default_branch").GetString()
             };
         }
-        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string organizationName, string repositoryName, CancellationToken cancellationToken = default)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/branches?per_page=100";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/branches?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/branches?per_page=100";
 
@@ -120,11 +116,11 @@ namespace Inedo.Extensions.GitHub.Clients
                 }
             }
         }
-        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string organizationName, string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/pulls?per_page=100";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls?per_page=100";
 
@@ -154,11 +150,11 @@ namespace Inedo.Extensions.GitHub.Clients
             }
         }
 
-        public async Task SetCommitStatusAsync(string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
+        public async Task SetCommitStatusAsync(string organizationName, string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/repos/{Esc(this.OrganizationName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
             else
                 url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
 

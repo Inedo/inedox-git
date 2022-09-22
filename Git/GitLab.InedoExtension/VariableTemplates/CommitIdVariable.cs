@@ -7,7 +7,6 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
 using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -16,13 +15,14 @@ using Inedo.Web.Controls.SimpleHtml;
 
 namespace Inedo.Extensions.GitLab.VariableTemplates
 {
-    [DisplayName("GitLab CommitId")]
+    [DisplayName("[Obsolete] GitLab CommitId")]
     [Description("CommitId within a GitLab repository.")]
+    [Undisclosed]
     public sealed class CommitIdVariable : VariableTemplateType
     {
         [Persistent]
         [DisplayName("From GitHub resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabRepository>))]
         public string ResourceName { get; set; }
 
         [Persistent]
@@ -34,7 +34,8 @@ namespace Inedo.Extensions.GitLab.VariableTemplates
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not GitLabSecureResource resource || !Uri.TryCreate(AH.CoalesceString(resource.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not GitLabRepository resource 
+                || !Uri.TryCreate(AH.CoalesceString(resource.LegacyApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/'), UriKind.Absolute, out var parsedUri))
                 return new LiteralHtml(value.AsString());
 
             // Ideally we would use the GitHubClient to retreive the proper URL, but that's resource intensive and we can guess the convention

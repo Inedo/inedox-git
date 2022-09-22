@@ -1,5 +1,5 @@
 ﻿using System;
-using Inedo.Extensions.Credentials.Git;
+using Inedo.Extensibility.Git;
 
 namespace Inedo.Extensions.GitLab.Clients
 {

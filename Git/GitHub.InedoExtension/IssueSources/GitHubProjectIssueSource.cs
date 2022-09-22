@@ -9,7 +9,6 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -18,7 +17,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Project Source")]
     [Description("Issue source for GitHub based on projects.")]
-    public sealed class GitHubProjectIssueSource : IssueSource<GitHubSecureResource>
+    public sealed class GitHubProjectIssueSource : IssueSource<GitHubRepository>
     {
         [Persistent]
         [DisplayName("Repository name")]
@@ -45,10 +44,10 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var resource = (GitHubSecureResource)this.GetResource(new ResourceResolutionContext(context.ProjectId));
+            var resource = (GitHubRepository)this.GetResource(new ResourceResolutionContext(context.ProjectId));
             if (resource == null)
                 throw new InvalidOperationException("missing resource");
-            var credentials = (GitHubSecureCredentials)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
+            var credentials = (GitHubAccount)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
 
             var client = new GitHubClient(credentials, resource);
             GitHubProject project = null;

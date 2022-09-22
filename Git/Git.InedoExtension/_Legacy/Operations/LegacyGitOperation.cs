@@ -4,6 +4,7 @@ using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Clients;
 using Inedo.Extensions.Clients.CommandLine;
@@ -13,6 +14,7 @@ using Inedo.Extensions.Credentials.Git;
 
 namespace Inedo.Extensions.Operations
 {
+    [Obsolete]
     public abstract class LegacyGitOperation : ExecuteOperation
     {
         [Category("Advanced")]

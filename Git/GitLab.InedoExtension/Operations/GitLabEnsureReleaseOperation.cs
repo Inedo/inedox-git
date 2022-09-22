@@ -21,9 +21,9 @@ namespace Inedo.Extensions.GitLab.Operations
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var gitlab = new GitLabClient(credentials, resource);
+            var gitlab = new GitLabClient(credentials);
 
-            var tag = await gitlab.GetTagAsync(resource.ProjectName, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
+            var tag = await gitlab.GetTagAsync(resource, this.Template.Tag, context.CancellationToken).ConfigureAwait(false);
             if (tag == null)
                 return new GitLabReleaseConfiguration { Exists = false };
 
@@ -37,9 +37,9 @@ namespace Inedo.Extensions.GitLab.Operations
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var gitlab = new GitLabClient(credentials, resource);
+            var gitlab = new GitLabClient(credentials);
 
-            await gitlab.EnsureReleaseAsync(resource.ProjectName, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.EnsureReleaseAsync(resource, this.Template.Tag, this.Template.Description ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

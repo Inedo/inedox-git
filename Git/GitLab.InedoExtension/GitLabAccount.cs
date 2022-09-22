@@ -1,16 +1,16 @@
 ﻿using System.ComponentModel;
 using System.Security;
 using Inedo.Documentation;
-using Inedo.Extensions.Credentials.Git;
+using Inedo.Extensibility.Git;
 using Inedo.Serialization;
 using Inedo.Web;
-using UsernamePasswordCredentials = Inedo.Extensions.Credentials.UsernamePasswordCredentials;
 
-namespace Inedo.Extensions.GitLab.Credentials
+namespace Inedo.Extensions.GitLab
 {
     [DisplayName("GitLab Account")]
     [Description("Use an account on GitLab account to connect to GitLab resources")]
-    public sealed class GitLabSecureCredentials : GitSecureCredentialsBase
+    [PersistFrom("Inedo.Extensions.GitLab.Credentials.GitLabSecureCredentials,GitLab")]
+    public sealed class GitLabAccount : GitServiceCredentials<GitLabServiceInfo>
     {
         [Persistent]
         [DisplayName("User name")]
@@ -29,12 +29,13 @@ namespace Inedo.Extensions.GitLab.Credentials
             set => this.PersonalAccessToken = value;
         }
 
-        public override RichDescription GetDescription() => new(this.UserName);
+        public override RichDescription GetCredentialDescription() => new (this.UserName);
 
-        public override UsernamePasswordCredentials ToUsernamePassword() => string.IsNullOrEmpty(this.UserName) ? null : new UsernamePasswordCredentials
+        public override RichDescription GetServiceDescription()
         {
-            UserName = this.UserName,
-            Password = this.PersonalAccessToken
-        };
+            return string.IsNullOrEmpty(this.ServiceUrl) || !this.TryGetServiceUrlHostName(out var hostName)
+                ? new($"GitLab")
+                : new($"GitLab (", new Hilite(hostName), ")");
+        }
     }
 }

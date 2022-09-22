@@ -26,7 +26,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
 
             GitLabMilestone milestone = null;
 
-            await foreach (var m in gitlab.GetMilestonesAsync(resource.ProjectName, null, context.CancellationToken))
+            await foreach (var m in gitlab.GetMilestonesAsync(resource, null, context.CancellationToken))
             {
                 if (string.Equals(m.Title, this.Template.Title, StringComparison.OrdinalIgnoreCase))
                 {
@@ -58,7 +58,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, resource.ProjectName, context.CancellationToken).ConfigureAwait(false);
+            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, resource, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };
             if (this.Template.StartDate != null)
@@ -70,7 +70,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             if (this.Template.State.HasValue)
                 data.Add("state_event", this.Template.State == GitLabMilestoneConfiguration.OpenOrClosed.open ? "activate" : "close");
 
-            await gitlab.UpdateMilestoneAsync(id, resource.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.UpdateMilestoneAsync(id, resource, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

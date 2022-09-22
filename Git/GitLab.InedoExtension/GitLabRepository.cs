@@ -6,23 +6,23 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Git;
-using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitLab.Clients;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.GitLab.Credentials
+namespace Inedo.Extensions.GitLab
 {
     [DisplayName("GitLab Project")]
     [Description("Connect to a GitLab project for source code, issue tracking, etc. integration")]
-    public sealed class GitLabSecureResource : GitSecureResourceBase<GitLabSecureCredentials>
+    [PersistFrom("Inedo.Extensions.GitLab.Credentials.GitLabSecureResource,GitLab")]
+    public sealed class GitLabRepository : GitServiceRepository<GitLabAccount>, IMissingPersistentPropertyHandler
     {
         [Persistent]
-        [DisplayName(GitLabClient.ApiUrlDisplayName)]
-        [PlaceholderText(GitLabClient.GitLabComUrl)]
-        [Description("Leave this value blank to connect to gitlab.com. For local installations of GitLab, an API URL must be specified.")]
-        public string ApiUrl { get; set; }
+        [DisplayName("[Obsolete] API Url")]
+        [PlaceholderText("use the credential's URL")]
+        [Description("In earlier versions, the GitLab API URL was specified on the project/repository. This should not be used going forward.")]
+        public string LegacyApiUrl { get; set; }
 
         [Persistent]
         [DisplayName("Namespace")]
@@ -51,27 +51,13 @@ namespace Inedo.Extensions.GitLab.Credentials
 
         public override RichDescription GetDescription()
         {
-            var host = "GitLab.com";
-            if (!string.IsNullOrWhiteSpace(this.ApiUrl))
-            {
-                if (Uri.TryCreate(this.ApiUrl, UriKind.Absolute, out var uri))
-                    host = uri.Host;
-                else
-                    host = "(unknown)";
-            }
-
             var group = string.IsNullOrEmpty(this.GroupName) ? "" : $"{this.GroupName}\\";
-            return new RichDescription($"{group}{this.ProjectName} @ {host}");
+            return new RichDescription($"{group}{this.ProjectName}");
         }
 
-        public override async Task<string> GetRepositoryUrlAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
-        {
-            return (await this.GetRepositoryInfoAsync(context, cancellationToken).ConfigureAwait(false)).RepositoryUrl;
-        }
         public override async Task<IGitRepositoryInfo> GetRepositoryInfoAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
-            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
-            var project = await gitlab.GetProjectAsync(this.ProjectName, cancellationToken).ConfigureAwait(false);
+            var project = await new GitLabClient(this, context).GetProjectAsync(this, cancellationToken).ConfigureAwait(false);
             if (project == null)
                 throw new InvalidOperationException($"Project {this.ProjectName} not found on GitLab.");
 
@@ -79,18 +65,26 @@ namespace Inedo.Extensions.GitLab.Credentials
         }
         public override IAsyncEnumerable<GitRemoteBranch> GetRemoteBranchesAsync(ICredentialResolutionContext context, CancellationToken cancellationToken = default)
         {
-            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
-            return gitlab.GetBranchesAsync(this.RepositoryName, cancellationToken);
+            return new GitLabClient(this, context).GetBranchesAsync(this, cancellationToken);
         }
         public override IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(ICredentialResolutionContext context, bool includeClosed = false, CancellationToken cancellationToken = default)
         {
-            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
-            return gitlab.GetPullRequestsAsync(this.RepositoryName, includeClosed, cancellationToken);
+            return new GitLabClient(this, context).GetPullRequestsAsync(this, includeClosed, cancellationToken);
         }
         public override Task SetCommitStatusAsync(ICredentialResolutionContext context, string commit, string status, string description = null, string statusContext = null, CancellationToken cancellationToken = default)
         {
-            var gitlab = new GitLabClient((GitLabSecureCredentials)this.GetCredentials(context), this);
-            return gitlab.SetCommitStatusAsync(this.RepositoryName, commit, status, description, statusContext, cancellationToken);
+            return new GitLabClient(this, context).SetCommitStatusAsync(this, commit, status, description, statusContext, cancellationToken);
+        }
+
+        public override Task MergePullRequestAsync(ICredentialResolutionContext context, string id, string headCommit, string commitMessage = null, string method = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
+        {
+            if (missingProperties.ContainsKey("ApiUrl"))
+                this.LegacyApiUrl = missingProperties["ApiUrl"];
         }
     }
 }

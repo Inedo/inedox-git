@@ -8,8 +8,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Git;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.IssueSources;
 
 namespace Inedo.Extensions.GitLab.Clients
@@ -25,7 +25,7 @@ namespace Inedo.Extensions.GitLab.Clients
 
         private readonly string apiBaseUrl;
 
-        public GitLabClient(string apiBaseUrl, string userName, SecureString password, string groupName)
+        public GitLabClient(string apiBaseUrl, string userName, SecureString password)
         {
             if (!string.IsNullOrEmpty(userName) && password == null)
                 throw new InvalidOperationException("If a username is specified, a personal access token must be specified in the operation or in the resource credential.");
@@ -33,17 +33,26 @@ namespace Inedo.Extensions.GitLab.Clients
             this.apiBaseUrl = AH.CoalesceString(apiBaseUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
             this.UserName = userName;
             this.Password = password;
-            this.GroupName = AH.NullIf(groupName, string.Empty);
         }
-        public GitLabClient(GitLabSecureCredentials credentials, GitLabSecureResource resource)
+        public GitLabClient(GitLabRepository resource, ICredentialResolutionContext context)
+            : this((GitLabAccount)resource.GetCredentials(context))
         {
-            this.apiBaseUrl = AH.CoalesceString(resource?.ApiUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
+            if (resource.LegacyApiUrl != null)
+                apiBaseUrl = resource.LegacyApiUrl;
+        }
+        public GitLabClient(GitServiceCredentials credentials)
+        {
+            this.apiBaseUrl = AH.CoalesceString(credentials?.ServiceUrl, GitLabClient.GitLabComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
-            this.Password = credentials?.PersonalAccessToken;
-            this.GroupName = AH.NullIf(resource?.GroupName, string.Empty);
+            this.Password = credentials?.Password;
+        }
+        public GitLabClient(GitServiceCredentials credentials, GitLabRepository resource)
+            : this(credentials)
+        {
+            if (resource.LegacyApiUrl != null)
+                apiBaseUrl = resource.LegacyApiUrl;
         }
 
-        public string GroupName { get; }
         public string UserName { get; }
         public SecureString Password { get; }
 
@@ -55,19 +64,19 @@ namespace Inedo.Extensions.GitLab.Clients
                 cancellationToken
             );
         }
-        public IAsyncEnumerable<string> GetProjectsAsync(CancellationToken cancellationToken)
+        public IAsyncEnumerable<string> GetProjectsAsync(string groupName, CancellationToken cancellationToken)
         {
             string uri;
-            if (!string.IsNullOrEmpty(this.GroupName))
-                uri = $"{this.apiBaseUrl}/v4/groups/{Esc(this.GroupName)}/projects?per_page=100";
+            if (!string.IsNullOrEmpty(groupName))
+                uri = $"{this.apiBaseUrl}/v4/groups/{Esc(groupName)}/projects?per_page=100";
             else
                 uri = $"{this.apiBaseUrl}/v4/projects?owned=true&per_page=100";
 
             return this.InvokePagesAsync(uri, d => SelectString(d, "path"), cancellationToken);
         }
-        public async Task<GitLabProjectInfo> GetProjectAsync(string projectName, CancellationToken cancellationToken)
+        public async Task<GitLabProjectInfo> GetProjectAsync(GitLabProjectId id, CancellationToken cancellationToken)
         {
-            using var jdoc = await this.InvokeAsync(HttpMethod.Get, $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(projectName)}", null, cancellationToken).ConfigureAwait(false);
+            using var jdoc = await this.InvokeAsync(HttpMethod.Get, $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}", null, cancellationToken).ConfigureAwait(false);
             var element = jdoc.RootElement;
             return new GitLabProjectInfo
             {
@@ -84,10 +93,10 @@ namespace Inedo.Extensions.GitLab.Clients
 
             return null;
         }
-        public IAsyncEnumerable<GitLabIssue> GetIssuesAsync(string repositoryName, GitLabIssueFilter filter, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitLabIssue> GetIssuesAsync(GitLabProjectId id, GitLabIssueFilter filter, CancellationToken cancellationToken)
         {
             return this.InvokePagesAsync(
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues{filter.ToQueryString()}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/issues{filter.ToQueryString()}",
                 getIssues,
                 cancellationToken
             );
@@ -98,75 +107,75 @@ namespace Inedo.Extensions.GitLab.Clients
                     yield return new GitLabIssue(obj);
             }
         }
-        public async Task<long> CreateIssueAsync(string repositoryName, object data, CancellationToken cancellationToken)
+        public async Task<long> CreateIssueAsync(GitLabProjectId id, object data, CancellationToken cancellationToken)
         {
             using var doc = await this.InvokeAsync(
                 HttpMethod.Post,
-                $"{this.apiBaseUrl}/v4/projects/{this.EscapeFullProjectPath(repositoryName)}/issues",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/issues",
                 data,
                 cancellationToken
             ).ConfigureAwait(false);
 
             return doc.RootElement.GetProperty("iid").GetInt64();
         }
-        public async Task UpdateIssueAsync(int issueId, string repositoryName, object update, CancellationToken cancellationToken)
+        public async Task UpdateIssueAsync(int issueId, GitLabProjectId id, object update, CancellationToken cancellationToken)
         {
             using var doc = await this.InvokeAsync(
                 HttpMethod.Put,
-                $"{this.apiBaseUrl}/v4/projects/{this.EscapeFullProjectPath(repositoryName)}/issues/{issueId}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/issues/{issueId}",
                 update,
                 cancellationToken
             ).ConfigureAwait(false);
         }
-        public async Task<long> CreateMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
+        public async Task<long> CreateMilestoneAsync(string milestone, GitLabProjectId id, CancellationToken cancellationToken)
         {
-            long? milestoneId = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
+            long? milestoneId = await this.FindMilestoneAsync(milestone, id, cancellationToken).ConfigureAwait(false);
             if (milestoneId.HasValue)
                 return milestoneId.Value;
 
             using var doc = await this.InvokeAsync(
                 HttpMethod.Post,
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/milestones",
                 new { title = milestone },
                 cancellationToken
             ).ConfigureAwait(false);
 
             return doc.RootElement.GetProperty("id").GetInt64();
         }
-        public async Task CloseMilestoneAsync(string milestone, string repositoryName, CancellationToken cancellationToken)
+        public async Task CloseMilestoneAsync(string milestone, GitLabProjectId id, CancellationToken cancellationToken)
         {
-            long? milestoneId = await this.FindMilestoneAsync(milestone, repositoryName, cancellationToken).ConfigureAwait(false);
+            long? milestoneId = await this.FindMilestoneAsync(milestone, id, cancellationToken).ConfigureAwait(false);
             if (milestoneId == null)
                 return;
 
             using var doc = await this.InvokeAsync(
                 HttpMethod.Put,
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones/{milestoneId}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/milestones/{milestoneId}",
                 new { state_event = "close" },
                 cancellationToken
             ).ConfigureAwait(false);
         }
-        public async Task UpdateMilestoneAsync(long milestoneId, string repositoryName, object data, CancellationToken cancellationToken)
+        public async Task UpdateMilestoneAsync(long milestoneId, GitLabProjectId id, object data, CancellationToken cancellationToken)
         {
             using var doc = await this.InvokeAsync(
                 HttpMethod.Put,
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones/{milestoneId}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/milestones/{milestoneId}",
                 data,
                 cancellationToken
             ).ConfigureAwait(false);
         }
-        public async Task CreateCommentAsync(int issueId, string repositoryName, string commentText, CancellationToken cancellationToken)
+        public async Task CreateCommentAsync(int issueId, GitLabProjectId id, string commentText, CancellationToken cancellationToken)
         {
             using var doc = await this.InvokeAsync(
                 HttpMethod.Post,
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/issues/{issueId}/notes",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/issues/{issueId}/notes",
                 new { body = commentText },
                 cancellationToken
             ).ConfigureAwait(false);
         }
-        public async Task<long?> FindMilestoneAsync(string title, string repositoryName, CancellationToken cancellationToken)
+        public async Task<long?> FindMilestoneAsync(string title, GitLabProjectId id, CancellationToken cancellationToken)
         {
-            await foreach (var m in this.GetMilestonesAsync(repositoryName, null, cancellationToken).ConfigureAwait(false))
+            await foreach (var m in this.GetMilestonesAsync(id, null, cancellationToken).ConfigureAwait(false))
             {
                 if (string.Equals(m.Title, title, StringComparison.OrdinalIgnoreCase))
                     return m.Id;
@@ -174,10 +183,10 @@ namespace Inedo.Extensions.GitLab.Clients
 
             return null;
         }
-        public IAsyncEnumerable<GitLabMilestone> GetMilestonesAsync(string repositoryName, string state, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitLabMilestone> GetMilestonesAsync(GitLabProjectId id, string state, CancellationToken cancellationToken)
         {
             return this.InvokePagesAsync(
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/milestones?per_page=100{(string.IsNullOrEmpty(state) ? string.Empty : "&state=" + Uri.EscapeDataString(state))}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/milestones?per_page=100{(string.IsNullOrEmpty(state) ? string.Empty : "&state=" + Uri.EscapeDataString(state))}",
                 getMilestones,
                 cancellationToken
             );
@@ -206,13 +215,13 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
             }
         }
-        public async Task<GitLabTag> GetTagAsync(string repositoryName, string tag, CancellationToken cancellationToken)
+        public async Task<GitLabTag> GetTagAsync(GitLabProjectId id, string tag, CancellationToken cancellationToken)
         {
             try
             {
                 using var doc = await this.InvokeAsync(
                     HttpMethod.Get,
-                    $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/tags/{Esc(tag)}",
+                    $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/repository/tags/{Esc(tag)}",
                     null,
                     cancellationToken
                 ).ConfigureAwait(false);
@@ -226,9 +235,9 @@ namespace Inedo.Extensions.GitLab.Clients
 
             return null;
         }
-        public async Task EnsureReleaseAsync(string repositoryName, string tag, string description, CancellationToken cancellationToken)
+        public async Task EnsureReleaseAsync(GitLabProjectId id, string tag, string description, CancellationToken cancellationToken)
         {
-            var uri = $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/tags/{Esc(tag)}/release";
+            var uri = $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/repository/tags/{Esc(tag)}/release";
             var data = new
             {
                 tag_name = tag,
@@ -244,10 +253,10 @@ namespace Inedo.Extensions.GitLab.Clients
                 using var doc = await this.InvokeAsync(HttpMethod.Put, uri, data, cancellationToken).ConfigureAwait(false);
             }
         }
-        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string repositoryName, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(GitLabProjectId id, CancellationToken cancellationToken)
         {
             return this.InvokePagesAsync(
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/repository/branches",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/repository/branches",
                 selectBranches,
                 cancellationToken
             );
@@ -273,10 +282,10 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
             }
         }
-        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(GitLabProjectId id, bool includeClosed, CancellationToken cancellationToken = default)
         {
             return this.InvokePagesAsync(
-                $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/merge_requests?state={(includeClosed ? "all" : "opened")}",
+                $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/merge_requests?state={(includeClosed ? "all" : "opened")}",
                 selectPullRequests,
                 cancellationToken
             );
@@ -296,9 +305,9 @@ namespace Inedo.Extensions.GitLab.Clients
                 }
             }
         }
-        public async Task SetCommitStatusAsync(string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
+        public async Task SetCommitStatusAsync(GitLabProjectId id, string commit, string status, string description, string context, CancellationToken cancellationToken)
         {
-            var url = $"{this.apiBaseUrl}/v4/projects/{EscapeFullProjectPath(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}?state={Uri.EscapeDataString(status)}";
+            var url = $"{this.apiBaseUrl}/v4/projects/{id.ToUriFragment()}/statuses/{Uri.EscapeDataString(commit)}?state={Uri.EscapeDataString(status)}";
             if (!string.IsNullOrEmpty(description))
                 url += $"&description={Uri.EscapeDataString(description)}";
             if (!string.IsNullOrEmpty(context))
@@ -313,13 +322,7 @@ namespace Inedo.Extensions.GitLab.Clients
         }
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
-        private string EscapeFullProjectPath(string project)
-        {
-            if (!string.IsNullOrEmpty(this.GroupName))
-                return Uri.EscapeDataString(this.GroupName + "/" + project);
-            else
-                return Uri.EscapeDataString(project ?? string.Empty);
-        }
+
         private async Task<JsonDocument> InvokeAsync(HttpMethod method, string url, object data, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(method, url);

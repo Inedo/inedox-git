@@ -13,7 +13,9 @@ namespace Inedo.Extensions.GitLab.SuggestionProviders
             if (string.IsNullOrEmpty(projectName))
                 return Enumerable.Empty<string>();
 
-            var milestones = await MakeAsync(this.Client.GetMilestonesAsync(projectName, "open", CancellationToken.None)).ConfigureAwait(false);
+            var groupName = AH.CoalesceString(this.ComponentConfiguration[nameof(IGitLabConfiguration.GroupName)], this.Resource?.GroupName);
+
+            var milestones = await MakeAsync(this.Client.GetMilestonesAsync(new GitLabProjectId(groupName, projectName), "open", CancellationToken.None)).ConfigureAwait(false);
             return milestones
                 .OrderByDescending(m => m.Id)
                 .Select(m => m.Title);

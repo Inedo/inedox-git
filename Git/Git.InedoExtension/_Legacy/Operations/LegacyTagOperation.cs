@@ -7,6 +7,7 @@ using Inedo.Extensions.Clients;
 
 namespace Inedo.Extensions.Operations
 {
+    [Obsolete]
     public abstract class LegacyTagOperation : LegacyGitOperation
     {
         [Required]
