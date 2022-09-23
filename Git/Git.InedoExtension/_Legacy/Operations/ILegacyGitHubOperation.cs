@@ -16,7 +16,7 @@ namespace Inedo.Extensions.Git.Legacy
 
         public static (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ILegacyGitHubOperation o, ICredentialResolutionContext context)
         {
-            var gitResource = o.GetResource(context, "Inedo.Extensions.GitHub.Credentials.GitHubSecureResource", "GitHub");
+            var gitResource = o.GetResource(context, "Inedo.Extensions.GitHub.GitHubRepository", "GitHub");
 
             dynamic gitHubResource = gitResource;
             if (!string.IsNullOrEmpty(o.OrganizationName))
@@ -24,7 +24,7 @@ namespace Inedo.Extensions.Git.Legacy
             if (!string.IsNullOrEmpty(o.RepositoryName))
                 gitHubResource.RepositoryName = o.RepositoryName;
             if (!string.IsNullOrEmpty(o.ApiUrl))
-                gitHubResource.ApiUrl = o.ApiUrl;
+                gitHubResource.LegacyApiUrl = o.ApiUrl;
 
             return (((GitSecureCredentialsBase)gitResource.GetCredentials(context))?.ToUsernamePassword(), gitResource);
         }
