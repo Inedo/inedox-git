@@ -3,6 +3,7 @@ using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
@@ -45,7 +46,7 @@ namespace Inedo.Extensions.Git.Operations
         [PlaceholderText("Use URL from Git resource")]
         public string RepositoryUrl { get; set; }
 
-        private protected override (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ICredentialResolutionContext context)
+        private protected override (UsernamePasswordCredentials, GitRepository) GetCredentialsAndResource(ICredentialResolutionContext context)
         {
             return ILegacyGeneralGitConfiguration.GetCredentialsAndResource(this, context);
         }

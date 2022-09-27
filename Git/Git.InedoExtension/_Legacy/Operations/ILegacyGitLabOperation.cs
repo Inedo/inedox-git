@@ -1,5 +1,6 @@
 ﻿using System.Security;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 
@@ -14,7 +15,7 @@ namespace Inedo.Extensions.Git.Legacy
         SecureString Password { get; }
         string UserName { get; }
 
-        public static (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ILegacyGitLabOperation o, ICredentialResolutionContext context)
+        public static (UsernamePasswordCredentials, GitRepository) GetCredentialsAndResource(ILegacyGitLabOperation o, ICredentialResolutionContext context)
         {
             var gitResource = o.GetResource(context, "Inedo.Extensions.GitLab.GitLabRepository", "GitLab");
 
@@ -26,7 +27,7 @@ namespace Inedo.Extensions.Git.Legacy
             if (!string.IsNullOrEmpty(o.ApiUrl))
                 gitHubResource.LegacyApiUrl = o.ApiUrl;
 
-            return (((GitSecureCredentialsBase)gitResource.GetCredentials(context))?.ToUsernamePassword(), gitResource);
+            return (((GitServiceCredentials)gitResource.GetCredentials(context))?.ToUsernamePassword(), gitResource);
         }
     }
 }

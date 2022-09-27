@@ -3,9 +3,9 @@ using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.Credentials;
-using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.Git.Legacy;
 using Inedo.Extensions.Operations;
 
@@ -54,7 +54,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         [PlaceholderText("Use team project from AzureDevOps resource's credential")]
         public SecureString Token { get; set; }
 
-        private protected override (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ICredentialResolutionContext context)
+        private protected override (UsernamePasswordCredentials, GitRepository) GetCredentialsAndResource(ICredentialResolutionContext context)
         {
             return ILegacyAzureDevOpsOperation.GetCredentialsAndResource(this, context);
         }

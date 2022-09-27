@@ -53,7 +53,7 @@ namespace Inedo.Extensions.Operations
 
             var (creds, resource) = this.GetCredentialsAndResource(context);
 
-            string repositoryUrl = await resource.GetRepositoryUrlAsync(context, context.CancellationToken).ConfigureAwait(false);
+            string repositoryUrl = (await resource.GetRepositoryInfoAsync(context, context.CancellationToken).ConfigureAwait(false)).RepositoryUrl;
             if (string.IsNullOrEmpty(repositoryUrl))
             {
                 this.LogError("RepositoryUrl is not specified. It must be included in either the referenced credential or in the RepositoryUrl argument of the operation.");

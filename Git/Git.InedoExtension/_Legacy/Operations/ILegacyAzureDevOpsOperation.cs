@@ -1,5 +1,6 @@
 ﻿using System.Security;
 using Inedo.Extensibility.Credentials;
+using Inedo.Extensibility.Git;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 
@@ -14,7 +15,7 @@ namespace Inedo.Extensions.Git.Legacy
         string ProjectName { get; }
         string RepositoryName { get; }
 
-        public static (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ILegacyAzureDevOpsOperation o, ICredentialResolutionContext context)
+        public static (UsernamePasswordCredentials, GitRepository) GetCredentialsAndResource(ILegacyAzureDevOpsOperation o, ICredentialResolutionContext context)
         {
             var gitResource = o.GetResource(context, "Inedo.Extensions.AzureDevOps.Credentials.AzureDevOpsSecureResource", "AzureDevOps");
 

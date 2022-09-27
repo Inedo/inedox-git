@@ -41,7 +41,7 @@ namespace Inedo.Extensions.Operations
         [Description("If set to true, the workspace directory will be cleared before any Git-based operations are performed.")]
         public bool CleanWorkspace { get; set; }
 
-        private protected abstract (UsernamePasswordCredentials, GitSecureResourceBase) GetCredentialsAndResource(ICredentialResolutionContext context);
+        private protected abstract (UsernamePasswordCredentials, GitRepository) GetCredentialsAndResource(ICredentialResolutionContext context);
 
         private protected GitClient CreateClient(IOperationExecutionContext context, string repositoryUrl, WorkspacePath workspacePath, UsernamePasswordCredentials creds)
         {
