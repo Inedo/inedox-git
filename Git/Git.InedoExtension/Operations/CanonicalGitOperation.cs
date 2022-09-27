@@ -24,6 +24,7 @@ namespace Inedo.Extensions.Git.Operations
 
         [ScriptAlias("From")]
         [DisplayName("Repository connection")]
+        [PlaceholderText("$Repository")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitRepository>))]
         public string? ResourceName { get; set; }
 
@@ -63,8 +64,20 @@ namespace Inedo.Extensions.Git.Operations
 
         private protected async Task EnsureCommonPropertiesAsync(IOperationExecutionContext context)
         {
-            if (context.TryGetSecureResource(this.ResourceName, out var resource))
+            if (string.IsNullOrEmpty(this.RepositoryUrl))
             {
+                if (string.IsNullOrWhiteSpace(this.ResourceName))
+                {
+                    var repository = await context.ExpandVariablesAsync("$Repository");
+                    if (!string.IsNullOrWhiteSpace(repository.AsString()))
+                        this.ResourceName = repository.AsString();
+                    else
+                        throw new ExecutionFailureException("Repository (From) was not specified and build source could not be determined from the $Repository variable.");
+                }
+
+                if (!context.TryGetSecureResource(this.ResourceName, out var resource))
+                    throw new ExecutionFailureException($"The repository named \"{this.ResourceName}\" could not be loaded.");
+
                 if (resource is not GitRepository gitResource)
                     throw new ExecutionFailureException($"Invalid resource type ({resource.GetType().Name}); expected ${nameof(GitRepository)}.");
 
@@ -89,10 +102,11 @@ namespace Inedo.Extensions.Git.Operations
                     this.UserName = gitCredentials.UserName;
                     this.Password = AH.Unprotect(gitCredentials.Password);
                 }
-            }
 
-            if (string.IsNullOrEmpty(this.RepositoryUrl))
-                throw new ExecutionFailureException("RepositoryUrl was not specified and could not be determined using the repository connection.");
+                if (string.IsNullOrEmpty(this.RepositoryUrl))
+                    throw new ExecutionFailureException("RepositoryUrl was not specified and could not be determined using the repository connection.");
+
+            }
         }
         private protected async Task<RepoMan> FetchOrCloneAsync(IRemoteOperationExecutionContext context)
         {

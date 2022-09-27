@@ -22,7 +22,7 @@ namespace Inedo.Extensions.Git.Operations
         public string? OutputDirectory { get; set; }
 
         [ScriptAlias("BranchOrCommit")]
-        [PlaceholderText("default")]
+        [PlaceholderText("$Commit")]
         public string? Objectish { get; set; }
 
         [DefaultValue(true)]
