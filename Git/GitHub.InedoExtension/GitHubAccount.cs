@@ -9,7 +9,7 @@ namespace Inedo.Extensions.GitHub
 {
     [DisplayName("GitHub Account")]
     [Description("Use an account on GitHub account to connect to GitHub resources")]
-    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureCredentials,GitLab")]
+    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureCredentials,GitHub")]
     public sealed class GitHubAccount : GitServiceCredentials<GitHubServiceInfo>
     {
         [Persistent]
