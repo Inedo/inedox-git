@@ -8,7 +8,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
     {
         public GitHubIssue(JsonElement issue, string overrideStatus = null, bool? overrideClosed = null)
         {
-            this.Id = issue.GetProperty("number").ToString();
+            this.Id = issue.GetProperty("number").GetRawText();
             this.Title = issue.GetProperty("title").GetString();
             this.Description = GetValue(issue, "body") ?? string.Empty;
             this.Status = overrideStatus ?? issue.GetProperty("state").GetString();
@@ -23,7 +23,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
             {
                 foreach (var item in labelsArray.EnumerateArray())
                 {
-                    this.Type = item.GetString();
+                    this.Type = GetValue(item, "name");
                     break;
                 }
             }
