@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
@@ -45,7 +42,6 @@ Create-WorkItem
         [ScriptAlias("IterationPath")]
         [DisplayName("Iteration path")]
         [PlaceholderText("Unchanged")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         public string IterationPath { get; set; }
         [ScriptAlias("State")]
         [DisplayName("State")]
@@ -54,13 +50,13 @@ Create-WorkItem
         [ScriptAlias("OtherFields")]
         [DisplayName("OtherFields")]
         [Description("A map variable containing other fields and values to update.")]
-        public IDictionary<string, RuntimeValue> OtherFields {get;set;}
+        public IDictionary<string, RuntimeValue> OtherFields { get; set; }
 
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             this.LogInformation($"Updating work item (ID={this.Id}) in Azure DevOps...");
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new RestApi(c?.Token, r.InstanceUrl, this);
+            var client = new RestApi(c?.Password, r.LegacyInstanceUrl, this);
             try
             {
                 await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State, this.OtherFields).ConfigureAwait(false);

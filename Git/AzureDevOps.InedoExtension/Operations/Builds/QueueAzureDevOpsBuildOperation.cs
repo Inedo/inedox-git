@@ -1,7 +1,4 @@
-﻿using System;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
@@ -45,7 +42,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         public async override Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var api = new RestApi(c?.Token, r.InstanceUrl, this);
+            var api = new RestApi(c?.Password, r.LegacyInstanceUrl, this);
 
             this.LogDebug("Finding Azure DevOps build definition...");
             var definitionResult = await api.GetBuildDefinitionsAsync(r.ProjectName);

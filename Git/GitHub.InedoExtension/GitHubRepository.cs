@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Git;
-using Inedo.Extensions.Credentials.Git;
 using Inedo.Extensions.GitHub.Clients;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
@@ -46,7 +45,7 @@ namespace Inedo.Extensions.GitHub
 
         public override RichDescription GetDescription()
         {
-            var group = string.IsNullOrEmpty(this.OrganizationName) ? "" : $"{this.OrganizationName}\\";
+            var group = string.IsNullOrEmpty(this.OrganizationName) ? "" : $"{this.OrganizationName}/";
             return new RichDescription($"{group}{this.RepositoryName}");
         }
 
@@ -76,8 +75,8 @@ namespace Inedo.Extensions.GitHub
         }
         void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
         {
-            if (missingProperties.ContainsKey("ApiUrl"))
-                this.LegacyApiUrl = missingProperties["ApiUrl"];
+            if (missingProperties.TryGetValue("ApiUrl", out var url))
+                this.LegacyApiUrl = url;
         }
     }
 }

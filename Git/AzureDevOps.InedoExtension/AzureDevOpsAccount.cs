@@ -5,22 +5,22 @@ using Inedo.Extensibility.Git;
 using Inedo.Serialization;
 using Inedo.Web;
 
-namespace Inedo.Extensions.GitHub
+namespace Inedo.Extensions.AzureDevOps
 {
-    [DisplayName("GitHub Account")]
-    [Description("Use an account on GitHub to connect to GitHub resources")]
-    [PersistFrom("Inedo.Extensions.GitHub.Credentials.GitHubSecureCredentials,GitHub")]
-    public sealed class GitHubAccount : GitServiceCredentials<GitHubServiceInfo>
+    [DisplayName("Azure DevOps Account")]
+    [Description("Use an Azure DevOps account to connect to Azure DevOps resources")]
+    [PersistFrom("Inedo.Extensions.AzureDevOps.Credentials.AzureDevOpsSecureCredentials,AzureDevOps")]
+    public sealed class AzureDevOpsAccount : GitServiceCredentials<AzureDevOpsServiceInfo>
     {
+        [Required]
         [Persistent]
         [DisplayName("User name")]
-        [Required]
         public override string UserName { get; set; }
 
+        [Required]
         [Persistent(Encrypted = true)]
         [DisplayName("Personal access token")]
         [FieldEditMode(FieldEditMode.Password)]
-        [Required]
         public override SecureString Password { get; set; }
 
         public override RichDescription GetCredentialDescription() => new(this.UserName);
@@ -28,8 +28,8 @@ namespace Inedo.Extensions.GitHub
         public override RichDescription GetServiceDescription()
         {
             return string.IsNullOrEmpty(this.ServiceUrl) || !this.TryGetServiceUrlHostName(out var hostName)
-                ? new("GitHub")
-                : new("GitHub (", new Hilite(hostName), ")");
+                ? new("Azure DevOps")
+                : new("Azure DevOps (", new Hilite(hostName), ")");
         }
     }
 }

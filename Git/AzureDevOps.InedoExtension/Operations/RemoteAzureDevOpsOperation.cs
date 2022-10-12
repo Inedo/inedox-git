@@ -1,18 +1,14 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Security;
-using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
-    [Serializable]
     public abstract class RemoteAzureDevOpsOperation : RemoteExecuteOperation, IAzureDevOpsConfiguration
     {
         private protected RemoteAzureDevOpsOperation()
@@ -20,7 +16,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         }
 
         [DisplayName("From AzureDevOps resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsRepository>))]
         [Required]
         public string ResourceName { get; set; }
 
@@ -60,9 +56,9 @@ namespace Inedo.Extensions.AzureDevOps.Operations
             var (c, r) = this.GetCredentialsAndResource((ICredentialResolutionContext)context);
             this.RepositoryName = AH.CoalesceString(this.RepositoryName, r?.RepositoryName);
             this.ProjectName = AH.CoalesceString(this.ProjectName, r?.ProjectName);
-            this.InstanceUrl = AH.CoalesceString(this.InstanceUrl, r?.InstanceUrl);
+            this.InstanceUrl = AH.CoalesceString(this.InstanceUrl, c?.ServiceUrl, r?.LegacyInstanceUrl);
             this.UserName = AH.CoalesceString(this.UserName, c?.UserName);
-            this.Token = this.Token ?? c?.Token;
+            this.Token ??= c?.Password;
 
             return base.BeforeRemoteExecuteAsync(context);
         }

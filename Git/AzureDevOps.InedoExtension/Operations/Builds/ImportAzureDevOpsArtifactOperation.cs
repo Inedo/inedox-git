@@ -1,17 +1,12 @@
 ﻿using System.ComponentModel;
-using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps;
-using Inedo.Extensions.AzureDevOps.Clients;
-using Inedo.Extensions.AzureDevOps.Operations;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
-namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
+namespace Inedo.Extensions.AzureDevOps.Operations
 {
     [DisplayName("Import Azure DevOps Artifact")]
     [Description("Downloads an artifact from Azure DevOps and saves it to the artifact library.")]
@@ -24,7 +19,7 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
         [ScriptAlias("BuildDefinition")]
         [DisplayName("Build definition")]
         [SuggestableValue(typeof(BuildDefinitionNameSuggestionProvider))]
-        public string BuildDefinition { get; set; }        
+        public string BuildDefinition { get; set; }
 
         [ScriptAlias("BuildNumber")]
         [DisplayName("Build number")]
@@ -35,7 +30,6 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
         [Required]
         [ScriptAlias("ArtifactName")]
         [DisplayName("Artifact name")]
-        [SuggestableValue(typeof(ArtifactNameSuggestionProvider))]
         public string ArtifactName { get; set; }
 
         [Output]
@@ -50,17 +44,10 @@ namespace Inedo.BuildMasterExtensions.AzureDevOps.Operations
             this.LogInformation($"Importing {this.ArtifactName} artifact with build number \"{this.BuildNumber ?? "latest"}\" from Azure DevOps...");
 
             var (c, r) = this.GetCredentialsAndResource(context);
-            
-            this.AzureDevOpsBuildNumber = await ArtifactImporter.DownloadAndImportAsync(
-                c?.Token,
-                r.InstanceUrl,
-                this,
-                r.ProjectName,
-                this.BuildNumber,
-                this.BuildDefinition,
-                context,
-                this.ArtifactName
-            );
+
+            using var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
+            using var artifact = await client.DownloadArtifactAsync(r.ProjectName, this.BuildDefinition, this.BuildNumber, this.ArtifactName, context.CancellationToken);
+            await context.CreateBuildMasterArtifactAsync(this.ArtifactName, artifact, false, context.CancellationToken);
 
             this.LogInformation("Import complete.");
         }

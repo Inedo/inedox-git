@@ -8,7 +8,7 @@ using Inedo.Web;
 namespace Inedo.Extensions.GitLab
 {
     [DisplayName("GitLab Account")]
-    [Description("Use an account on GitLab account to connect to GitLab resources")]
+    [Description("Use an account on GitLab to connect to GitLab resources")]
     [PersistFrom("Inedo.Extensions.GitLab.Credentials.GitLabSecureCredentials,GitLab")]
     public sealed class GitLabAccount : GitServiceCredentials<GitLabServiceInfo>
     {

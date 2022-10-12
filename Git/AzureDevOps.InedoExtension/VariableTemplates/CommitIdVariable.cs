@@ -1,12 +1,9 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
-using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -21,7 +18,7 @@ namespace Inedo.Extensions.AzureDevOps.VariableTemplates
     {
         [Persistent]
         [DisplayName("From Azure DevOps resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsRepository>))]
         public string ResourceName { get; set; }
 
         [Persistent]
@@ -33,12 +30,12 @@ namespace Inedo.Extensions.AzureDevOps.VariableTemplates
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not AzureDevOpsSecureResource resource || !Uri.TryCreate(resource.InstanceUrl.TrimEnd('/'), UriKind.Absolute, out _))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not AzureDevOpsRepository resource || !Uri.TryCreate(resource.LegacyInstanceUrl.TrimEnd('/'), UriKind.Absolute, out _))
                 return new LiteralHtml(value.AsString());
-
-            return new A($"{resource.InstanceUrl.TrimEnd('/')}/{resource.ProjectName}/_git/{AH.CoalesceString(this.RepositoryName, resource.RepositoryName)}/commit/{value.AsString()}", value.AsString())
+            
+            return new A($"{resource.LegacyInstanceUrl.TrimEnd('/')}/{resource.ProjectName}/_git/{AH.CoalesceString(this.RepositoryName, resource.RepositoryName)}/commit/{value.AsString()}", value.AsString())
             {
-                Class = "ci-icon azuredevops",
+                Classes = { "ci-icon", "azuredevops" },
                 Target = "_blank"
             };
         }

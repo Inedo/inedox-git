@@ -2,7 +2,6 @@
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.AzureDevOps.Credentials;
 
 namespace Inedo.Extensions.AzureDevOps
 {
@@ -15,6 +14,7 @@ namespace Inedo.Extensions.AzureDevOps
         string ProjectName { get; }
         string RepositoryName { get; }
     }
+
     internal static class AzureDevOpsOperationExtensions
     {
         public static string DescribeSource(this IOperationConfiguration config)
@@ -25,33 +25,34 @@ namespace Inedo.Extensions.AzureDevOps
                 config[nameof(IAzureDevOpsConfiguration.ResourceName)],
                 "(unknown)");
         }
-        public static (AzureDevOpsSecureCredentials, AzureDevOpsSecureResource) GetCredentialsAndResource(this IAzureDevOpsConfiguration operation, IOperationExecutionContext context)
+        public static (AzureDevOpsAccount, AzureDevOpsRepository) GetCredentialsAndResource(this IAzureDevOpsConfiguration operation, IOperationExecutionContext context)
             => GetCredentialsAndResource(operation, (ICredentialResolutionContext)context);
-        public static (AzureDevOpsSecureCredentials, AzureDevOpsSecureResource) GetCredentialsAndResource(this IAzureDevOpsConfiguration operation, ICredentialResolutionContext context)
+        public static (AzureDevOpsAccount, AzureDevOpsRepository) GetCredentialsAndResource(this IAzureDevOpsConfiguration operation, ICredentialResolutionContext context)
         {
-            AzureDevOpsSecureCredentials credentials; AzureDevOpsSecureResource resource;
+            AzureDevOpsAccount credentials;
+            AzureDevOpsRepository resource;
             if (string.IsNullOrEmpty(operation.ResourceName))
             {
-                credentials = operation.Token == null ? null : new AzureDevOpsSecureCredentials();
-                resource = string.IsNullOrEmpty(operation.InstanceUrl) ? null : new AzureDevOpsSecureResource();
+                credentials = operation.Token == null ? null : new AzureDevOpsAccount();
+                resource = string.IsNullOrEmpty(operation.InstanceUrl) ? null : new AzureDevOpsRepository();
             }
             else
             {
-                resource = (AzureDevOpsSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
+                resource = (AzureDevOpsRepository)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                     credentials = null;
                 else
-                    credentials = (AzureDevOpsSecureCredentials)resource.GetCredentials(context);
+                    credentials = (AzureDevOpsAccount)resource.GetCredentials(context);
             }
 
             if (credentials != null)
             {
                 credentials.UserName = AH.CoalesceString(operation.UserName, credentials.UserName);
-                credentials.Token = operation.Token ?? credentials.Token;
+                credentials.Password = operation.Token ?? credentials.Password;
             }
             if (resource != null)
             {
-                resource.InstanceUrl = AH.CoalesceString(operation.InstanceUrl, resource.InstanceUrl);
+                resource.LegacyInstanceUrl = AH.CoalesceString(operation.InstanceUrl, resource.LegacyInstanceUrl);
                 resource.RepositoryName = AH.CoalesceString(operation.RepositoryName, resource.RepositoryName);
                 resource.ProjectName = AH.CoalesceString(operation.ProjectName, resource.ProjectName);
             }

@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Text;
-using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Extensions.AzureDevOps.VisualStudioOnline.Model;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -26,12 +21,10 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         [ScriptAlias("IterationPath")]
         [DisplayName("Iteration path")]
         [PlaceholderText("Unchanged")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         public string IterationPath { get; set; }
 
         [ScriptAlias("Filter")]
         [DisplayName("Filter")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         [Description("Filter WIQL that will be appended to the WIQL where clause."
             + "See the <a href=\"https://docs.microsoft.com/en-us/azure/devops/boards/queries/wiql-syntax?view=azure-devops\">Azure DevOps Query Language documentation</a> "
             + "for more information.")]
@@ -61,7 +54,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new RestApi(c?.Token, r.InstanceUrl, this);
+            var client = new RestApi(c?.Password, r.LegacyInstanceUrl, this);
             string wiql = this.GetWiql(context.Log);
             var closedStates = this.ClosedStates.Split(',');
 
@@ -89,7 +82,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
                 {
                     if (!item.ContainsKey(column) && wi.fields.ContainsKey(column))
                         item.Add(column, wi.fields.GetValueOrDefault(column)?.ToString());
-                    else if(!item.ContainsKey(column))
+                    else if (!item.ContainsKey(column))
                         item.Add(column, null);
                 }
                 return new RuntimeValue(item);

@@ -1,12 +1,8 @@
-﻿using System;
-using System.ComponentModel;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Clients;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.IO;
 using Inedo.Web;
@@ -36,7 +32,6 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         [Required]
         [ScriptAlias("ArtifactName")]
         [DisplayName("Artifact name")]
-        [SuggestableValue(typeof(ArtifactNameSuggestionProvider))]
         public string ArtifactName { get; set; }
 
         [Output]
@@ -61,24 +56,24 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         {
             this.LogInformation($"Downloading artifact {this.ArtifactName} with build number \"{this.BuildNumber ?? "latest"}\" from Azure DevOps...");
 
-            var downloader = new ArtifactDownloader(this.Token, this.InstanceUrl, this);
+            using var client = new AzureDevOpsClient(this.InstanceUrl, this.Token);
 
-            using (var artifact = await downloader.DownloadAsync(this.ProjectName, this.BuildNumber, this.BuildDefinition, this.ArtifactName).ConfigureAwait(false))
+            using (var artifact = await client.DownloadArtifactAsync(this.ProjectName, this.BuildDefinition, this.BuildNumber, this.ArtifactName, context.CancellationToken).ConfigureAwait(false))
             {
                 string targetDirectory = context.ResolvePath(this.TargetDirectory);
                 if (this.ExtractFilesToTargetDirectory)
                 {
                     this.LogDebug("Extracting artifact files to: " + targetDirectory);
-                    AH.ExtractZip(artifact.Content, targetDirectory);
+                    AH.ExtractZip(artifact, targetDirectory);
                 }
                 else
                 {
-                    string path = PathEx.Combine(targetDirectory, artifact.FileName);
+                    string path = PathEx.Combine(targetDirectory, this.ArtifactName);
                     this.LogDebug("Saving artifact as zip file to: " + path);
 
                     using (var file = FileEx.Open(path, FileMode.Create, FileAccess.Write, FileShare.None, FileOptions.Asynchronous | FileOptions.SequentialScan))
                     {
-                        await artifact.Content.CopyToAsync(file).ConfigureAwait(false);
+                        await artifact.CopyToAsync(file).ConfigureAwait(false);
                     }
                 }
             }

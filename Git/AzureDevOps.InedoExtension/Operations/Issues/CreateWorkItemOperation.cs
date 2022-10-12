@@ -1,11 +1,9 @@
 ﻿using System.ComponentModel;
-using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
@@ -30,7 +28,6 @@ Create-WorkItem
         [Required]
         [ScriptAlias("Type")]
         [DisplayName("Work item type")]
-        [SuggestableValue(typeof(WorkItemTypeSuggestionProvider))]
         public string Type { get; set; }
         [Required]
         [ScriptAlias("Title")]
@@ -42,7 +39,6 @@ Create-WorkItem
         public string Description { get; set; }
         [ScriptAlias("IterationPath")]
         [DisplayName("Iteration path")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         public string IterationPath { get; set; }
 
         [Output]
@@ -56,7 +52,7 @@ Create-WorkItem
         {
             this.LogInformation("Creating work item in Azure DevOps...");
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new RestApi(c?.Token, r.InstanceUrl, this);
+            var client = new RestApi(c?.Password, r.LegacyInstanceUrl, this);
             try
             {
                 var result = await client.CreateWorkItemAsync(r.ProjectName, this.Type, this.Title, this.Description, this.IterationPath).ConfigureAwait(false);

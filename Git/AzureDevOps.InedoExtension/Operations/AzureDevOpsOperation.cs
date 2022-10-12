@@ -2,9 +2,7 @@
 using System.Security;
 using Inedo.Documentation;
 using Inedo.Extensibility;
-using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Credentials;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
@@ -12,10 +10,14 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 {
     public abstract class AzureDevOpsOperation : ExecuteOperation, IAzureDevOpsConfiguration
     {
+        private protected AzureDevOpsOperation()
+        {
+        }
+
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From AzureDevOps resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsRepository>))]
         [Required]
         public string ResourceName { get; set; }
 

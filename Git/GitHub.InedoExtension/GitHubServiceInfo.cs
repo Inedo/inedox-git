@@ -9,7 +9,7 @@ namespace Inedo.Extensions.GitHub
 {
     [DisplayName("GitHub")]
     [Description("Provides integration for hosted GitHub repositories.")]
-    public sealed class GitHubServiceInfo : GitService<GitHubRepository,GitHubAccount>
+    public sealed class GitHubServiceInfo : GitService<GitHubRepository, GitHubAccount>
     {
         public override string ServiceName => "GitHub";
         public override bool HasDefaultApiUrl => true;
