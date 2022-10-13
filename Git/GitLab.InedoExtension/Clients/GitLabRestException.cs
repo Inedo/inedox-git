@@ -34,15 +34,14 @@ namespace Inedo.Extensions.GitLab.Clients
             }
             catch
             {
-                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-                    throw new GitLabRestException((int)response.StatusCode, "Verify that the credentials used to connect are correct.");
-                else if(response.StatusCode == HttpStatusCode.NotFound)
-                    throw new GitLabRestException(404, $"Verify that the URL in the operation or credentials is correct (resolved to {url}).");
-
-                response.EnsureSuccessStatusCode();
             }
 
-            throw new GitLabRestException((int)response.StatusCode, null);
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new GitLabRestException((int)response.StatusCode, $"Error {(int)response.StatusCode}: verify that your GitLab credentials used to connect are correct.");
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+                throw new GitLabRestException(404, $"Error {(int)response.StatusCode}: verify that the URL in the operation or credentials is correct (resolved to {url}).");
+            else
+                throw new GitLabRestException((int)response.StatusCode, $"Error {(int)response.StatusCode} ({response.StatusCode}) while connecting to GitLab.");
         }
     }
 }
