@@ -5,6 +5,7 @@ using Inedo.Extensibility;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -36,7 +37,7 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
             if (resource == null || resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) is not AzureDevOpsAccount credential)
                 return Enumerable.Empty<string>();
 
-            using var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
+            var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
             return (await client.GetBranchesAsync(resource.ProjectName, AH.CoalesceString(this.RepositoryName, resource.RepositoryName))
                 .ToListAsync().ConfigureAwait(false))
                 .Select(b => b.Name);

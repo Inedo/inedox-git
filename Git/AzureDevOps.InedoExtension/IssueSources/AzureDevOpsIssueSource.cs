@@ -6,7 +6,7 @@ using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -50,14 +50,13 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate AzureDevOps issues.");
 
-            var client = new RestApi(credentials?.Password, resource.LegacyInstanceUrl, context.Log);
-            string wiql = this.GetWiql(context.Log);
+            var client = new AzureDevOpsClient(resource.LegacyInstanceUrl, credentials?.Password );
+            var wiql = this.GetWiql(context.Log);
 
-            var workItems = await client.GetWorkItemsAsync(wiql).ConfigureAwait(false);
-            var closedStates = this.ClosedStates.Split(',');
+            var closedStates = this.ClosedStates.Split(',').ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var w in workItems)
-                yield return new AzureDevOpsWorkItem(w, closedStates);
+            await foreach (var i in client.GetWorkItemsAsync(wiql, cancellationToken).ConfigureAwait(false))
+                yield return new AzureDevOpsWorkItem(i, closedStates);
         }
 
         private string GetWiql(ILogSink log)

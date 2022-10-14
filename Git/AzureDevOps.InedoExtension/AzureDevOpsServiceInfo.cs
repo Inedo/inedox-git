@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Inedo.Extensibility.Git;
+using Inedo.Extensions.AzureDevOps.Client;
 
 namespace Inedo.Extensions.AzureDevOps
 {
@@ -19,17 +20,17 @@ namespace Inedo.Extensions.AzureDevOps
         {
             ArgumentNullException.ThrowIfNull(credentials);
 
-            using var client = new AzureDevOpsClient(credentials);
+            var client = new AzureDevOpsClient(credentials);
             await foreach (var proj in client.GetProjectsAsync(cancellationToken).ConfigureAwait(false))
-                yield return proj;
+                yield return proj.Name;
         }
         public override async IAsyncEnumerable<string> GetRepositoryNamesAsync(GitServiceCredentials credentials, string serviceNamespace, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(credentials);
 
-            using var client = new AzureDevOpsClient(credentials);
-            await foreach (var repo in client.GetRepositoryNamesAsync(serviceNamespace, cancellationToken).ConfigureAwait(false))
-                yield return repo;
+            var client = new AzureDevOpsClient(credentials);
+            await foreach (var repo in client.GetRepositoriesAsync(serviceNamespace, cancellationToken).ConfigureAwait(false))
+                yield return repo.Name;
         }
     }
 }

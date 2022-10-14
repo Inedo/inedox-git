@@ -4,6 +4,7 @@ using Inedo.ExecutionEngine;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -31,7 +32,6 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
         [Persistent]
         [DisplayName("Build definition")]
         [SuggestableValue(typeof(BuildDefinitionNameSuggestionProvider))]
-        [Required]
         public string BuildDefinitionName { get; set; }
 
         public override async Task<IEnumerable<string>> EnumerateListValuesAsync(VariableTemplateContext context)
@@ -41,9 +41,10 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
                 return Enumerable.Empty<string>();
 
             var projectName = AH.CoalesceString(this.ProjectName, resource.ProjectName);
-            using var client = new AzureDevOpsClient(resource.LegacyInstanceUrl, credential.Password);
+            var client = new AzureDevOpsClient(resource.LegacyInstanceUrl, credential.Password);
 
-            return await client.GetBuildsAsync(projectName, this.BuildDefinitionName).ToListAsync().ConfigureAwait(false);
+            return (await client.GetBuildsAsync(projectName).ToListAsync().ConfigureAwait(false))
+                .Select(b => b.BuildNumber);
         }
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)

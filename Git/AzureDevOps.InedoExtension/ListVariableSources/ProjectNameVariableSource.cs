@@ -4,6 +4,7 @@ using Inedo.ExecutionEngine;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Serialization;
 using Inedo.Web;
 using Inedo.Web.Controls;
@@ -27,8 +28,9 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
             if (resource == null || resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) is not AzureDevOpsAccount credential)
                 return Enumerable.Empty<string>();
 
-            using var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
-            return await client.GetProjectsAsync().ToListAsync().ConfigureAwait(false);
+            var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
+            return (await client.GetProjectsAsync().ToListAsync().ConfigureAwait(false))
+                .Select(p => p.Name);
         }
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)

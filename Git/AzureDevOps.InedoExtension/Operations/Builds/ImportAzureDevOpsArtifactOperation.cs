@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
@@ -24,7 +26,6 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         [ScriptAlias("BuildNumber")]
         [DisplayName("Build number")]
         [PlaceholderText("latest")]
-        [SuggestableValue(typeof(BuildNumberSuggestionProvider))]
         public string BuildNumber { get; set; }
 
         [Required]
@@ -45,9 +46,41 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 
             var (c, r) = this.GetCredentialsAndResource(context);
 
-            using var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
-            using var artifact = await client.DownloadArtifactAsync(r.ProjectName, this.BuildDefinition, this.BuildNumber, this.ArtifactName, context.CancellationToken);
-            await context.CreateBuildMasterArtifactAsync(this.ArtifactName, artifact, false, context.CancellationToken);
+            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
+
+            AdoBuild build = null;
+
+            await foreach (var b in client.GetBuildsAsync(this.ProjectName, context.CancellationToken))
+            {
+                if (!string.Equals(this.BuildDefinition, b.Definition?.Name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (string.IsNullOrEmpty(this.BuildNumber) || string.Equals(b.BuildNumber, this.BuildNumber, StringComparison.OrdinalIgnoreCase))
+                {
+                    build = b;
+                    break;
+                }
+            }
+
+            if (build == null)
+                throw new ExecutionFailureException($"Build {this.BuildNumber} not found.");
+
+            AdoArtifact artifact = null;
+
+            await foreach (var a in client.GetBuildArtifactsAsync(this.ProjectName, build.Id, context.CancellationToken))
+            {
+                if (string.Equals(a.Name, this.ArtifactName, StringComparison.OrdinalIgnoreCase))
+                {
+                    artifact = a;
+                    break;
+                }
+            }
+
+            if (artifact != null)
+                throw new ExecutionFailureException($"Artifact {this.ArtifactName} not found on build {build.BuildNumber}.");
+
+            using var artifactStream = await client.DownloadBuildArtifactAsync(artifact.Resource.DownloadUrl, context.CancellationToken);
+            await context.CreateBuildMasterArtifactAsync(this.ArtifactName, artifactStream, false, context.CancellationToken);
 
             this.LogInformation("Import complete.");
         }

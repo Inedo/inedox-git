@@ -4,7 +4,7 @@ using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Web;
 
 namespace Inedo.Extensions.AzureDevOps.Operations
@@ -56,16 +56,17 @@ Create-WorkItem
         {
             this.LogInformation($"Updating work item (ID={this.Id}) in Azure DevOps...");
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new RestApi(c?.Password, r.LegacyInstanceUrl, this);
+            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c?.Password);
             try
             {
-                await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State, this.OtherFields).ConfigureAwait(false);
+                await client.UpdateWorkItemAsync(this.Id, this.Title, this.Description, this.IterationPath, this.State, this.OtherFields, context.CancellationToken).ConfigureAwait(false);
             }
-            catch (AzureDevOpsRestException ex)
+            catch (Exception ex)
             {
-                this.LogError(ex.FullMessage);
+                this.LogError(ex.Message);
                 return;
             }
+
             this.LogInformation("Work item updated.");
         }
 

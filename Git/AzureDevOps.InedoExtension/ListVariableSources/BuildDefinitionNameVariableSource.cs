@@ -4,6 +4,7 @@ using Inedo.ExecutionEngine;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -35,8 +36,9 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
                 return Enumerable.Empty<string>();
 
             var projectName = AH.CoalesceString(this.ProjectName, resource.ProjectName);
-            using var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
-            return await client.GetBuildDefinitionsAsync(projectName).ToListAsync().ConfigureAwait(false);
+            var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
+            return (await client.GetBuildDefinitionsAsync(projectName).ToListAsync().ConfigureAwait(false))
+                .Select(d => d.Name);
         }
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
