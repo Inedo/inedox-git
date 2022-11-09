@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,8 +70,15 @@ namespace Inedo.Extensions.GitHub
         }
         public override Task MergePullRequestAsync(ICredentialResolutionContext context, string id, string headCommit, string commitMessage = null, string method = null, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return github.MergePullRequestAsync(this.OrganizationName, this.RepositoryName, int.Parse(id), headCommit, commitMessage, method, cancellationToken);
         }
+        public override async Task<string> CreatePullRequestAsync(ICredentialResolutionContext context, string sourceBranch, string targetBranch, string title, string description = null, CancellationToken cancellationToken = default)
+        {
+            var github = new GitHubClient((GitHubAccount)this.GetCredentials(context), this);
+            return (await github.CreatePullRequestAsync(this.OrganizationName, this.RepositoryName, sourceBranch, targetBranch, title, description, cancellationToken).ConfigureAwait(false)).ToString();
+        }
+
         void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)
         {
             if (missingProperties.TryGetValue("ApiUrl", out var url))

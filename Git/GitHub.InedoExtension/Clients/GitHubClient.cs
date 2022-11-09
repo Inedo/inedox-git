@@ -149,6 +149,51 @@ namespace Inedo.Extensions.GitHub.Clients
                 }
             }
         }
+        public async Task MergePullRequestAsync(string organizationName, string repositoryName, int id, string headCommit, string message, string method, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls/";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls/";
+
+            url += $"{id}/merge";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    commit_title = message,
+                    merge_method = method,
+                    sha = headCommit
+                },
+                cancellationToken: cancellationToken
+            );
+        }
+        public async Task<int> CreatePullRequestAsync(string organizationName, string repositoryName, string source, string target, string title, string description, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    title,
+                    body = description,
+                    head = source,
+                    @base = target
+                },
+                cancellationToken: cancellationToken
+            );
+
+            return doc.RootElement.GetProperty("id").GetInt32();
+        }
 
         public async Task SetCommitStatusAsync(string organizationName, string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
         {
