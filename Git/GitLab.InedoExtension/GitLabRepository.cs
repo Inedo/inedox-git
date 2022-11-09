@@ -75,10 +75,14 @@ namespace Inedo.Extensions.GitLab
         {
             return new GitLabClient(this, context).SetCommitStatusAsync(this, commit, status, description, statusContext, cancellationToken);
         }
-
         public override Task MergePullRequestAsync(ICredentialResolutionContext context, string id, string headCommit, string commitMessage = null, string method = null, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return new GitLabClient(this, context).MergeMergeRequestAsync(this, int.Parse(id), commitMessage, headCommit, method == "squash", cancellationToken);
+        }
+        public override async Task<string> CreatePullRequestAsync(ICredentialResolutionContext context, string sourceBranch, string targetBranch, string title, string description = null, CancellationToken cancellationToken = default)
+        {
+            var id = await new GitLabClient(this, context).CreateMergeRequestAsync(this, sourceBranch, targetBranch, title, description, cancellationToken).ConfigureAwait(false);
+            return id.ToString();
         }
 
         void IMissingPersistentPropertyHandler.OnDeserializedMissingProperties(IReadOnlyDictionary<string, string> missingProperties)

@@ -320,6 +320,38 @@ namespace Inedo.Extensions.GitLab.Clients
                 cancellationToken
             ).ConfigureAwait(false);
         }
+        public async Task MergeMergeRequestAsync(GitLabProjectId projectId, int requestId, string message, string sha, bool squash, CancellationToken cancellationToken = default)
+        {
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Put,
+                $"{apiBaseUrl}/v4/projects/{projectId.ToUriFragment()}/merge_requests/{requestId}",
+                new
+                {
+                    squash,
+                    merge_commit_message = message,
+                    squash_commit_message = message,
+                    sha
+                },
+                cancellationToken
+            ).ConfigureAwait(false);
+        }
+        public async Task<int> CreateMergeRequestAsync(GitLabProjectId projectId, string sourceBranch, string targetBranch, string title, string description, CancellationToken cancellationToken = default)
+        {
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                $"{apiBaseUrl}/v4/projects/{projectId.ToUriFragment()}/merge_requests",
+                new
+                {
+                    source_branch = sourceBranch,
+                    target_branch = targetBranch,
+                    title,
+                    description
+                },
+                cancellationToken
+            ).ConfigureAwait(false);
+
+            return doc.RootElement.GetProperty("iid").GetInt32();
+        }
 
         private static string Esc(string part) => Uri.EscapeDataString(part ?? string.Empty);
 
