@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Reflection;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
@@ -10,20 +11,21 @@ using Inedo.Extensibility.Operations;
 namespace Inedo.Extensions.Git.Operations
 {
     [DisplayName("Check Out Code from Git")]
-    [Description("Gets source code from a git repository.")]
+    [Description("Gets source code from a branch or commit on a git repository.")]
     [Tag("git")]
     [Tag("source-control")]
     [ScriptAlias("Checkout-Code")]
     [ScriptNamespace("Git", PreferUnqualified = false)]
     public sealed class CheckoutCodeOperation : CanonicalGitOperation
     {
-        [ScriptAlias("To")]
-        [PlaceholderText("$WorkingDirectory")]
-        public string? OutputDirectory { get; set; }
-
         [ScriptAlias("BranchOrCommit")]
-        [PlaceholderText("$Commit")]
+        [DefaultValue("$Commit")]
+        [DisplayName("Commit or branch")]
         public string? Objectish { get; set; }
+
+        [ScriptAlias("To")]
+        [DefaultValue("$WorkingDirectory")]
+        public string? OutputDirectory { get; set; }
 
         [DefaultValue(true)]
         [Category("Advanced")]
@@ -35,28 +37,11 @@ namespace Inedo.Extensions.Git.Operations
         [Category("Advanced")]
         [ScriptAlias("CommitHash")]
         [DisplayName("Commit hash")]
-        [Description("The full SHA1 hash resolved commit will be stored in this variable.")]
+        [Description("The full SHA1 hash resolved commit will be stored in this variable. This is useful when you specify a branch for the BranchOrCommit property.")]
         public string? CommitHash { get; set; }
 
         protected override async Task BeforeRemoteExecuteAsync(IOperationExecutionContext context)
         {
-            if (string.IsNullOrWhiteSpace(this.Objectish))
-            {
-                var commit = await context.ExpandVariablesAsync("$Commit");
-                if (!string.IsNullOrWhiteSpace(commit.AsString()))
-                {
-                    this.Objectish = commit.AsString();
-                }
-                else
-                {
-                    var branch = await context.ExpandVariablesAsync("$Branch");
-                    if (!string.IsNullOrWhiteSpace(branch.AsString()))
-                        this.Objectish = branch.AsString();
-                    else
-                        throw new ExecutionFailureException("BranchOrCommit was not specified and build source could not be determined from the $Commit or $Branch variables.");
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(this.Objectish))
                 throw new ExecutionFailureException("Missing required argument: BranchOrCommit");
 
@@ -83,11 +68,11 @@ namespace Inedo.Extensions.Git.Operations
             return new ExtendedRichDescription(
                 new RichDescription(
                     "Check out code from ",
-                    new Hilite(AH.CoalesceString(config[nameof(ResourceName)], config[nameof(RepositoryUrl)], "(unknown)"))
+                    new Hilite(AH.CoalesceString(config[nameof(ResourceName)], config[nameof(RepositoryUrl)], "Git"))
                 ),
                 new RichDescription(
                     "to ",
-                    new DirectoryHilite(config[nameof(OutputDirectory)])
+                    new DirectoryHilite(AH.CoalesceString(config[nameof(OutputDirectory)], "working directory"))
                 )
             );
         }

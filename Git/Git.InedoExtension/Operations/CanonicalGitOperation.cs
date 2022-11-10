@@ -22,9 +22,10 @@ namespace Inedo.Extensions.Git.Operations
         {
         }
 
+        [DisplayIndex(-1)]
         [ScriptAlias("From")]
         [DisplayName("Repository connection")]
-        [PlaceholderText("$Repository")]
+        [DefaultValue("$Repository")]
         [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitRepository>))]
         public string? ResourceName { get; set; }
 
@@ -67,13 +68,7 @@ namespace Inedo.Extensions.Git.Operations
             if (string.IsNullOrEmpty(this.RepositoryUrl))
             {
                 if (string.IsNullOrWhiteSpace(this.ResourceName))
-                {
-                    var repository = await context.ExpandVariablesAsync("$Repository");
-                    if (!string.IsNullOrWhiteSpace(repository.AsString()))
-                        this.ResourceName = repository.AsString();
-                    else
-                        throw new ExecutionFailureException("Repository (From) was not specified and build source could not be determined from the $Repository variable.");
-                }
+                    throw new ExecutionFailureException("Missing required argument: Repository (From)");
 
                 if (!context.TryGetSecureResource(this.ResourceName, out var resource))
                     throw new ExecutionFailureException($"The repository named \"{this.ResourceName}\" could not be loaded.");

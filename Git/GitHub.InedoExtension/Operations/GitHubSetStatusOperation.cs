@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
@@ -10,8 +11,9 @@ using Inedo.Extensions.GitHub.Clients;
 
 namespace Inedo.Extensions.GitHub.Operations
 {
-    [DisplayName("Set GitHub Build Status")]
-    [Description("Sets a status message on a GitHub commit.")]
+    [Obsolete("This should be renamed Git::Set-CommitStatus", true)]
+    [DisplayName("[Obsolete] Set GitHub Build Status")]
+    [Description("Sets a status message on a GitHub commit. This should be renamed Git::Set-CommitStatus")]
     [Example(@"try
 {
     GitHub::Set-Status (
@@ -90,6 +92,8 @@ GitHub::Set-Status (
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var client = new GitHubClient(credentials, resource);
+
+            this.LogWarning("This operation (GitHub::Set-Status) is obsolete, and should be replaced with Git::Set-CommitStatus.");
 
             string url = null;
             if (string.IsNullOrEmpty(SDK.BaseUrl))
