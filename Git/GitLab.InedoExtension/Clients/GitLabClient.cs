@@ -324,7 +324,7 @@ namespace Inedo.Extensions.GitLab.Clients
         {
             using var doc = await this.InvokeAsync(
                 HttpMethod.Put,
-                $"{apiBaseUrl}/v4/projects/{projectId.ToUriFragment()}/merge_requests/{requestId}",
+                $"{apiBaseUrl}/v4/projects/{projectId.ToUriFragment()}/merge_requests/{requestId}/merge",
                 new
                 {
                     squash,
@@ -365,7 +365,7 @@ namespace Inedo.Extensions.GitLab.Clients
             {
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(data, data.GetType());
                 var content = new ByteArrayContent(bytes);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("content/json");
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
                 request.Content = content;
             }
 
