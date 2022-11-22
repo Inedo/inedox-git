@@ -119,7 +119,7 @@ internal sealed class RepoMan : IDisposable
     {
         this.config.Log?.LogDebug($"Checking out code from {objectish} to {outputDirectory}...");
 
-        var commit = this.repo.Lookup<Commit>(objectish) ?? this.repo.Lookup<Commit>("refs/remotes/origin/" + objectish);
+        var commit = this.repo.Lookup<Commit>($"refs/remotes/origin/{objectish}") ?? this.repo.Lookup<Commit>(objectish);
         if (commit == null)
             throw new ArgumentException($"Could not find commit for {objectish}.");
 
