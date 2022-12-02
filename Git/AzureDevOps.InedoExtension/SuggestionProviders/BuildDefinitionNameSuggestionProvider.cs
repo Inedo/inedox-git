@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
 
 namespace Inedo.Extensions.AzureDevOps.SuggestionProviders
 {
     internal sealed class BuildDefinitionNameSuggestionProvider : AzureDevOpsSuggestionProvider
     {
-        internal async override Task<IEnumerable<string>> GetSuggestionsAsync()
+        protected override async IAsyncEnumerable<string> GetSuggestionsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var definitions = await this.Client.GetBuildDefinitionsAsync(this.Resource.ProjectName).ConfigureAwait(false);
-            return definitions.Select(d => d.name);
+            await foreach (var d in this.Client.GetBuildDefinitionsAsync(this.Resource.ProjectName, cancellationToken).ConfigureAwait(false))
+                yield return d.Name;
         }
     }
 }

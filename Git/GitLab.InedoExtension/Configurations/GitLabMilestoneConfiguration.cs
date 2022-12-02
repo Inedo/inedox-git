@@ -7,8 +7,6 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.Editors;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -23,7 +21,7 @@ namespace Inedo.Extensions.GitLab.Configurations
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From GitLab resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabRepository>))]
         [IgnoreConfigurationDrift]
         public string ResourceName { get; set; }
 
@@ -83,13 +81,11 @@ namespace Inedo.Extensions.GitLab.Configurations
         [Persistent]
         [DisplayName("Start date")]
         [ScriptAlias("StartDate")]
-        [CustomEditor(typeof(DateEditor))]
         public string StartDate { get; set; }
 
         [Persistent]
         [DisplayName("Due date")]
         [ScriptAlias("DueDate")]
-        [CustomEditor(typeof(DateEditor))]
         public string DueDate { get; set; }
 
         [Persistent]

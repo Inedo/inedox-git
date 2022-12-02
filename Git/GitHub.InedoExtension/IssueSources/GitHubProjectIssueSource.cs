@@ -9,7 +9,6 @@ using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitHub.Clients;
-using Inedo.Extensions.GitHub.Credentials;
 using Inedo.Extensions.GitHub.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -18,7 +17,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
 {
     [DisplayName("GitHub Project Source")]
     [Description("Issue source for GitHub based on projects.")]
-    public sealed class GitHubProjectIssueSource : IssueSource<GitHubSecureResource>
+    public sealed class GitHubProjectIssueSource : IssueSource<GitHubRepository>
     {
         [Persistent]
         [DisplayName("Repository name")]
@@ -45,14 +44,22 @@ namespace Inedo.Extensions.GitHub.IssueSources
 
         public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var resource = (GitHubSecureResource)this.GetResource(new ResourceResolutionContext(context.ProjectId));
+            var resource = (GitHubRepository)this.GetResource(new ResourceResolutionContext(context.ProjectId));
             if (resource == null)
                 throw new InvalidOperationException("missing resource");
-            var credentials = (GitHubSecureCredentials)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
+            var credentials = (GitHubAccount)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
 
             var client = new GitHubClient(credentials, resource);
-            var projects = await client.GetProjectsAsync(resource.OrganizationName, this.RepositoryName, CancellationToken.None);
-            var project = projects.FirstOrDefault(p => string.Equals(p["name"]?.ToString(), this.ProjectName, StringComparison.OrdinalIgnoreCase));
+            GitHubProject project = null;
+            await foreach (var p in client.GetProjectsAsync(resource.OrganizationName, this.RepositoryName, cancellationToken))
+            {
+                if (string.Equals(p.Name, this.ProjectName, StringComparison.OrdinalIgnoreCase))
+                {
+                    project = p;
+                    break;
+                }
+            }
+
             if (project == null)
             {
                 if (this.FailIfMissing)
@@ -61,22 +68,16 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 yield break;
             }
 
-            var columns = await client.GetProjectColumnsAsync((string)project["columns_url"], CancellationToken.None);
-            var issues = new List<IIssueTrackerIssue>();
-            foreach (var column in columns)
+            await foreach (var column in client.GetProjectColumnsAsync(project.ColumnsUrl, cancellationToken))
             {
-                foreach (var card in column.Value)
+                foreach (var issueUrl in column.IssueUrls)
                 {
-                    var issueUrl = (string)card["content_url"];
-                    if (string.IsNullOrEmpty(issueUrl))
-                        continue;
-
-                    var issue = await client.GetIssueAsync(issueUrl, cancellationToken);
-                    yield return new GitHubIssue(issue, column.Key, this.ClosedStates.Split('\n').Contains(column.Key, StringComparer.OrdinalIgnoreCase));
+                    var issue = await client.GetIssueAsync(issueUrl, column.Name, this.ClosedStates.Split('\n').Contains(column.Name, StringComparer.OrdinalIgnoreCase), cancellationToken);
+                    yield return issue;
                 }
             }
         }
 
-        public override RichDescription GetDescription() => new($"GitHub project ", new Hilite(this.ProjectName), " issue source");
+        public override RichDescription GetDescription() => new("GitHub project ", new Hilite(this.ProjectName), " issue source");
     }
 }

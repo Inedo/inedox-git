@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Text;
-using System.Threading.Tasks;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.SuggestionProviders;
-using Inedo.Extensions.AzureDevOps.VisualStudioOnline.Model;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Serialization;
 using Inedo.Web;
 
@@ -26,12 +20,10 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         [ScriptAlias("IterationPath")]
         [DisplayName("Iteration path")]
         [PlaceholderText("Unchanged")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         public string IterationPath { get; set; }
 
         [ScriptAlias("Filter")]
         [DisplayName("Filter")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         [Description("Filter WIQL that will be appended to the WIQL where clause."
             + "See the <a href=\"https://docs.microsoft.com/en-us/azure/devops/boards/queries/wiql-syntax?view=azure-devops\">Azure DevOps Query Language documentation</a> "
             + "for more information.")]
@@ -61,35 +53,35 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new RestApi(c?.Token, r.InstanceUrl, this);
+            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c?.Password);
             string wiql = this.GetWiql(context.Log);
             var closedStates = this.ClosedStates.Split(',');
 
-            var workItemsResponse = (await client.GetWorkItemsFromWiqlAsync(wiql).ConfigureAwait(false));
-            var columns = workItemsResponse.SelectMany(wi => wi.fields.Select(f => f.Key)).Distinct().ToArray();
+            var workItemsResponse = await client.GetWorkItemsAsync(wiql, context.CancellationToken).ToListAsync().ConfigureAwait(false);
+            var columns = workItemsResponse.SelectMany(wi => wi.Fields.Select(f => f.Key)).Distinct().ToArray();
             this.Output = new RuntimeValue(workItemsResponse.Select(wi => getItem(wi)).ToArray());
 
-            RuntimeValue getItem(GetWorkItemResponse wi)
+            RuntimeValue getItem(AdoWorkItem wi)
             {
                 var item = new Dictionary<string, RuntimeValue>
                 {
-                    { "Id", wi.id.ToString() },
-                    { "URL", wi._links.html.href }
+                    { "Id", wi.Id.ToString() },
+                    { "URL", wi.Links.Html.Href }
                 };
 
                 if (columns.Contains("System.State"))
                 {
-                    if (wi.fields.ContainsKey("System.State"))
-                        item.Add("IsClosed", closedStates.Contains(wi.fields.GetValueOrDefault("System.State")?.ToString(), StringComparer.OrdinalIgnoreCase));
+                    if (wi.Fields.ContainsKey("System.State"))
+                        item.Add("IsClosed", closedStates.Contains(wi.Fields.GetValueOrDefault("System.State")?.ToString(), StringComparer.OrdinalIgnoreCase));
                     else
                         item.Add("IsClosed", false);
                 }
 
                 foreach (var column in columns)
                 {
-                    if (!item.ContainsKey(column) && wi.fields.ContainsKey(column))
-                        item.Add(column, wi.fields.GetValueOrDefault(column)?.ToString());
-                    else if(!item.ContainsKey(column))
+                    if (!item.ContainsKey(column) && wi.Fields.ContainsKey(column))
+                        item.Add(column, wi.Fields.GetValueOrDefault(column)?.ToString());
+                    else if (!item.ContainsKey(column))
                         item.Add(column, null);
                 }
                 return new RuntimeValue(item);
@@ -98,7 +90,6 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
-            string iteration = config[nameof(this.IterationPath)];
             var longDescription = new RichDescription();
             longDescription.AppendContent("Get Work Items from ");
             if (config[nameof(this.CustomWiql)] == null)

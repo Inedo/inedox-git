@@ -1,12 +1,10 @@
-﻿using System;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Web;
 
@@ -45,36 +43,43 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         public async override Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var api = new RestApi(c?.Token, r.InstanceUrl, this);
+            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
 
             this.LogDebug("Finding Azure DevOps build definition...");
-            var definitionResult = await api.GetBuildDefinitionsAsync(r.ProjectName);
-            var definition = definitionResult.FirstOrDefault(d => string.IsNullOrEmpty(this.BuildDefinition) || string.Equals(d.name, this.BuildDefinition, StringComparison.OrdinalIgnoreCase));
+            AdoBuildDef definition = null;
+            await foreach (var d in client.GetBuildDefinitionsAsync(r.ProjectName, context.CancellationToken))
+            {
+                if (string.IsNullOrEmpty(this.BuildDefinition) || string.Equals(d.Name, this.BuildDefinition, StringComparison.OrdinalIgnoreCase))
+                {
+                    definition = d;
+                    break;
+                }
+            }
 
             if (definition == null)
-                throw new InvalidOperationException("Could not find a build definition named: " + AH.CoalesceString(this.BuildDefinition, "any"));
+                throw new ExecutionFailureException("Could not find a build definition named: " + AH.CoalesceString(this.BuildDefinition, "any"));
 
-            this.LogInformation($"Queueing Azure DevOps build of {r.ProjectName}, build definition {definition.name}...");
+            this.LogInformation($"Queueing Azure DevOps build of {r.ProjectName}, build definition {definition.Name}...");
 
-            var queuedBuild = await api.QueueBuildAsync(r.ProjectName, definition.id);
+            var queuedBuild = await client.QueueBuildAsync(r.ProjectName, definition.Id, context.CancellationToken);
 
-            this.LogInformation($"Build number \"{queuedBuild.buildNumber}\" created for definition \"{queuedBuild.definition.name}\".");
+            this.LogInformation($"Build number \"{queuedBuild.BuildNumber}\" created for definition \"{queuedBuild.Definition.Name}\".");
 
-            this.AzureDevOpsBuildNumber = queuedBuild.buildNumber;
+            this.AzureDevOpsBuildNumber = queuedBuild.BuildNumber;
 
             if (this.WaitForCompletion)
             {
-                string lastStatus = queuedBuild.status;
+                string lastStatus = queuedBuild.Status;
                 this.LogInformation($"Current build status is \"{lastStatus}\", waiting for \"completed\" status...");
 
-                while (!string.Equals(queuedBuild.status, "completed", StringComparison.OrdinalIgnoreCase))
+                while (!string.Equals(queuedBuild.Status, "completed", StringComparison.OrdinalIgnoreCase))
                 {
                     await Task.Delay(4000, context.CancellationToken);
-                    queuedBuild = await api.GetBuildAsync(r.ProjectName, queuedBuild.id);
-                    if (queuedBuild.status != lastStatus)
+                    queuedBuild = await client.GetBuildAsync(r.ProjectName, queuedBuild.Id, context.CancellationToken);
+                    if (queuedBuild.Status != lastStatus)
                     {
-                        this.LogInformation($"Current build status changed from \"{lastStatus}\" to \"{queuedBuild.status}\"...");
-                        lastStatus = queuedBuild.status;
+                        this.LogInformation($"Current build status changed from \"{lastStatus}\" to \"{queuedBuild.Status}\"...");
+                        lastStatus = queuedBuild.Status;
                     }
                 }
 
@@ -83,16 +88,17 @@ namespace Inedo.Extensions.AzureDevOps.Operations
                 if (this.ValidateBuild)
                 {
                     this.LogInformation("Validating build status result is \"succeeded\"...");
-                    if (!string.Equals("succeeded", queuedBuild.result, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals("succeeded", queuedBuild.Result, StringComparison.OrdinalIgnoreCase))
                     {
                         this.LogError("Build status result was not \"succeeded\".");
                         return;
                     }
+
                     this.LogInformation("Build status result was \"succeeded\".");
                 }
             }
 
-            this.LogInformation($"Azure DevOps build {queuedBuild.buildNumber} created.");
+            this.LogInformation($"Azure DevOps build {queuedBuild.BuildNumber} created.");
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

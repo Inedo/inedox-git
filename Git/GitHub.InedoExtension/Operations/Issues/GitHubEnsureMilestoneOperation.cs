@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
@@ -24,8 +23,17 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var github = new GitHubClient(credentials, resource);
-            var milestones = await github.GetMilestonesAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, null, context.CancellationToken).ConfigureAwait(false);
-            var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
+
+            GitHubMilestone milestone = null;
+            await foreach (var m in github.GetMilestonesAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, null, context.CancellationToken).ConfigureAwait(false))
+            {
+                if (string.Equals(m.Title, this.Template.Title, StringComparison.OrdinalIgnoreCase))
+                {
+                    milestone = m;
+                    break;
+                }
+            }
+
             if (milestone == null)
             {
                 return new GitHubMilestoneConfiguration
@@ -37,10 +45,10 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
             return new GitHubMilestoneConfiguration
             {
                 Exists = true,
-                Title = milestone["title"]?.ToString() ?? string.Empty,
-                Description = milestone["description"]?.ToString() ?? string.Empty,
-                DueDate = milestone["due_on"]?.ToString()?.Substring(0, 10),
-                State = (GitHubMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitHubMilestoneConfiguration.OpenOrClosed), milestone["state"]?.ToString())
+                Title = milestone?.Title ?? string.Empty,
+                Description = milestone?.Description ?? string.Empty,
+                DueDate = milestone?.DueOn?[..10],
+                State = (GitHubMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitHubMilestoneConfiguration.OpenOrClosed), milestone?.State)
             };
         }
 

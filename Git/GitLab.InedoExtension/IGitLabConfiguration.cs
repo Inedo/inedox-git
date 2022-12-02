@@ -1,9 +1,8 @@
-﻿using System.Security;
-using Inedo.Extensibility;
+﻿using System;
+using System.Security;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.Operations;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.GitLab.Credentials;
 
 namespace Inedo.Extensions.GitLab
 {
@@ -16,6 +15,25 @@ namespace Inedo.Extensions.GitLab
         SecureString Password { get; }
         string UserName { get; }
     }
+
+    internal record GitLabProjectId(string GroupName, string ProjectName)
+    {
+        public GitLabProjectId(GitLabRepository repository)
+            : this(repository.GroupName, repository.ProjectName)
+        {
+        }
+
+        public static implicit operator GitLabProjectId(GitLabRepository r) => new(r);
+
+        public string ToUriFragment()
+        {
+            if (!string.IsNullOrEmpty(this.GroupName))
+                return Uri.EscapeDataString(this.GroupName + "/" + this.ProjectName);
+            else
+                return Uri.EscapeDataString(this.ProjectName ?? string.Empty);
+        }
+    }
+
     internal static class GitLabOperationExtensions 
     {
         public static string DescribeSource(this IOperationConfiguration config)
@@ -26,24 +44,24 @@ namespace Inedo.Extensions.GitLab
                 "(unknown)");
         }
 
-        public static (GitLabSecureCredentials, GitLabSecureResource) GetCredentialsAndResource(this IGitLabConfiguration operation, ICredentialResolutionContext context)
+        public static (GitLabAccount, GitLabRepository) GetCredentialsAndResource(this IGitLabConfiguration operation, ICredentialResolutionContext context)
         {
-            GitLabSecureCredentials credentials; GitLabSecureResource resource; 
+            GitLabAccount credentials; GitLabRepository resource; 
             if (string.IsNullOrEmpty(operation.ResourceName))
             {
-                credentials = string.IsNullOrEmpty(operation.UserName) ? null : new GitLabSecureCredentials();
-                resource = string.IsNullOrEmpty(AH.CoalesceString(operation.ProjectName, operation.GroupName, operation.ApiUrl)) ? null : new GitLabSecureResource();
+                credentials = string.IsNullOrEmpty(operation.UserName) ? null : new GitLabAccount();
+                resource = string.IsNullOrEmpty(AH.CoalesceString(operation.ProjectName, operation.GroupName, operation.ApiUrl)) ? null : new GitLabRepository();
             }
             else
             {
-                resource = (GitLabSecureResource)SecureResource.TryCreate(operation.ResourceName, context);
+                resource = (GitLabRepository)SecureResource.TryCreate(operation.ResourceName, context);
                 if (resource == null)
                 {
                     credentials = null;
                 }
                 else
                 {
-                    credentials = (GitLabSecureCredentials)resource.GetCredentials(context);
+                    credentials = (GitLabAccount)resource.GetCredentials(context);
                 }
             }
 
@@ -51,10 +69,10 @@ namespace Inedo.Extensions.GitLab
             {
                 credentials.UserName = AH.CoalesceString(operation.UserName, credentials.UserName);
                 credentials.PersonalAccessToken = operation.Password ?? credentials.PersonalAccessToken;
+                credentials.ServiceUrl = operation.ApiUrl ?? credentials.ServiceUrl ?? resource?.LegacyApiUrl;
             }
             if (resource != null)
             {
-                resource.ApiUrl = AH.CoalesceString(operation.ApiUrl, resource.ApiUrl);
                 resource.GroupName = AH.CoalesceString(operation.GroupName, resource.GroupName);
                 resource.ProjectName = AH.CoalesceString(operation.ProjectName, resource.ProjectName);
             }

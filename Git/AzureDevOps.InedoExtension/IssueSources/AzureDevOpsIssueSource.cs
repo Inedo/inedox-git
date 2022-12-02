@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.Credentials;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Extensions.AzureDevOps.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -19,7 +15,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
 {
     [DisplayName("Azure DevOps Issue Source")]
     [Description("Issue source for Azure DevOps.")]
-    public sealed class AzureDevOpsIssueSource : IssueSource<AzureDevOpsSecureResource>, IMissingPersistentPropertyHandler
+    public sealed class AzureDevOpsIssueSource : IssueSource<AzureDevOpsRepository>, IMissingPersistentPropertyHandler
     {
         [Persistent]
         [DisplayName("Project")]
@@ -27,7 +23,6 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
         public string Project { get; set; }
         [Persistent]
         [DisplayName("Iteration path")]
-        [SuggestableValue(typeof(IterationPathSuggestionProvider))]
         public string IterationPath { get; set; }
         [Persistent]
         [DisplayName("Closed states")]
@@ -50,19 +45,18 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
 
         public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
-            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsRepository;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsAccount;
             if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate AzureDevOps issues.");
 
-            var client = new RestApi(credentials?.Token, resource.InstanceUrl, context.Log);
-            string wiql = this.GetWiql(context.Log);
+            var client = new AzureDevOpsClient(resource.LegacyInstanceUrl, credentials?.Password );
+            var wiql = this.GetWiql(context.Log);
 
-            var workItems = await client.GetWorkItemsAsync(wiql).ConfigureAwait(false);
-            var closedStates = this.ClosedStates.Split(',');
+            var closedStates = this.ClosedStates.Split(',').ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var w in workItems)
-                yield return new AzureDevOpsWorkItem(w, closedStates);
+            await foreach (var i in client.GetWorkItemsAsync(wiql, cancellationToken).ConfigureAwait(false))
+                yield return new AzureDevOpsWorkItem(i, closedStates);
         }
 
         private string GetWiql(ILogSink log)

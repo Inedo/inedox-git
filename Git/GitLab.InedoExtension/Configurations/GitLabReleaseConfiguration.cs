@@ -7,7 +7,6 @@ using Inedo.Documentation;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Configurations;
 using Inedo.Extensibility.Operations;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -22,7 +21,7 @@ namespace Inedo.Extensions.GitLab.Configurations
         [ScriptAlias("From")]
         [ScriptAlias("Credentials")]
         [DisplayName("From GitLab resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<GitLabRepository>))]
         [IgnoreConfigurationDrift]
         public string ResourceName { get; set; }
 

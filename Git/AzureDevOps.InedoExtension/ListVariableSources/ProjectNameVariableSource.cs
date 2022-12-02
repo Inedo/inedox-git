@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensibility.VariableTemplates;
-using Inedo.Extensions.AzureDevOps.Clients.Rest;
-using Inedo.Extensions.AzureDevOps.Credentials;
+using Inedo.Extensions.AzureDevOps.Client;
 using Inedo.Serialization;
 using Inedo.Web;
 using Inedo.Web.Controls;
@@ -23,30 +18,36 @@ namespace Inedo.Extensions.AzureDevOps.ListVariableSources
     {
         [Persistent]
         [DisplayName("From AzureDevOps resource")]
-        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsSecureResource>))]
+        [SuggestableValue(typeof(SecureResourceSuggestionProvider<AzureDevOpsRepository>))]
         [Required]
         public string ResourceName { get; set; }
 
         public override async Task<IEnumerable<string>> EnumerateListValuesAsync(VariableTemplateContext context)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsSecureResource;
-            var credential = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as AzureDevOpsSecureCredentials;
-            if (resource == null)
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as AzureDevOpsRepository;
+            if (resource == null || resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) is not AzureDevOpsAccount credential)
                 return Enumerable.Empty<string>();
 
-            var api = new RestApi(credential?.Token, resource.InstanceUrl, null);
-            var projects = await api.GetProjectsAsync().ConfigureAwait(false);
-            return projects.Select(p => p.name);
+            var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl), credential.Password);
+            return (await client.GetProjectsAsync().ToListAsync().ConfigureAwait(false))
+                .Select(p => p.Name);
         }
 
         public override ISimpleControl CreateRenderer(RuntimeValue value, VariableTemplateContext context)
         {
-            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not AzureDevOpsSecureResource resource || !Uri.TryCreate(resource.InstanceUrl.TrimEnd('/'), UriKind.Absolute, out _))
+            if (SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) is not AzureDevOpsRepository resource)
                 return new LiteralHtml(value.AsString());
 
-            return new A($"{resource.InstanceUrl.TrimEnd('/')}/{value.AsString()}", value.AsString())
+            if (resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) is not AzureDevOpsAccount credential)
+                return new LiteralHtml(value.AsString());
+
+            var url = AH.CoalesceString(resource.LegacyInstanceUrl, credential.ServiceUrl);
+            if (string.IsNullOrEmpty(url))
+                return new LiteralHtml(value.AsString());
+
+            return new A($"{url.AsSpan().TrimEnd('/')}/{value.AsString()}", value.AsString())
             {
-                Class = "ci-icon azuredevops",
+                Classes = { "ci-icon", "azuredevops" },
                 Target = "_blank"
             };
         }

@@ -1,36 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Security;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Inedo.ExecutionEngine.Executer;
-using Inedo.Extensions.GitHub.Credentials;
-using Inedo.IO;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Inedo.Extensibility.Git;
+using Inedo.Extensions.GitHub.IssueSources;
 
 namespace Inedo.Extensions.GitHub.Clients
 {
     internal sealed class GitHubClient
     {
         public const string GitHubComUrl = "https://api.github.com";
-        private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled);
+        private static readonly LazyRegex NextPageLinkPattern = new("<(?<uri>[^>]+)>; rel=\"next\"", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly string[] EnabledPreviews = new[]
         {
             "application/vnd.github.inertia-preview+json", // projects
         };
         private readonly string apiBaseUrl;
-
-#if NET452
-        static GitHubClient()
-        {
-            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-        }
-#endif
 
         public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
         {
@@ -40,64 +34,226 @@ namespace Inedo.Extensions.GitHub.Clients
             this.apiBaseUrl = AH.CoalesceString(apiBaseUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
             this.UserName = userName;
             this.Password = password;
-            this.OrganizationName = AH.NullIf(organizationName, string.Empty);
         }
-        public GitHubClient(GitHubSecureCredentials credentials, GitHubSecureResource resource)
+        public GitHubClient(GitHubAccount credentials, GitHubRepository resource)
         {
-            this.apiBaseUrl = AH.CoalesceString(resource?.ApiUrl, GitHubComUrl).TrimEnd('/');
+            this.apiBaseUrl = AH.CoalesceString(resource?.LegacyApiUrl, GitHubComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
             this.Password = credentials?.Password;
-            this.OrganizationName = AH.NullIf(resource?.OrganizationName, string.Empty);
         }
 
-        public string OrganizationName { get; }
         public string UserName { get; }
         public SecureString Password { get; }
 
-        public async Task<IList<JObject>> GetOrganizationsAsync(CancellationToken cancellationToken)
+        public IAsyncEnumerable<string> GetOrganizationsAsync(CancellationToken cancellationToken)
         {
-            var results = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/user/orgs?per_page=100", cancellationToken).ConfigureAwait(false);
-            return results.Cast<JObject>().ToList();
+            return this.InvokePagesAsync(
+                $"{this.apiBaseUrl}/user/orgs?per_page=100",
+                d => SelectString(d, "login"),
+                cancellationToken
+            );
         }
-        public async Task<IList<JObject>> GetRepositoriesAsync(CancellationToken cancellationToken)
+        public IAsyncEnumerable<string> GetRepositoriesAsync(string organizationName, CancellationToken cancellationToken)
         {
             string url;
-            if (!string.IsNullOrEmpty(this.OrganizationName))
-                url = $"{this.apiBaseUrl}/orgs/{Esc(this.OrganizationName)}/repos?per_page=100";
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/orgs/{Esc(organizationName)}/repos?per_page=100";
             else
                 url = $"{this.apiBaseUrl}/user/repos?per_page=100";
 
-            IEnumerable<object> results;
-            try
-            {
-                results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
-            }
-            catch when (!string.IsNullOrEmpty(this.OrganizationName))
-            {
-                url = $"{this.apiBaseUrl}/users/{Esc(this.OrganizationName)}/repos?per_page=100";
-                results = await this.InvokePagesAsync("GET", url, cancellationToken).ConfigureAwait(false);
-            }
-            return results.Cast<JObject>().ToList();
+            return this.InvokePagesAsync(
+                url,
+                d => SelectString(d, "name"),
+                cancellationToken
+            );
         }
-        public async Task<IList<JObject>> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
+        public async Task<GitHubRepositoryInfo> GetRepositoryAsync(string organizationName, string repositoryName, CancellationToken cancellationToken = default)
         {
-            var issues = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}", cancellationToken).ConfigureAwait(false);
-            return issues.Cast<JObject>().ToList();
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}";
+
+            using var doc = await this.InvokeAsync(HttpMethod.Get, url, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var obj = doc.RootElement;
+
+            return new GitHubRepositoryInfo
+            {
+                RepositoryUrl = obj.GetProperty("clone_url").GetString(),
+                BrowseUrl = obj.GetProperty("html_url").GetString(),
+                DefaultBranch = obj.GetProperty("default_branch").GetString()
+            };
+        }
+        public IAsyncEnumerable<GitRemoteBranch> GetBranchesAsync(string organizationName, string repositoryName, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/branches?per_page=100";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/branches?per_page=100";
+
+            return this.InvokePagesAsync(url, selectBranches, cancellationToken);
+
+            static IEnumerable<GitRemoteBranch> selectBranches(JsonDocument d)
+            {
+                foreach (var e in d.RootElement.EnumerateArray())
+                {
+                    if (!e.TryGetProperty("name", out var nameProp) || nameProp.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    var name = nameProp.GetString();
+
+                    if (!e.TryGetProperty("commit", out var commit) || commit.ValueKind != JsonValueKind.Object || !commit.TryGetProperty("sha", out var sha) || sha.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    if (!GitObjectId.TryParse(sha.GetString(), out var hash))
+                        continue;
+
+                    bool isProtected = e.TryGetProperty("protected", out var p) && p.ValueKind == JsonValueKind.True;
+
+                    yield return new GitRemoteBranch(hash, name, isProtected);
+                }
+            }
+        }
+        public IAsyncEnumerable<GitPullRequest> GetPullRequestsAsync(string organizationName, string repositoryName, bool includeClosed, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls?per_page=100";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls?per_page=100";
+
+            url = $"{url}&state={(includeClosed ? "all" : "open")}";
+
+            return this.InvokePagesAsync(url, selectPullRequests, cancellationToken);
+
+            static IEnumerable<GitPullRequest> selectPullRequests(JsonDocument d)
+            {
+                foreach (var pr in d.RootElement.EnumerateArray())
+                {
+                    // skip requests from other repositories for now
+                    long sourceRepoId = pr.GetProperty("head").GetProperty("repo").GetProperty("id").GetInt64();
+                    long targetRepoId = pr.GetProperty("base").GetProperty("repo").GetProperty("id").GetInt64();
+                    if (sourceRepoId != targetRepoId)
+                        continue;
+
+                    var url = pr.GetProperty("url").GetString();
+                    var id = pr.GetProperty("id").ToString();
+                    bool closed = pr.GetProperty("state").ValueEquals("closed");
+                    var title = pr.GetProperty("title").GetString();
+                    var from = pr.GetProperty("head").GetProperty("ref").GetString();
+                    var to = pr.GetProperty("base").GetProperty("ref").GetString();
+
+                    yield return new GitPullRequest(id, url, title, closed, from, to);
+                }
+            }
+        }
+        public async Task MergePullRequestAsync(string organizationName, string repositoryName, int id, string headCommit, string message, string method, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls/";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls/";
+
+            url += $"{id}/merge";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    commit_title = message,
+                    merge_method = method,
+                    sha = headCommit
+                },
+                cancellationToken: cancellationToken
+            );
+        }
+        public async Task<int> CreatePullRequestAsync(string organizationName, string repositoryName, string source, string target, string title, string description, CancellationToken cancellationToken = default)
+        {
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    title,
+                    body = description,
+                    head = source,
+                    @base = target
+                },
+                cancellationToken: cancellationToken
+            );
+
+            return doc.RootElement.GetProperty("id").GetInt32();
         }
 
-        public async Task<JObject> GetIssueAsync(string issueUrl, CancellationToken cancellationToken = default)
+        public async Task SetCommitStatusAsync(string organizationName, string repositoryName, string commit, string status, string description, string context, CancellationToken cancellationToken)
         {
-            var issue = await this.InvokeAsync("GET", issueUrl, cancellationToken).ConfigureAwait(false);
-            return (JObject)issue;
+            string url;
+            if (!string.IsNullOrEmpty(organizationName))
+                url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+            else
+                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                url,
+                new
+                {
+                    state = status,
+                    description,
+                    context
+                },
+                cancellationToken: cancellationToken
+            );
+        }
+
+        public IAsyncEnumerable<GitHubIssue> GetIssuesAsync(string ownerName, string repositoryName, GitHubIssueFilter filter, CancellationToken cancellationToken)
+        {
+            return this.InvokePagesAsync(
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues{filter.ToQueryString()}",
+                getIssues,
+                cancellationToken
+            );
+
+            static IEnumerable<GitHubIssue> getIssues(JsonDocument doc)
+            {
+                foreach (var obj in doc.RootElement.EnumerateArray())
+                    yield return new GitHubIssue(obj);
+            }
+        }
+        public async Task<GitHubIssue> GetIssueAsync(string issueUrl, string statusOverride = null, bool? closedOverride = null, CancellationToken cancellationToken = default)
+        {
+            using var doc = await this.InvokeAsync(HttpMethod.Get, issueUrl, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return new GitHubIssue(doc.RootElement, statusOverride, closedOverride);
         }
         public async Task<int> CreateIssueAsync(string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
         {
-            var issue = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues", data, cancellationToken).ConfigureAwait(false);
-            return int.TryParse(issue["number"]?.ToString(), out int number) ? number : 0;
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues",
+                data,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
+
+            return doc.RootElement.GetProperty("number").GetInt32();
         }
-        public Task UpdateIssueAsync(int issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
+        public async Task UpdateIssueAsync(int issueId, string ownerName, string repositoryName, object update, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}", update, cancellationToken);
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Patch,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}",
+                update,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
         }
 
         public async Task<int> CreateMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
@@ -106,181 +262,185 @@ namespace Inedo.Extensions.GitHub.Clients
             if (milestoneNumber.HasValue)
                 return milestoneNumber.Value;
 
-            var data = (JObject)await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones", new { title = milestone }, cancellationToken).ConfigureAwait(false);
-            return int.TryParse(data["number"]?.ToString(), out int number) ? number : 0;
-        }
-        public async Task CloseMilestoneAsync(string milestone, string ownerName, string repositoryName, CancellationToken cancellationToken)
-        {
-            int? milestoneNumber = await this.FindMilestoneAsync(milestone, ownerName, repositoryName, cancellationToken).ConfigureAwait(false);
-            if (milestoneNumber == null)
-                return;
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones",
+                new { title = milestone },
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
 
-            await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{milestoneNumber}", new { state = "closed" }, cancellationToken).ConfigureAwait(false);
+            return doc.RootElement.GetProperty("number").GetInt32();
         }
 
-        public Task UpdateMilestoneAsync(int milestoneNumber, string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
+        public async Task UpdateMilestoneAsync(int milestoneNumber, string ownerName, string repositoryName, object data, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{milestoneNumber}", data, cancellationToken);
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Patch,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones/{milestoneNumber}",
+                data,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
         }
 
-        public Task CreateStatusAsync(string ownerName, string repositoryName, string commitHash, string state, string target_url, string description, string context, CancellationToken cancellationToken)
+        public async Task CreateStatusAsync(string ownerName, string repositoryName, string commitHash, string state, string target_url, string description, string context, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/statuses/{Esc(commitHash)}", new { state, target_url, description, context }, cancellationToken);
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/statuses/{Esc(commitHash)}",
+                new { state, target_url, description, context },
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
         }
 
-        public Task CreateCommentAsync(int issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
+        public async Task CreateCommentAsync(int issueId, string ownerName, string repositoryName, string commentText, CancellationToken cancellationToken)
         {
-            return this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}/comments", new { body = commentText }, cancellationToken);
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Post,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/issues/{issueId}/comments",
+                new { body = commentText },
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
         }
 
         public async Task<int?> FindMilestoneAsync(string title, string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
-            var milestones = await this.GetMilestonesAsync(ownerName, repositoryName, "all", cancellationToken).ConfigureAwait(false);
-            return milestones
-                .Where(m => string.Equals(m["title"]?.ToString() ?? string.Empty, title, StringComparison.OrdinalIgnoreCase))
-                .Select(m => int.TryParse(m["number"]?.ToString(), out int number) ? number : (int?)null)
-                .FirstOrDefault();
+            await foreach (var m in this.GetMilestonesAsync(ownerName, repositoryName, "all", cancellationToken).ConfigureAwait(false))
+            {
+                if (string.Equals(m.Title, title, StringComparison.OrdinalIgnoreCase))
+                    return m.Number;
+            }
+
+            return null;
         }
 
-        public async Task<IList<JObject>> GetMilestonesAsync(string ownerName, string repositoryName, string state, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitHubMilestone> GetMilestonesAsync(string ownerName, string repositoryName, string state, CancellationToken cancellationToken)
         {
-            var milestones = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones?state={Uri.EscapeDataString(state)}&sort=due_on&direction=desc&per_page=100", cancellationToken).ConfigureAwait(false);
-            if (milestones == null)
-                return Array.Empty<JObject>();
-
-            return milestones.Cast<JObject>().ToList();
+            return this.InvokePagesAsync(
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/milestones?state={Uri.EscapeDataString(state)}&sort=due_on&direction=desc&per_page=100",
+                d => System.Text.Json.JsonSerializer.Deserialize<IEnumerable<GitHubMilestone>>(d),
+                cancellationToken
+            );
         }
 
-        public async Task<IList<JObject>> GetProjectsAsync(string ownerName, string repositoryName, CancellationToken cancellationToken)
+        public IAsyncEnumerable<GitHubProject> GetProjectsAsync(string ownerName, string repositoryName, CancellationToken cancellationToken)
         {
             var url = $"{this.apiBaseUrl}/orgs/{Esc(ownerName)}/projects?state=all";
             if (!string.IsNullOrEmpty(repositoryName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/projects?state=all";
 
-            var projects = await this.InvokePagesAsync("GET", url, cancellationToken);
-            if (projects == null)
-                return Array.Empty<JObject>();
-
-            return projects.Cast<JObject>().ToList();
+            return this.InvokePagesAsync(
+                url,
+                d => System.Text.Json.JsonSerializer.Deserialize<IEnumerable<GitHubProject>>(d),
+                cancellationToken
+            );
         }
 
-        internal async Task<IList<KeyValuePair<string, IList<JObject>>>> GetProjectColumnsAsync(string projectColumnsUrl, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<ProjectColumnData> GetProjectColumnsAsync(string projectColumnsUrl, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var columnData = await this.InvokePagesAsync("GET", projectColumnsUrl, cancellationToken);
-            if (columnData == null)
-                return Array.Empty<KeyValuePair<string, IList<JObject>>>();
-
-            var columns = new List<KeyValuePair<string, IList<JObject>>>();
-            foreach (var column in columnData.Cast<Dictionary<string, object>>())
+            await foreach (var (cardsUrl, name) in this.InvokePagesAsync(projectColumnsUrl, getColumns, cancellationToken).ConfigureAwait(false))
             {
-                var cardData = await this.InvokePagesAsync("GET", (string)column["cards_url"], cancellationToken);
-                var cards = cardData?.Cast<JObject>().ToArray() ?? Array.Empty<JObject>();
-                columns.Add(new KeyValuePair<string, IList<JObject>>((string)column["name"], cards.ToList()));
+                var issueUrls = new List<string>();
+
+                await foreach (var issueUrl in this.InvokePagesAsync(cardsUrl, getIssueUrls, cancellationToken).ConfigureAwait(false))
+                    issueUrls.Add(issueUrl);
+
+                yield return new ProjectColumnData(name, issueUrls);
             }
 
-            return columns;
-        }
-
-        public async Task<JObject> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
-        {
-            try
+            static IEnumerable<(string cardsUrl, string name)> getColumns(JsonDocument doc)
             {
-                var releases = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", cancellationToken).ConfigureAwait(false);
-                return releases.Cast<JObject>().SingleOrDefault(r => string.Equals((string)r["tag_name"], tag));
+                foreach (var obj in doc.RootElement.EnumerateArray())
+                    yield return (obj.GetProperty("cards_url").GetString(), obj.GetProperty("name").GetString());
             }
-            catch (Exception ex) when (((ex.InnerException as WebException)?.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
+
+            static IEnumerable<string> getIssueUrls(JsonDocument doc)
             {
-                return null;
+                foreach (var obj in doc.RootElement.EnumerateArray())
+                {
+                    if (obj.TryGetProperty("content_url", out var value))
+                        yield return value.GetString();
+                }
             }
         }
 
-        public async Task<IEnumerable<string>> ListRefsAsync(string ownerName, string repositoryName, RefType? type, CancellationToken cancellationToken)
+        public async Task<GitHubRelease> GetReleaseAsync(string ownerName, string repositoryName, string tag, CancellationToken cancellationToken)
         {
-            var prefix = AH.Switch<RefType?, string>(type)
-                .Case(null, "refs")
-                .Case(RefType.Branch, "refs/heads")
-                .Case(RefType.Tag, "refs/tags")
-                .End();
+            using var doc = await this.InvokeAsync(
+                HttpMethod.Get,
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/tags/{Esc(tag)}",
+                nullOn404: true,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
 
-            var refs = await this.InvokePagesAsync("GET", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/git/{prefix}", cancellationToken).ConfigureAwait(false);
+            return doc != null ? System.Text.Json.JsonSerializer.Deserialize<GitHubRelease>(doc) : null;
+        }
 
-            return refs.Cast<JObject>().Select(r => trim((string)r["ref"]));
-
-            string trim(string s)
+        public IAsyncEnumerable<string> ListRefsAsync(string ownerName, string repositoryName, RefType? type, CancellationToken cancellationToken = default)
+        {
+            var prefix = type switch
             {
-                if (s.StartsWith(prefix))
-                    s = s[prefix.Length..];
+                RefType.Branch => "refs/heads",
+                RefType.Tag => "refs/tags",
+                _ => "refs"
+            };
 
-                if (s.StartsWith("/"))
-                    s = s[1..];
+            return this.InvokePagesAsync(
+                $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/git/{prefix}",
+                getRefs,
+                cancellationToken
+            );
 
-                return s;
+            IEnumerable<string> getRefs(JsonDocument doc)
+            {
+                foreach (var obj in doc.RootElement.EnumerateArray())
+                {
+                    var s = obj.GetProperty("ref").GetString();
+
+                    if (s.StartsWith(prefix))
+                        s = s[prefix.Length..];
+
+                    if (s.StartsWith("/"))
+                        s = s[1..];
+
+                    yield return s;
+                }
             }
         }
 
-        public async Task<object> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target, string name, string body, bool? draft, bool? prerelease, CancellationToken cancellationToken)
+        public async Task<GitHubRelease> EnsureReleaseAsync(string ownerName, string repositoryName, string tag, string target, string name, string body, bool? draft, bool? prerelease, CancellationToken cancellationToken)
         {
-            var data = new Dictionary<string, object> { ["tag_name"] = tag };
-            if (target != null)
-                data["target_commitish"] = target;
-            if (name != null)
-                data["name"] = name;
-            if (body != null)
-                data["body"] = body;
-            if (draft.HasValue)
-                data["draft"] = draft.Value;
-            if (prerelease.HasValue)
-                data["prerelease"] = prerelease.Value;
+            var release = new GitHubRelease
+            {
+                Tag = tag,
+                Target = target,
+                Title = name,
+                Description = body,
+                Draft = draft,
+                Prerelease = prerelease
+            };
 
             var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
-            if (existingRelease != null)
-                return await this.InvokeAsync("PATCH", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{Esc(existingRelease["id"])}", data, cancellationToken).ConfigureAwait(false);
 
-            return await this.InvokeAsync("POST", $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", data, cancellationToken).ConfigureAwait(false);
+            using var doc = existingRelease != null
+                ? await this.InvokeAsync(HttpMethod.Patch, $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{Esc(existingRelease.Id)}", release, cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await this.InvokeAsync(HttpMethod.Post, $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", release, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            return System.Text.Json.JsonSerializer.Deserialize<GitHubRelease>(doc);
         }
 
-        public async Task<object> UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents, Action<long> reportProgress, CancellationToken cancellationToken)
+        public async Task UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents, Action<long> reportProgress, CancellationToken cancellationToken)
         {
             var release = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
             if (release == null)
                 throw new ExecutionFailureException($"No release found with tag {tag} in repository {ownerName}/{repositoryName}");
 
-            string uploadUrl = FormatTemplateUri((string)release["upload_url"], name);
+            var uploadUrl = FormatTemplateUri(release.UploadUrl, name);
 
-            var request = this.CreateRequest("POST", uploadUrl);
-            request.ContentType = contentType;
-            request.AllowWriteStreamBuffering = false;
-            if (contents.CanSeek)
-                request.ContentLength = contents.Length - contents.Position;
-            else
-                request.SendChunked = true;
-
-            using (cancellationToken.Register(() => request.Abort()))
-            {
-                using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false))
-                {
-                    await contents.CopyToAsync(requestStream, 81920, cancellationToken, reportProgress).ConfigureAwait(false);
-                }
-
-                try
-                {
-                    using var response = await request.GetResponseAsync().ConfigureAwait(false);
-                    using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
-
-                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    var responseJson = JsonConvert.DeserializeObject(responseText);
-                    return responseJson;
-                }
-                catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    throw;
-                }
-                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
-                {
-                    throw GetErrorResponseException(errorResponse);
-                }
-            }
+            using var content = new StreamContent(contents);
+            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            using var response = await SDK.CreateHttpClient().PostAsync(uploadUrl, content, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                throw await GetErrorResponseExceptionAsync(response).ConfigureAwait(false);
         }
 
         private static string FormatTemplateUri(string templateUri, string name)
@@ -292,104 +452,130 @@ namespace Inedo.Extensions.GitHub.Clients
             return templateUri[..index] + "?name=" + Uri.EscapeDataString(name);
         }
         private static string Esc(string part) => Uri.EscapeUriString(part ?? string.Empty);
-        private static string Esc(object part) => Esc(part?.ToString());
-
-        private async Task<IEnumerable<object>> InvokePagesAsync(string method, string uri, CancellationToken cancellationToken)
+        private static async Task<Exception> GetErrorResponseExceptionAsync(HttpResponseMessage response)
         {
-            return (IEnumerable<object>)await this.InvokeAsync(method, uri, null, true, cancellationToken).ConfigureAwait(false);
-        }
-        private Task<object> InvokeAsync(string method, string uri, CancellationToken cancellationToken)
-        {
-            return this.InvokeAsync(method, uri, null, false, cancellationToken);
-        }
-        private Task<object> InvokeAsync(string method, string uri, object data, CancellationToken cancellationToken)
-        {
-            return this.InvokeAsync(method, uri, data, false, cancellationToken);
-        }
-        private async Task<object> InvokeAsync(string method, string uri, object data, bool allPages, CancellationToken cancellationToken)
-        {
-            var request = this.CreateRequest(method, uri);
-
-            using (cancellationToken.Register(() => request.Abort()))
-            {
-                if (data != null)
-                {
-                    using var writer = new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false), InedoLib.UTF8Encoding);
-                    await writer.WriteAsync(JsonConvert.SerializeObject(data)).ConfigureAwait(false);
-                }
-
-                string linkHeader;
-                object responseJson;
-
-                try
-                {
-                    using var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false);
-                    linkHeader = response.Headers["Link"] ?? string.Empty;
-
-                    using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
-                    string responseText = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    responseJson = JsonConvert.DeserializeObject(responseText);
-                }
-                catch (WebException ex) when (ex.Status == WebExceptionStatus.RequestCanceled)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    throw;
-                }
-                catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
-                {
-                    throw GetErrorResponseException(errorResponse);
-                }
-
-                if (allPages)
-                {
-                    var nextPage = NextPageLinkPattern.Match(linkHeader);
-                    if (nextPage.Success)
-                        responseJson = ((IEnumerable<object>)responseJson).Concat((IEnumerable<object>)await this.InvokeAsync(method, nextPage.Groups["uri"].Value, data, true, cancellationToken).ConfigureAwait(false));
-                }
-
-                return responseJson;
-            }
-        }
-        private HttpWebRequest CreateRequest(string method, string uri)
-        {
-            var request = WebRequest.CreateHttp(uri);
-            request.UserAgent = "InedoGitHubExtension/" + typeof(GitHubClient).Assembly.GetName().Version.ToString();
-            request.Method = method;
-            request.Accept = string.Join(", ", new[] { "application/vnd.github.v3+json" }.Concat(EnabledPreviews));
-
-            if (!string.IsNullOrEmpty(this.UserName))
-                request.Headers[HttpRequestHeader.Authorization] = "token " + AH.Unprotect(this.Password);
-
-            return request;
-        }
-        private static Exception GetErrorResponseException(HttpWebResponse response)
-        {
-            using var reader = new StreamReader(response.GetResponseStream(), InedoLib.UTF8Encoding);
             var errorMessage = $"Server replied with {(int)response.StatusCode}";
 
-            if (response.ContentType?.StartsWith("application/json") == true)
+            if (response.Content.Headers.ContentType?.MediaType?.StartsWith("application/json") == true)
             {
-                var obj = JObject.Load(new JsonTextReader(reader));
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var doc = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
 
-                var parsedMessage = (string)obj?.Property("message");
+                string parsedMessage = null;
+
+                if (doc.RootElement.TryGetProperty("message", out var message))
+                    parsedMessage = message.GetString();
+
                 if (!string.IsNullOrWhiteSpace(parsedMessage))
                     errorMessage += ": " + parsedMessage;
 
-                if (obj?.Property("errors")?.Value is JArray errorsArray && errorsArray.Count > 0)
+                if (doc.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
                 {
-                    var moreDetails = errorsArray.OfType<JObject>().Select(o => (string)o.Property("resource") + " " + (string)o.Property("code")).ToList();
-                    if (moreDetails.Count > 0)
-                        errorMessage += " (" + string.Join(", ", moreDetails) + ")";
+                    var moreDetails = new List<string>();
+
+                    foreach (var d in errors.EnumerateArray())
+                        moreDetails.Add($"{GetStringOrDefault(d, "resource")} {GetStringOrDefault(d, "code")}".Trim());
+
+                    if(moreDetails.Count > 0)
+                        errorMessage += $" ({string.Join(", ", moreDetails)})";
                 }
             }
             else
             {
-                var details = reader.ReadToEnd();
+                var details = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(details))
                     errorMessage += ": " + details;
             }
 
             return new ExecutionFailureException(errorMessage);
+        }
+        private async Task<JsonDocument> InvokeAsync(HttpMethod method, string url, object data = null, bool nullOn404 = false, CancellationToken cancellationToken = default)
+        {
+            using var request = new HttpRequestMessage(method, url);
+            request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+            foreach (var preview in EnabledPreviews)
+                request.Headers.Accept.ParseAdd(preview);
+
+            if (!string.IsNullOrEmpty(this.UserName))
+                request.Headers.Authorization = new AuthenticationHeaderValue("token", AH.Unprotect(this.Password));
+
+            if (data != null)
+            {
+                var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(data, data.GetType(), new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+                var content = new ByteArrayContent(bytes);
+                content.Headers.ContentType = new MediaTypeHeaderValue("content/json");
+                request.Content = content;
+            }
+
+            using var response = await SDK.CreateHttpClient().SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (nullOn404 && response.StatusCode == HttpStatusCode.NotFound)
+                    return null;
+
+                throw await GetErrorResponseExceptionAsync(response).ConfigureAwait(false);
+            }
+
+            using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return await JsonDocument.ParseAsync(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        private async IAsyncEnumerable<T> InvokePagesAsync<T>(string url, Func<JsonDocument, IEnumerable<T>> getItems, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var currentUrl = url;
+            var client = SDK.CreateHttpClient();
+
+            while (currentUrl != null)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, currentUrl);
+                request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
+                foreach (var preview in EnabledPreviews)
+                    request.Headers.Accept.ParseAdd(preview);
+
+                if (!string.IsNullOrEmpty(this.UserName))
+                    request.Headers.Authorization = new AuthenticationHeaderValue("token", AH.Unprotect(this.Password));
+
+                using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                    throw await GetErrorResponseExceptionAsync(response).ConfigureAwait(false);
+
+                using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                using var doc = await JsonDocument.ParseAsync(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                foreach (var item in getItems(doc))
+                    yield return item;
+
+                currentUrl = null;
+                if (response.Headers.TryGetValues("Link", out var links))
+                {
+                    foreach (var link in links)
+                    {
+                        var m = NextPageLinkPattern.Match(link);
+                        if (m.Success)
+                        {
+                            currentUrl = m.Groups["uri"].Value;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        private static IEnumerable<string> SelectString(JsonDocument doc, string name)
+        {
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var obj in doc.RootElement.EnumerateArray())
+                {
+                    if (obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var path) && path.ValueKind == JsonValueKind.String)
+                        yield return path.GetString();
+                }
+            }
+        }
+        private static string GetStringOrDefault(in JsonElement obj, string propertyName)
+        {
+            if (obj.TryGetProperty(propertyName, out var value))
+                return value.GetString();
+            else
+                return null;
         }
     }
 }

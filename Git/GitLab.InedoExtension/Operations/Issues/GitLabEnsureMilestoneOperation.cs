@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
 using Inedo.Documentation;
 using Inedo.Extensibility;
@@ -24,8 +23,18 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var milestones = await gitlab.GetMilestonesAsync(resource.ProjectName, null, context.CancellationToken).ConfigureAwait(false);
-            var milestone = milestones.FirstOrDefault(m => string.Equals(m["title"]?.ToString() ?? string.Empty, this.Template.Title, StringComparison.OrdinalIgnoreCase));
+
+            GitLabMilestone milestone = null;
+
+            await foreach (var m in gitlab.GetMilestonesAsync(resource, null, context.CancellationToken))
+            {
+                if (string.Equals(m.Title, this.Template.Title, StringComparison.OrdinalIgnoreCase))
+                {
+                    milestone = m;
+                    break;
+                }
+            }
+
             if (milestone == null)
             {
                 return new GitLabMilestoneConfiguration
@@ -37,11 +46,11 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             return new GitLabMilestoneConfiguration
             {
                 Exists = true,
-                Title = milestone["title"]?.ToString() ?? string.Empty,
-                Description = milestone["description"]?.ToString() ?? string.Empty,
-                StartDate = milestone["start_date"]?.ToString(),
-                DueDate = milestone["due_date"]?.ToString(),
-                State = (GitLabMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitLabMilestoneConfiguration.OpenOrClosed), milestone["state"]?.ToString())
+                Title = milestone.Title,
+                Description = milestone.Description ?? string.Empty,
+                StartDate = milestone.StartDate,
+                DueDate = milestone.DueDate,
+                State = (GitLabMilestoneConfiguration.OpenOrClosed)Enum.Parse(typeof(GitLabMilestoneConfiguration.OpenOrClosed), milestone.State)
             };
         }
 
@@ -49,7 +58,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
             var gitlab = new GitLabClient(credentials, resource);
-            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, resource.ProjectName, context.CancellationToken).ConfigureAwait(false);
+            var id = await gitlab.CreateMilestoneAsync(this.Template.Title, resource, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };
             if (this.Template.StartDate != null)
@@ -61,7 +70,7 @@ namespace Inedo.Extensions.GitLab.Operations.Issues
             if (this.Template.State.HasValue)
                 data.Add("state_event", this.Template.State == GitLabMilestoneConfiguration.OpenOrClosed.open ? "activate" : "close");
 
-            await gitlab.UpdateMilestoneAsync(id, resource.ProjectName, data, context.CancellationToken).ConfigureAwait(false);
+            await gitlab.UpdateMilestoneAsync(id, resource, data, context.CancellationToken).ConfigureAwait(false);
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)

@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Inedo.Documentation;
 using Inedo.Extensibility.Credentials;
 using Inedo.Extensibility.IssueSources;
 using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.GitLab.Clients;
-using Inedo.Extensions.GitLab.Credentials;
 using Inedo.Extensions.GitLab.SuggestionProviders;
 using Inedo.Serialization;
 using Inedo.Web;
@@ -17,7 +15,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
 {
     [DisplayName("GitLab Issue Source")]
     [Description("Issue source for GitLab.")]
-    public sealed class GitLabIssueSource : IssueSource<GitLabSecureResource>, IMissingPersistentPropertyHandler
+    public sealed class GitLabIssueSource : IssueSource<GitLabRepository>, IMissingPersistentPropertyHandler
     {
         [Persistent]
         [DisplayName("Project name")]
@@ -53,10 +51,10 @@ namespace Inedo.Extensions.GitLab.IssueSources
                 this.ResourceName = value;
         }
 
-        public override async IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public override IAsyncEnumerable<IIssueTrackerIssue> EnumerateIssuesAsync(IIssueSourceEnumerationContext context, CancellationToken cancellationToken = default)
         {
-            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabSecureResource;
-            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabSecureCredentials;
+            var resource = SecureResource.TryCreate(this.ResourceName, new ResourceResolutionContext(context.ProjectId)) as GitLabRepository;
+            var credentials = resource?.GetCredentials(new CredentialResolutionContext(context.ProjectId, null)) as GitLabAccount;
             if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate GitLab issues.");
 
@@ -73,10 +71,7 @@ namespace Inedo.Extensions.GitLab.IssueSources
                 CustomFilterQueryString = this.CustomFilterQueryString
             };
 
-            var issues = await client.GetIssuesAsync(projectName, filter, CancellationToken.None).ConfigureAwait(false);
-
-            foreach (var i in issues)
-                yield return new GitLabIssue(i);
+            return client.GetIssuesAsync(resource, filter, cancellationToken);
         }
 
         public override RichDescription GetDescription()
