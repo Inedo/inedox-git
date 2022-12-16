@@ -73,7 +73,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}";
 
             using var doc = await this.InvokeAsync(HttpMethod.Get, url, cancellationToken: cancellationToken).ConfigureAwait(false);
             var obj = doc.RootElement;
@@ -91,7 +91,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/branches?per_page=100";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/branches?per_page=100";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}/branches?per_page=100";
 
             return this.InvokePagesAsync(url, selectBranches, cancellationToken);
 
@@ -122,7 +122,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls?per_page=100";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls?per_page=100";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}/pulls?per_page=100";
 
             url = $"{url}&state={(includeClosed ? "all" : "open")}";
 
@@ -155,7 +155,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls/";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls/";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}/pulls/";
 
             url += $"{id}/merge";
 
@@ -177,7 +177,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/pulls";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/pulls";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}/pulls";
 
             using var doc = await this.InvokeAsync(
                 HttpMethod.Post,
@@ -201,7 +201,7 @@ namespace Inedo.Extensions.GitHub.Clients
             if (!string.IsNullOrEmpty(organizationName))
                 url = $"{this.apiBaseUrl}/repos/{Esc(organizationName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
             else
-                url = $"{this.apiBaseUrl}/user/repos/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
+                url = $"{this.apiBaseUrl}/repos/{Esc(this.UserName)}/{Esc(repositoryName)}/statuses/{Uri.EscapeDataString(commit)}";
 
             using var doc = await this.InvokeAsync(
                 HttpMethod.Post,
