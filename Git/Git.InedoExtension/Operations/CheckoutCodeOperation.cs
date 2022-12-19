@@ -40,6 +40,12 @@ namespace Inedo.Extensions.Git.Operations
         [Description("The full SHA1 hash resolved commit will be stored in this variable. This is useful when you specify a branch for the BranchOrCommit property.")]
         public string? CommitHash { get; set; }
 
+        [Category("Advanced")]
+        [ScriptAlias("PreserveLastModified")]
+        [DisplayName("Preserve Last Modified Date")]
+        [Description("By default, Git will not set the Last Modified date of files when checking out. Selecting this option may take additional time, depending on the number of files in the repository.")]
+        public bool PreserveLastModified { get; set; }
+
         protected override async Task BeforeRemoteExecuteAsync(IOperationExecutionContext context)
         {
             if (string.IsNullOrWhiteSpace(this.Objectish))
@@ -53,7 +59,7 @@ namespace Inedo.Extensions.Git.Operations
             using var repo = await this.FetchOrCloneAsync(context);
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
             this.LogInformation($"Exporting files to {outputDirectory}...");
-            await repo.ExportAsync(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), context.CancellationToken);
+            await repo.ExportAsync(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, context.CancellationToken);
             return repo.GetCommitHash(this.Objectish!);
         }
 

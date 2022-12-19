@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Inedo.Diagnostics;
+using Inedo.IO;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git;
@@ -115,7 +116,7 @@ internal sealed class RepoMan : IDisposable
         return commit.Sha;
     }
 
-    public async Task ExportAsync(string outputDirectory, string objectish, bool recurseSubmodules, bool createSymbolicLinks, CancellationToken cancellationToken = default)
+    public async Task ExportAsync(string outputDirectory, string objectish, bool recurseSubmodules, bool createSymbolicLinks, bool preserveLastModified, CancellationToken cancellationToken = default)
     {
         this.config.Log?.LogDebug($"Checking out code from {objectish} to {outputDirectory}...");
 
@@ -132,6 +133,7 @@ internal sealed class RepoMan : IDisposable
             if (recurseSubmodules)
                 submodules = await this.UpdateSubmodulesAsync(tree, cancellationToken).ConfigureAwait(false);
 
+            int warnCount = 0;
             await exportTree(tree, outputDirectory, string.Empty).ConfigureAwait(false);
 
             async Task exportTree(Tree tree, string outdir, string repopath)
@@ -155,6 +157,20 @@ internal sealed class RepoMan : IDisposable
                             using var output =  CreateFile(Path.Combine(outdir, entry.Path), entry.Mode);
                             stream.CopyTo(output);
                         }
+                        
+                        if (preserveLastModified)
+                        {
+                            var commit = this.repo.Head.Commits.First(c =>
+                            {
+                                var cId = c.Tree[entry.Path]?.Target?.Sha;
+                                var pId = c.Parents?.FirstOrDefault()?[entry.Path]?.Target?.Sha;
+                                return cId != pId;
+                            });
+                            if (commit != null)
+                                FileEx.SetLastWriteTime(Path.Combine(outdir, entry.Path), commit.Author.When.UtcDateTime);
+                            else if (warnCount++ < 5)
+                                this.config.Log?.LogWarning($"Could not find LastModified for {entry.Path}.");
+                        }
                     }
                     else if (entry.TargetType == TreeEntryTargetType.Tree)
                     {
@@ -169,7 +185,7 @@ internal sealed class RepoMan : IDisposable
                         else if (submodules.TryGetValue((repopath + "/" + entry.Name).Trim('/'), out var subrepo))
                         {
                             var hash = entry.Target.Id.Sha;
-                            await subrepo.ExportAsync(Path.Combine(outdir, entry.Name), hash, true, createSymbolicLinks, cancellationToken).ConfigureAwait(false);
+                            await subrepo.ExportAsync(Path.Combine(outdir, entry.Name), hash, true, createSymbolicLinks, preserveLastModified, cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {
