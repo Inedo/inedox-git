@@ -516,7 +516,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
                         return repo;
                     }
 
-#warning This should be more descriptive of an error.  This is the local temp directory, may need cleared.
                     if (DirectoryEx.GetFileSystemInfos(this.LocalRepositoryPath, MaskingContext.Default).Any())
                         throw new InvalidOperationException("The specified local repository path does not appear to be a Git repository but already contains files or directories.");
                 }

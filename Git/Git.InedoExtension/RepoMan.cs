@@ -116,13 +116,15 @@ internal sealed class RepoMan : IDisposable
         return commit.Sha;
     }
 
-    public async Task ExportAsync(string outputDirectory, string objectish, bool recurseSubmodules, bool createSymbolicLinks, bool preserveLastModified, CancellationToken cancellationToken = default)
+    public async Task ExportAsync(RepoExportOptions options, CancellationToken cancellationToken = default)
     {
-        this.config.Log?.LogDebug($"Checking out code from {objectish} to {outputDirectory}...");
+        ArgumentNullException.ThrowIfNull(options);
 
-        var commit = this.repo.Lookup<Commit>($"refs/remotes/origin/{objectish}") ?? this.repo.Lookup<Commit>(objectish);
+        this.config.Log?.LogDebug($"Checking out code from {options.Objectish} to {options.OutputDirectory}...");
+
+        var commit = this.repo.Lookup<Commit>($"refs/remotes/origin/{options.Objectish}") ?? this.repo.Lookup<Commit>(options.Objectish);
         if (commit == null)
-            throw new ArgumentException($"Could not find commit for {objectish}.");
+            throw new ArgumentException($"Could not find commit for {options.Objectish}.");
 
         this.config.Log?.LogDebug($"Lookup succeeded; found commit {commit.Sha}.");
 
@@ -130,11 +132,11 @@ internal sealed class RepoMan : IDisposable
         IReadOnlyDictionary<string, RepoMan>? submodules = null;
         try
         {
-            if (recurseSubmodules)
+            if (options.RecurseSubmodules)
                 submodules = await this.UpdateSubmodulesAsync(tree, cancellationToken).ConfigureAwait(false);
 
             int warnCount = 0;
-            await exportTree(tree, outputDirectory, string.Empty).ConfigureAwait(false);
+            await exportTree(tree, options.OutputDirectory, string.Empty).ConfigureAwait(false);
 
             async Task exportTree(Tree tree, string outdir, string repopath)
             {
@@ -146,7 +148,7 @@ internal sealed class RepoMan : IDisposable
                     {
                         var blob = entry.Target.Peel<Blob>();
 
-                        if (createSymbolicLinks && entry.Mode == Mode.SymbolicLink)
+                        if (options.CreateSymbolicLinks && entry.Mode == Mode.SymbolicLink)
                         {
                             var linkTarget = blob.GetContentText().Trim();
                             File.CreateSymbolicLink(Path.Combine(outdir, entry.Path), linkTarget);
@@ -158,7 +160,7 @@ internal sealed class RepoMan : IDisposable
                             stream.CopyTo(output);
                         }
                         
-                        if (preserveLastModified)
+                        if (options.SetLastModified)
                         {
                             var commit = this.repo.Head.Commits.First(c =>
                             {
@@ -166,6 +168,7 @@ internal sealed class RepoMan : IDisposable
                                 var pId = c.Parents?.FirstOrDefault()?[entry.Path]?.Target?.Sha;
                                 return cId != pId;
                             });
+
                             if (commit != null)
                                 FileEx.SetLastWriteTime(Path.Combine(outdir, entry.Path), commit.Author.When.UtcDateTime);
                             else if (warnCount++ < 5)
@@ -185,7 +188,16 @@ internal sealed class RepoMan : IDisposable
                         else if (submodules.TryGetValue((repopath + "/" + entry.Name).Trim('/'), out var subrepo))
                         {
                             var hash = entry.Target.Id.Sha;
-                            await subrepo.ExportAsync(Path.Combine(outdir, entry.Name), hash, true, createSymbolicLinks, preserveLastModified, cancellationToken).ConfigureAwait(false);
+
+                            await subrepo.ExportAsync(
+                                options with
+                                {
+                                    OutputDirectory = Path.Combine(outdir, entry.Name),
+                                    Objectish = hash,
+                                    RecurseSubmodules = true
+                                },
+                                cancellationToken
+                            ).ConfigureAwait(false);
                         }
                         else
                         {
@@ -403,27 +415,5 @@ internal sealed class RepoMan : IDisposable
     {
         public SemaphoreSlim Semaphore { get; } = new(1, 1);
         public int Count { get; set; }
-    }
-}
-
-internal readonly record struct RepoTransferProgress(int TotalObjects, int ReceivedObjects, long ReceivedBytes);
-
-internal sealed record class RepoManConfig(string RootPath, Uri RepositoryUri, string? UserName = null, string? Password = null, ILogSink? Log = null, Action<RepoTransferProgress>? TransferProgress = null)
-{
-    public LibGit2Sharp.Handlers.TransferProgressHandler? TransferProgressHandler => this.TransferProgress != null ? this.HandleTransferProgress : null;
-
-#pragma warning disable IDE0060 // Remove unused parameter
-    public LibGit2Sharp.Credentials GetCredentials(string u, string n, SupportedCredentialTypes t)
-#pragma warning restore IDE0060 // Remove unused parameter
-    {
-        return string.IsNullOrEmpty(this.UserName)
-            ? new DefaultCredentials()
-            : new UsernamePasswordCredentials { Username = this.UserName, Password = this.Password };
-    }
-
-    private bool HandleTransferProgress(TransferProgress p)
-    {
-        this.TransferProgress?.Invoke(new RepoTransferProgress(p.TotalObjects, p.ReceivedObjects, p.ReceivedBytes));
-        return true;
     }
 }

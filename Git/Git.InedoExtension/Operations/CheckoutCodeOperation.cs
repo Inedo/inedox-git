@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Reflection;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
@@ -59,7 +58,7 @@ namespace Inedo.Extensions.Git.Operations
             using var repo = await this.FetchOrCloneAsync(context);
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
             this.LogInformation($"Exporting files to {outputDirectory}...");
-            await repo.ExportAsync(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, context.CancellationToken);
+            await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified), context.CancellationToken);
             return repo.GetCommitHash(this.Objectish!);
         }
 
