@@ -45,6 +45,12 @@ namespace Inedo.Extensions.Git.Operations
         [Description("By default, Git will not set the Last Modified date of files when checking out. Selecting this option may take additional time, depending on the number of files in the repository.")]
         public bool PreserveLastModified { get; set; }
 
+        [Category("Advanced")]
+        [ScriptAlias("WriteMinimalGitData")]
+        [DisplayName("Write minimal git data")]
+        [Description("Writes minimal information to the .git directory in the output directory which contains the head commit and the origin url.")]
+        public bool WriteMinimalGitData { get; set; }
+
         protected override async Task BeforeRemoteExecuteAsync(IOperationExecutionContext context)
         {
             if (string.IsNullOrWhiteSpace(this.Objectish))
@@ -58,7 +64,7 @@ namespace Inedo.Extensions.Git.Operations
             using var repo = await this.FetchOrCloneAsync(context);
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
             this.LogInformation($"Exporting files to {outputDirectory}...");
-            await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified), context.CancellationToken);
+            await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, this.WriteMinimalGitData), context.CancellationToken);
             return repo.GetCommitHash(this.Objectish!);
         }
 

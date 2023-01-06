@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Inedo.Diagnostics;
 using Inedo.IO;
+using Inedo.ProGet;
 using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git;
@@ -138,6 +139,12 @@ internal sealed class RepoMan : IDisposable
             int warnCount = 0;
             await exportTree(tree, options.OutputDirectory, string.Empty).ConfigureAwait(false);
 
+            if (options.WriteMinimalGitData)
+            {
+                this.config.Log?.LogDebug("Writing minimal git repo data...");
+                this.WriteMinimalGitData(options.OutputDirectory, commit.Sha);
+            }
+
             async Task exportTree(Tree tree, string outdir, string repopath)
             {
                 Directory.CreateDirectory(outdir);
@@ -266,6 +273,17 @@ internal sealed class RepoMan : IDisposable
         }
     }
 
+    private void WriteMinimalGitData(string rootPath, string commitSha)
+    {
+        var gitPath = Path.Combine(rootPath, ".git");
+        Directory.CreateDirectory(gitPath);
+        File.WriteAllText(Path.Combine(gitPath, "HEAD"), commitSha);
+
+        using var writer = new StreamWriter(File.Create(Path.Combine(gitPath, "config")), InedoLib.UTF8Encoding) { NewLine = "\n" };
+        writer.WriteLine("[remote \"origin\"]");
+        writer.WriteLine($"\turl = {this.config.RepositoryUri}");
+    }
+
     private async Task<IReadOnlyDictionary<string, RepoMan>?> UpdateSubmodulesAsync(Tree tree, CancellationToken cancellationToken = default)
     {
         this.config.Log?.LogDebug("Looking for submodules...");
@@ -281,13 +299,13 @@ internal sealed class RepoMan : IDisposable
         {
             var blob = entry.Target.Peel<Blob>();
             using var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8);
-            foreach (var (name, path, url) in GetSubmodules(reader))
+            foreach (var s in GetSubmodules(reader))
             {
-                this.config.Log?.LogDebug($"Found {name} submodule (path={path}, url={url})");
+                this.config.Log?.LogDebug($"Found {s.Name} submodule (path={s.Path}, url={s.Url})");
                 var rubbish = new Uri(this.config.RepositoryUri.ToString().TrimEnd('/') + "/");
-                var submoduleUri = new Uri(rubbish, url);
-                var subrepo = await FetchOrCloneAsync(config with { RepositoryUri = submoduleUri }, cancellationToken).ConfigureAwait(false);
-                dict.Add(path, subrepo);
+                var submoduleUri = new Uri(rubbish, s.Url);
+                var subrepo = await FetchOrCloneAsync(config with { RepositoryUri = submoduleUri, Submodule = s }, cancellationToken).ConfigureAwait(false);
+                dict.Add(s.Path, subrepo);
             }
 
             return dict;
@@ -319,7 +337,7 @@ internal sealed class RepoMan : IDisposable
         return Regex.Replace(uri.Authority + uri.PathAndQuery, $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "$");
     }
 
-    private static IEnumerable<(string name, string path, string url)> GetSubmodules(TextReader reader)
+    private static IEnumerable<SubmoduleInfo> GetSubmodules(TextReader reader)
     {
         var submoduleSectionRegex = new Regex(@"^\s*\[\s*submodule\s+""(?<1>[^""]+)""\s*\]\s*$", RegexOptions.ExplicitCapture);
         var configValueRegex = new Regex(@"^\s*(?<1>[a-z]+)\s*=\s*(?<2>.+)$", RegexOptions.ExplicitCapture);
@@ -333,7 +351,7 @@ internal sealed class RepoMan : IDisposable
             if (m.Success)
             {
                 if (name != null && path != null && url != null)
-                    yield return (name, path, url);
+                    yield return new SubmoduleInfo(name, path, url);
 
                 name = m.Groups[1].Value;
                 continue;
@@ -353,7 +371,7 @@ internal sealed class RepoMan : IDisposable
         }
 
         if (name != null && path != null && url != null)
-            yield return (name, path, url);
+            yield return new SubmoduleInfo(name, path, url);
     }
 
     private static async Task AcquireLockAsync(RepoManConfig config, CancellationToken cancellationToken = default)
