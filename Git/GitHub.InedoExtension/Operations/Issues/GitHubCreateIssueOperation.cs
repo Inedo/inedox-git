@@ -43,7 +43,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
             var data = new Dictionary<string, object> { ["title"] = this.Title };
             if (!string.IsNullOrEmpty(this.Body))
                 data.Add("body", this.Body);

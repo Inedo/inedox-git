@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Inedo.Diagnostics;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility.Git;
 using Inedo.Extensions.GitHub.IssueSources;
@@ -25,8 +26,9 @@ namespace Inedo.Extensions.GitHub.Clients
             "application/vnd.github.inertia-preview+json", // projects
         };
         private readonly string apiBaseUrl;
+        private readonly ILogSink log;
 
-        public GitHubClient(string apiBaseUrl, string userName, SecureString password, string organizationName)
+        public GitHubClient(string apiBaseUrl, string userName, SecureString password, ILogSink log = null)
         {
             if (!string.IsNullOrEmpty(userName) && password == null)
                 throw new InvalidOperationException("If a username is specified, a password must be specified in the operation or in the resource credential.");
@@ -34,12 +36,14 @@ namespace Inedo.Extensions.GitHub.Clients
             this.apiBaseUrl = AH.CoalesceString(apiBaseUrl, GitHubClient.GitHubComUrl).TrimEnd('/');
             this.UserName = userName;
             this.Password = password;
+            this.log = log;
         }
-        public GitHubClient(GitHubAccount credentials, GitHubRepository resource)
+        public GitHubClient(GitHubAccount credentials, GitHubRepository resource, ILogSink log = null)
         {
             this.apiBaseUrl = AH.CoalesceString(resource?.LegacyApiUrl, GitHubComUrl).TrimEnd('/');
             this.UserName = credentials?.UserName;
             this.Password = credentials?.Password;
+            this.log = log;
         }
 
         public string UserName { get; }
@@ -372,7 +376,7 @@ namespace Inedo.Extensions.GitHub.Clients
                 cancellationToken: cancellationToken
             ).ConfigureAwait(false);
 
-            return doc != null ? System.Text.Json.JsonSerializer.Deserialize<GitHubRelease>(doc) : null;
+            return doc != null ? JsonSerializer.Deserialize<GitHubRelease>(doc) : null;
         }
 
         public IAsyncEnumerable<string> ListRefsAsync(string ownerName, string repositoryName, RefType? type, CancellationToken cancellationToken = default)
@@ -491,6 +495,7 @@ namespace Inedo.Extensions.GitHub.Clients
         }
         private async Task<JsonDocument> InvokeAsync(HttpMethod method, string url, object data = null, bool nullOn404 = false, CancellationToken cancellationToken = default)
         {
+            this.log?.LogDebug($"{method} {url}");
             using var request = new HttpRequestMessage(method, url);
             request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
             foreach (var preview in EnabledPreviews)
@@ -501,7 +506,7 @@ namespace Inedo.Extensions.GitHub.Clients
 
             if (data != null)
             {
-                var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(data, data.GetType(), new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(data, data.GetType(), new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
                 var content = new ByteArrayContent(bytes);
                 content.Headers.ContentType = new MediaTypeHeaderValue("content/json");
                 request.Content = content;

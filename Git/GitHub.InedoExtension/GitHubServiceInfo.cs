@@ -23,7 +23,7 @@ namespace Inedo.Extensions.GitHub
         }
         public override IAsyncEnumerable<string> GetRepositoryNamesAsync(GitServiceCredentials credentials, string serviceNamespace, CancellationToken cancellationToken = default)
         {
-            var client = new GitHubClient(credentials.ServiceUrl, credentials.UserName, credentials.Password, serviceNamespace);
+            var client = new GitHubClient(credentials.ServiceUrl, credentials.UserName, credentials.Password);
             return client.GetRepositoriesAsync(serviceNamespace, cancellationToken);
         }
     }

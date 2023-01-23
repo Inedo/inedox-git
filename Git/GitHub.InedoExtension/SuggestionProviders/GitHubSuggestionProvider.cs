@@ -46,8 +46,8 @@ namespace Inedo.Extensions.GitHub.SuggestionProviders
                 AH.CoalesceString(config[nameof(IGitHubConfiguration.UserName)], this.Credentials?.UserName),
                 string.IsNullOrEmpty(config[nameof(IGitHubConfiguration.Password)]) 
                     ? this.Credentials?.Password 
-                    : AH.CreateSecureString(config[nameof(IGitHubConfiguration.Password)]), 
-                groupName);
+                    : AH.CreateSecureString(config[nameof(IGitHubConfiguration.Password)])
+                );
 
             return this.GetSuggestionsAsync();
         }

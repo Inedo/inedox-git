@@ -49,7 +49,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
                 throw new InvalidOperationException("missing resource");
             var credentials = (GitHubAccount)resource.GetCredentials(new CredentialResolutionContext(context.ProjectId, null));
 
-            var client = new GitHubClient(credentials, resource);
+            var client = new GitHubClient(credentials, resource, context.Log);
             GitHubProject project = null;
             await foreach (var p in client.GetProjectsAsync(resource.OrganizationName, this.RepositoryName, cancellationToken))
             {

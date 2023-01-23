@@ -91,7 +91,7 @@ GitHub::Set-Status (
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var client = new GitHubClient(credentials, resource);
+            var client = new GitHubClient(credentials, resource, this);
 
             this.LogWarning("This operation (GitHub::Set-Status) is obsolete, and should be replaced with Git::Set-CommitStatus.");
 

@@ -83,7 +83,7 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
             }
 
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
 
             var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 

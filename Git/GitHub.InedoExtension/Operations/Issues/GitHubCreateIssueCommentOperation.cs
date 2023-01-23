@@ -29,7 +29,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
             await github.CreateCommentAsync(this.IssueNumber, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, this.Body, context.CancellationToken).ConfigureAwait(false);
         }
 

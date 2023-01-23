@@ -21,7 +21,7 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
 
             var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 
@@ -44,7 +44,7 @@ namespace Inedo.Extensions.GitHub.Operations.Releases
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
 
             var ownerName = AH.CoalesceString(resource.OrganizationName, credentials.UserName);
 

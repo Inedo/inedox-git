@@ -22,7 +22,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         public override async Task<PersistedConfiguration> CollectAsync(IOperationCollectionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
 
             GitHubMilestone milestone = null;
             await foreach (var m in github.GetMilestonesAsync(AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, null, context.CancellationToken).ConfigureAwait(false))
@@ -55,7 +55,7 @@ namespace Inedo.Extensions.GitHub.Operations.Issues
         public override async Task ConfigureAsync(IOperationExecutionContext context)
         {
             var (credentials, resource) = this.Template.GetCredentialsAndResource(context as ICredentialResolutionContext);
-            var github = new GitHubClient(credentials, resource);
+            var github = new GitHubClient(credentials, resource, this);
             var number = await github.CreateMilestoneAsync(this.Template.Title, AH.CoalesceString(resource.OrganizationName, credentials.UserName), resource.RepositoryName, context.CancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object> { ["title"] = this.Template.Title };

@@ -64,7 +64,7 @@ namespace Inedo.Extensions.GitHub.IssueSources
             if (string.IsNullOrEmpty(repositoryName))
                 throw new InvalidOperationException("A repository name must be defined in either the issue source or associated GitHub credentials in order to enumerate GitHub issues.");
 
-            var client = new GitHubClient(credentials, resource);
+            var client = new GitHubClient(credentials, resource, context.Log);
 
             string ownerName = AH.CoalesceString(resource.OrganizationName, credentials?.UserName);
             if (string.IsNullOrEmpty(ownerName))
