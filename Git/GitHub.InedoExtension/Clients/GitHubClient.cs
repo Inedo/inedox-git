@@ -422,10 +422,10 @@ namespace Inedo.Extensions.GitHub.Clients
             var existingRelease = await this.GetReleaseAsync(ownerName, repositoryName, tag, cancellationToken).ConfigureAwait(false);
 
             using var doc = existingRelease != null
-                ? await this.InvokeAsync(HttpMethod.Patch, $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{Esc(existingRelease.Id)}", release, cancellationToken: cancellationToken).ConfigureAwait(false)
+                ? await this.InvokeAsync(HttpMethod.Patch, $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases/{existingRelease.Id}", release, cancellationToken: cancellationToken).ConfigureAwait(false)
                 : await this.InvokeAsync(HttpMethod.Post, $"{this.apiBaseUrl}/repos/{Esc(ownerName)}/{Esc(repositoryName)}/releases", release, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            return System.Text.Json.JsonSerializer.Deserialize<GitHubRelease>(doc);
+            return JsonSerializer.Deserialize<GitHubRelease>(doc);
         }
 
         public async Task UploadReleaseAssetAsync(string ownerName, string repositoryName, string tag, string name, string contentType, Stream contents, Action<long> reportProgress, CancellationToken cancellationToken)

@@ -5,7 +5,7 @@ namespace Inedo.Extensions.GitHub.Clients
     internal sealed class GitHubRelease
     {
         [JsonPropertyName("id")]
-        public string Id { get; set; }
+        public long Id { get; set; }
         [JsonPropertyName("tag_name")]
         public string Tag { get; set; }
         [JsonPropertyName("target_commitish")]
