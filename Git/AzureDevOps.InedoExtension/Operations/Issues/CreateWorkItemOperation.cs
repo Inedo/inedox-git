@@ -52,7 +52,7 @@ Create-WorkItem
         {
             this.LogInformation("Creating work item in Azure DevOps...");
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c?.Password);
+            var client = new AzureDevOpsClient(AH.CoalesceString(r.LegacyInstanceUrl, c.ServiceUrl), c?.Password);
             try
             {
                 var result = await client.CreateWorkItemAsync(r.ProjectName, this.Type, this.Title, this.Description, this.IterationPath, context.CancellationToken).ConfigureAwait(false);

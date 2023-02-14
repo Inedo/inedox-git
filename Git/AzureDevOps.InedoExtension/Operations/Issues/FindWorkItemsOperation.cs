@@ -53,7 +53,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations.Issues
         public override async Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c?.Password);
+            var client = new AzureDevOpsClient(AH.CoalesceString(r.LegacyInstanceUrl, c.ServiceUrl), c?.Password);
             string wiql = this.GetWiql(context.Log);
             var closedStates = this.ClosedStates.Split(',');
 

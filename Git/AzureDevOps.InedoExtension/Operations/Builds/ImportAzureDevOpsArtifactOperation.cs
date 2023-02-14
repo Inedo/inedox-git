@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Net;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
@@ -46,7 +47,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
 
             var (c, r) = this.GetCredentialsAndResource(context);
 
-            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
+            var client = new AzureDevOpsClient(AH.CoalesceString(r.LegacyInstanceUrl, c.ServiceUrl), c.Password);
 
             AdoBuild build = null;
 

@@ -43,7 +43,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
         public async override Task ExecuteAsync(IOperationExecutionContext context)
         {
             var (c, r) = this.GetCredentialsAndResource(context);
-            var client = new AzureDevOpsClient(r.LegacyInstanceUrl, c.Password);
+            var client = new AzureDevOpsClient(AH.CoalesceString(r.LegacyInstanceUrl, c.ServiceUrl), c.Password);
 
             this.LogDebug("Finding Azure DevOps build definition...");
             AdoBuildDef definition = null;

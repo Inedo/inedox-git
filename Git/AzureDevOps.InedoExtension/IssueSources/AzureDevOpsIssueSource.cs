@@ -50,7 +50,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             if (resource == null)
                 throw new InvalidOperationException("A resource must be supplied to enumerate AzureDevOps issues.");
 
-            var client = new AzureDevOpsClient(resource.LegacyInstanceUrl, credentials?.Password );
+            var client = new AzureDevOpsClient(AH.CoalesceString(resource.LegacyInstanceUrl, credentials.ServiceUrl), credentials?.Password );
             var wiql = this.GetWiql(context.Log);
 
             var closedStates = this.ClosedStates.Split(',').ToHashSet(StringComparer.OrdinalIgnoreCase);
