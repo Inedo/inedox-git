@@ -15,7 +15,7 @@ namespace Inedo.Extensions.AzureDevOps.Operations
     [ScriptAlias("Update-WorkItem")]
     [Example(@"
 # Update issue stored in package variable to 'In Progress'
-Create-WorkItem
+Update-WorkItem
 (
     Credentials: KarlAzure,
     Project: HDARS,

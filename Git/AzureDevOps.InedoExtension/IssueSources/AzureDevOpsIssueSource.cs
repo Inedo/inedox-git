@@ -70,7 +70,7 @@ namespace Inedo.Extensions.AzureDevOps.IssueSources
             log.LogDebug($"Constructing WIQL query for project '{this.Project}' and iteration path '{this.IterationPath}'...");
 
             var buffer = new StringBuilder();
-            buffer.Append("SELECT [System.Id] FROM WorkItems ");
+            buffer.Append("SELECT [System.Id], [System.Title], [System.Description], [System.State], [System.CreatedDate], [System.CreatedBy], [System.WorkItemType] FROM WorkItems ");
 
             bool projectSpecified = !string.IsNullOrEmpty(this.Project);
             bool iterationPathSpecified = !string.IsNullOrEmpty(this.IterationPath);
