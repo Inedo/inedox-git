@@ -162,7 +162,12 @@ namespace Inedo.Extensions.AzureDevOps.Client
                 );
             }
 
-            using var response = await this.http.PostAsJsonAsync(url, args, AzureDevOpsJsonContext.Default.IEnumerableAdoCreateWorkItem, cancellationToken).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Patch, url)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(args, AzureDevOpsJsonContext.Default.IEnumerableAdoCreateWorkItem), InedoLib.UTF8Encoding, "application/json-patch+json")
+            };
+
+            using var response = await this.http.SendAsync(request, cancellationToken).ConfigureAwait(false);
             await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
 
             using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -233,7 +238,12 @@ namespace Inedo.Extensions.AzureDevOps.Client
                 }
             }
 
-            using var response = await this.http.PostAsJsonAsync(url, args, AzureDevOpsJsonContext.Default.IEnumerableAdoCreateWorkItem, cancellationToken).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Patch, url)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(args, AzureDevOpsJsonContext.Default.IEnumerableAdoCreateWorkItem), InedoLib.UTF8Encoding, "application/json-patch+json")
+            };
+
+            using var response = await this.http.SendAsync(request, cancellationToken).ConfigureAwait(false);
             await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
 
             using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
