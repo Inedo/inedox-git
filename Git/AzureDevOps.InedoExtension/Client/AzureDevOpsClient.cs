@@ -173,19 +173,21 @@ namespace Inedo.Extensions.AzureDevOps.Client
             using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             return (await JsonSerializer.DeserializeAsync(responseStream, AzureDevOpsJsonContext.Default.AdoWorkItem, cancellationToken).ConfigureAwait(false))!;
         }
-        public async Task<AdoWorkItem> UpdateWorkItemAsync(string id, string title, string? description, string? iterationPath, string? state, IDictionary<string, RuntimeValue>? otherFields, CancellationToken cancellationToken = default)
+        public async Task<AdoWorkItem> UpdateWorkItemAsync(string id, string? title, string? description, string? iterationPath, string? state, IDictionary<string, RuntimeValue>? otherFields, CancellationToken cancellationToken = default)
         {
             var url = $"_apis/wit/workitems/{Uri.EscapeDataString(id)}?api-version={ApiVersion}";
-
-            var args = new List<AdoCreateWorkItem>
+            var args = new List<AdoCreateWorkItem>();
+            if (!string.IsNullOrWhiteSpace(title))
             {
-                new AdoCreateWorkItem
-                {
-                   Operation = "add",
-                   Path = "/fields/System.Title",
-                   Value = JsonValue.Create(title)
-                }
-            };
+                args.Add(
+                    new AdoCreateWorkItem
+                    {
+                        Operation = "add",
+                        Path = "/fields/System.Title",
+                        Value = JsonValue.Create(title)
+                    }
+                );            
+            }
 
             if (!string.IsNullOrEmpty(description))
             {
