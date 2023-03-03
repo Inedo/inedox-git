@@ -64,8 +64,7 @@ namespace Inedo.Extensions.Git.Operations
             using var repo = await this.FetchOrCloneAsync(context);
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
             this.LogInformation($"Exporting files to {outputDirectory}...");
-            await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, this.WriteMinimalGitData), context.CancellationToken);
-            return repo.GetCommitHash(this.Objectish!);
+            return await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, this.WriteMinimalGitData), context.CancellationToken);
         }
 
         protected override Task AfterRemoteExecuteAsync(object? result)

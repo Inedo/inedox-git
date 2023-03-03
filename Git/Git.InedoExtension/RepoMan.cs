@@ -108,16 +108,7 @@ internal sealed class RepoMan : IDisposable
         }
     }
 
-    public string GetCommitHash(string objectish)
-    {
-        var commit = this.repo.Lookup<Commit>(objectish) ?? this.repo.Lookup<Commit>("refs/remotes/origin/" + objectish);
-        if (commit == null)
-            throw new ArgumentException($"Could not find commit for {objectish}.");
-
-        return commit.Sha;
-    }
-
-    public async Task ExportAsync(RepoExportOptions options, CancellationToken cancellationToken = default)
+    public async Task<string> ExportAsync(RepoExportOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -126,7 +117,7 @@ internal sealed class RepoMan : IDisposable
         var commit = this.repo.Lookup<Commit>($"refs/remotes/origin/{options.Objectish}") ?? this.repo.Lookup<Commit>(options.Objectish);
         if (commit == null)
             throw new ArgumentException($"Could not find commit for {options.Objectish}.");
-
+        
         this.config.Log?.LogDebug($"Lookup succeeded; found commit {commit.Sha}.");
 
         var tree = commit.Tree;
@@ -223,6 +214,8 @@ internal sealed class RepoMan : IDisposable
                     r.Dispose();
             }
         }
+
+        return commit.Sha;
     }
 
     public void Tag(string commitSha, string tag, bool force)
