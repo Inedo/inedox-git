@@ -17,7 +17,7 @@ namespace Inedo.Extensions.AzureDevOps.Client
         private const string ApiVersion = "4.1";
         private readonly HttpClient http;
 
-        public AzureDevOpsClient(GitServiceCredentials credentials) : this(credentials.ServiceUrl!, credentials.Password!)
+        public AzureDevOpsClient(GitServiceCredentials credentials) : this($"{credentials.ServiceUrl!.TrimEnd('/')}/", credentials.Password!)
         {
         }
         public AzureDevOpsClient(string url, SecureString token) : this(url, AH.Unprotect(token)!)
