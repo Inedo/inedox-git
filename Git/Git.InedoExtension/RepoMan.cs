@@ -199,8 +199,7 @@ internal sealed class RepoMan : IDisposable
                         }
                         else
                         {
-                            // error message for when submodule was not found
-                            throw new Exception();
+                            this.config.Log?.LogWarning($"Could not resolve GitLink \"{repopath + "/" + entry.Name}\" for submodule.");
                         }
                     }
                 }
@@ -284,7 +283,7 @@ internal sealed class RepoMan : IDisposable
         if (tree[".gitmodules"] is not TreeEntry entry || entry.TargetType != TreeEntryTargetType.Blob)
         {
             this.config.Log?.LogDebug("No submodules in repository.");
-            return ImmutableDictionary.Create<string, RepoMan>();
+            return null;
         }
 
         var dict = new Dictionary<string, RepoMan>();
