@@ -6,6 +6,7 @@ using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Web;
 
@@ -91,11 +92,21 @@ namespace Inedo.Extensions.Git.Operations
                 var credentials = resource.GetCredentials(context);
                 if (credentials != null)
                 {
-                    if (credentials is not GitServiceCredentials gitCredentials)
-                        throw new ExecutionFailureException($"Invalid credential type ({credentials.GetType().Name}); expected GitSecureCredentialsBase.");
+                     
+                    if (credentials is GitServiceCredentials gitCredentials) {
+                        this.UserName = gitCredentials.UserName;
+                        this.Password = AH.Unprotect(gitCredentials.Password);
+                    }
+                    else if(credentials is UsernamePasswordCredentials usernamePasswordCredentials)
+                    {
+                        this.UserName = usernamePasswordCredentials.UserName;
+                        this.Password = AH.Unprotect(usernamePasswordCredentials.Password);
+                    }
+                    else
+                    {
 
-                    this.UserName = gitCredentials.UserName;
-                    this.Password = AH.Unprotect(gitCredentials.Password);
+                        throw new ExecutionFailureException($"Invalid credential type ({credentials.GetType().Name}); expected GitSecureCredentialsBase.");
+                    }
                 }
 
                 if (string.IsNullOrEmpty(this.RepositoryUrl))
