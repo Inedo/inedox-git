@@ -3,13 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Git.InedoExtension", "Git.InedoExtension\Git.InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitHub.InedoExtension", "GitHub.InedoExtension\GitHub.InedoExtension.csproj", "{AA553FE9-1918-4B8A-846A-1821F3485C04}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitLab.InedoExtension", "GitLab.InedoExtension\GitLab.InedoExtension.csproj", "{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureDevOps.InedoExtension", "AzureDevOps.InedoExtension\AzureDevOps.InedoExtension.csproj", "{5CEBA506-1CC9-455F-8C47-865E8C11818F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InedoExtension", "InedoExtension\InedoExtension.csproj", "{F4B222C8-1270-4153-B50B-62D70ABD73DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,18 +15,6 @@ Global
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4B222C8-1270-4153-B50B-62D70ABD73DD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AA553FE9-1918-4B8A-846A-1821F3485C04}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7DEFFD91-CCDE-4BC6-8E75-7880A11A12E2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5CEBA506-1CC9-455F-8C47-865E8C11818F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
