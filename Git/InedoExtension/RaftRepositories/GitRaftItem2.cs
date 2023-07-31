@@ -1,59 +1,55 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using Inedo.Extensibility.RaftRepositories;
+﻿using Inedo.Extensibility.RaftRepositories;
 using LibGit2Sharp;
 
-namespace Inedo.Extensions.Git.RaftRepositories
+namespace Inedo.Extensions.Git.RaftRepositories;
+
+internal sealed class GitRaftItem2 : RaftItem2
 {
-    internal sealed class GitRaftItem2 : RaftItem2
+    private readonly Commit commit;
+    private readonly Lazy<byte[]> content;
+
+    public GitRaftItem2(RaftItemType type, string name, GitObject target, Commit commit)
+        : base(type, name)
     {
-        private readonly TreeEntry treeEntry;
-        private readonly Lazy<Commit> latestCommit;
-        private readonly GitRaftRepository2 raft;
-        private readonly Commit explicitCommit;
-        private readonly bool useCommitCache;
+        this.commit = commit;
+        this.content = new Lazy<byte[]>(() => ReadContent(target));
+    }
 
-        public GitRaftItem2(RaftItemType type, TreeEntry treeEntry, GitRaftRepository2 raft, Commit commit = null, bool useCommitCache = false, string folder = null)
-            : base(type, AH.CoalesceString(folder, string.Empty) + treeEntry.Name)
+    public override DateTimeOffset LastWriteTime => this.commit.Author.When;
+    public override string ModifiedByUser => this.commit.Author.Name;
+    public override string ItemVersion => this.commit.Sha;
+    public override long? ItemSize => this.content.Value.Length;
+
+    public override Stream OpenRead() => new MemoryStream(this.content.Value, false);
+    public override TextReader OpenTextReader() => new StreamReader(this.OpenRead(), InedoLib.UTF8Encoding);
+    public override byte[] ReadAllBytes() => this.content.Value;
+    public override string ReadAllText() => InedoLib.UTF8Encoding.GetString(this.content.Value);
+
+    private static byte[] ReadContent(GitObject target)
+    {
+        if (target is not Blob blob)
+            return Array.Empty<byte>();
+
+        using var stream = blob.GetContentStream();
+        if (stream.CanSeek)
         {
-            this.latestCommit = new Lazy<Commit>(this.GetLatestCommit);
-            this.treeEntry = treeEntry;
-            this.raft = raft;
-            this.explicitCommit = commit;
-            this.useCommitCache = useCommitCache;
+            var data = new byte[stream.Length];
+            var remaining = data.AsSpan();
+            while (!remaining.IsEmpty)
+            {
+                int read = stream.Read(remaining);
+                if (read == 0)
+                    break;
+                remaining = remaining[read..];
+            }
+
+            return data;
         }
-
-        public override DateTimeOffset LastWriteTime => this.Commit?.Committer?.When ?? DateTimeOffset.Now;
-        public override string ItemVersion => this.Commit?.Sha;
-        public override string ModifiedByUser => this.Commit?.Committer?.Name;
-        public override long? ItemSize => this.raft.Repo.ObjectDatabase.RetrieveObjectMetadata(this.treeEntry.Target.Id)?.Size;
-
-        private Commit Commit => this.explicitCommit ?? this.latestCommit.Value;
-
-        public override Stream OpenRead()
+        else
         {
-            var blob = this.GetBlob();
-            return blob?.GetContentStream();
+            using var temp = new MemoryStream();
+            stream.CopyTo(temp);
+            return temp.ToArray();
         }
-        public override TextReader OpenTextReader() => new StringReader(this.ReadAllText() ?? string.Empty);
-        public override byte[] ReadAllBytes()
-        {
-            using var stream = this.OpenRead();
-            if (stream == null)
-                return null;
-
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
-        }
-        public override string ReadAllText()
-        {
-            var blob = this.GetBlob();
-            return blob?.GetContentText(Encoding.UTF8);
-        }
-
-        private Commit GetLatestCommit() => this.raft.GetLatestCommit(this.treeEntry.Path, this.useCommitCache);
-        private Blob GetBlob() => this.treeEntry.TargetType == TreeEntryTargetType.Blob ? (Blob)this.treeEntry.Target : null;
     }
 }

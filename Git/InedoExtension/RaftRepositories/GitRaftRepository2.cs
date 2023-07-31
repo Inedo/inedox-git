@@ -22,8 +22,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
         private readonly Lazy<Repository> lazyRepository;
         private readonly Lazy<Dictionary<RuntimeVariableName, string>> lazyVariables;
         private readonly Lazy<TreeDefinition> lazyCurrentTree;
-        private readonly object commitCacheLock = new();
-        private Dictionary<string, CachedItemCommit> commitCache;
         private bool variablesDirty;
         private bool disposed;
 
@@ -88,30 +86,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 throw new ObjectDisposedException(nameof(GitRaftRepository2));
 
             var entry = this.FindEntry(type, name, version);
-            if (entry != null)
-            {
-                string folder = null;
-                if(!string.IsNullOrWhiteSpace(entry.Path))
-                {
-                    var pathString = entry.Path.Replace("\\", "/");
-                    if (!string.IsNullOrEmpty(this.RepositoryRoot) && pathString.StartsWith(this.RepositoryRoot))
-                        pathString = pathString[(this.RepositoryRoot.Length + 1)..];
-
-                    var typeFolder = GetStandardTypeName(type);
-                    if (pathString.StartsWith(typeFolder))
-                        pathString = pathString[(typeFolder.Length + 1)..];
-
-                    
-                    if(pathString.Contains('/'))
-                    {
-                        folder = pathString[..pathString.LastIndexOf("/")].TrimEnd('/') + "/";
-                    }
-
-                }
-                return this.CreateGitRaftItem(type, entry, commit: string.IsNullOrEmpty(version) ? null : this.Repo.Lookup<Commit>(version), folder: folder);
-            }
-            else
+            if (entry == null)
                 return null;
+
+            var path = name.Replace('\\', '/');
+            var fullPath = PathEx.Combine('/', GetStandardTypeName(type), path);
+
+            return new GitRaftItem2(type, path, entry.Target, this.GetLatestCommitForItem(this.Repo, fullPath));
         }
         public override IEnumerable<RaftItem2> GetRaftItemVersions(RaftItemType type, string name)
         {
@@ -144,7 +125,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 }
 
                 foreach (var c in commits)
-                    yield return new GitRaftItem2(type, entry, this, c.Commit);
+                    yield return new GitRaftItem2(type, name, entry.Target, c.Commit);
             }
         }
 
@@ -387,91 +368,16 @@ namespace Inedo.Extensions.Git.RaftRepositories
             base.Dispose(disposing);
         }
 
-        internal Commit GetLatestCommit(string itemPath, bool useCache)
+        private Commit GetLatestCommitForItem(Repository repository, string path)
         {
-            // This method attempts to return the latest commit associated with a specific item.
-            // This is intended primarily for informational purposes to fill in fields like ItemVersion and ModifiedByUser on RaftItem2.
-            // When useCache is true:
-            // - the most recent 50 trees committed are iterated and each item is added to a dictionary
-            // - the dictionary associates item paths to the most recent modify/add of the item
-            // - this does NOT detect deletes or renames, but the way it's used currently it doesn't need to
-            // - since it only considers the most recent 50 commits, it could return an "incorrect" commit hash for old items
-            // - (incorrect is in quotes because this whole system of indpendent item versioning is not really how Git is typically used)
-            // - without this optimization though, the "all items" page in BuildMaster is exteremely slow even for relatively small rafts
-
-            if (!useCache)
-            {
-                GitRepoLock.EnterLock(this.LocalRepositoryPath);
-                try
+            return repository.Commits.QueryBy(
+                path,
+                new CommitFilter
                 {
-                    return getLatestCommitForItem(this.Repo, itemPath);
+                    IncludeReachableFrom = repository.Branches[this.CurrentBranchName],
+                    SortBy = CommitSortStrategies.Time
                 }
-                finally
-                {
-                    GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
-                }
-            }
-
-            lock (this.commitCacheLock)
-            {
-                // if it's already in the commit cache, just return it
-                if (this.commitCache != null && this.commitCache.TryGetValue(itemPath, out var commit))
-                    return commit.Commit;
-
-                GitRepoLock.EnterLock(this.LocalRepositoryPath);
-                try
-                {
-                    var repo = this.Repo;
-
-                    // build the commit cache if it doesn't exist yet
-                    if (this.commitCache == null)
-                    {
-                        var commits = repo.Commits.QueryBy(
-                            new CommitFilter
-                            {
-                                IncludeReachableFrom = repo.Branches[this.CurrentBranchName],
-                                SortBy = CommitSortStrategies.Time
-                            }
-                        );
-
-                        var cache = new Dictionary<string, CachedItemCommit>();
-
-                        foreach (var c in commits.Take(50).Reverse())
-                        {
-                            foreach (var item in IterateFullTree(c.Tree))
-                            {
-                                if (!cache.TryGetValue(item.Path, out var prevCommit) || item.Target.Id != prevCommit.ItemId)
-                                    cache[item.Path] = new CachedItemCommit(item.Target.Id, c);
-                            }
-                        }
-
-                        this.commitCache = cache;
-
-                        // check to see if the item we're looking for is in the cache now that it's built
-                        if (this.commitCache.TryGetValue(itemPath, out var commit2))
-                            return commit2.Commit;
-                    }
-
-                    // fall back on expensive lookup
-                    return getLatestCommitForItem(repo, itemPath);
-                }
-                finally
-                {
-                    GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
-                }
-            }
-
-            Commit getLatestCommitForItem(Repository repository, string path)
-            {
-                return repository.Commits.QueryBy(
-                    path,
-                    new CommitFilter
-                    {
-                        IncludeReachableFrom = repository.Branches[this.CurrentBranchName],
-                        SortBy = CommitSortStrategies.Time
-                    }
-                ).FirstOrDefault()?.Commit;
-            }
+            ).FirstOrDefault()?.Commit;
         }
 
         private string GetLocalRepoPath()
@@ -657,7 +563,6 @@ namespace Inedo.Extensions.Git.RaftRepositories
             if (this.disposed)
                 throw new ObjectDisposedException(nameof(GitRaftRepository2));
 
-            Tree tipTree;
             GitRepoLock.EnterLock(this.LocalRepositoryPath);
             try
             {
@@ -666,52 +571,27 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 if (tip == null)
                     yield break;
 
-                if (string.IsNullOrEmpty(this.RepositoryRoot))
+                if (type.HasValue)
                 {
-                    tipTree = tip.Tree;
+                    foreach (var item in this.GetTree(tip, type.GetValueOrDefault(), GetStandardTypeName(type.GetValueOrDefault())))
+                        yield return item;
                 }
                 else
                 {
-                    var rootItem = tip[this.RepositoryRoot];
-                    if (rootItem?.TargetType != TreeEntryTargetType.Tree)
-                        yield break;
-
-                    tipTree = (Tree)rootItem.Target;
+                    foreach (var rootItem in tip.Tree)
+                    {
+                        var itemType = TryParseStandardTypeName(rootItem.Name);
+                        if (itemType != null && (!type.HasValue || type == itemType))
+                        {
+                            foreach (var item in this.GetTree(tip, itemType.GetValueOrDefault(), rootItem.Name))
+                                yield return item;
+                        }
+                    }
                 }
             }
             finally
             {
                 GitRepoLock.ReleaseLock(this.LocalRepositoryPath);
-            }
-
-            foreach (var rootItem in tipTree)
-            {
-                var itemType = TryParseStandardTypeName(rootItem.Name);
-                if (itemType != null && (!type.HasValue || type == itemType))
-                {
-                    foreach(var item in GetItems((Tree)rootItem.Target, itemType.Value))
-                    {
-                        yield return item;
-                    }
-                }
-            }
-
-            IEnumerable<RaftItem2> GetItems(Tree treeItem, RaftItemType itemType, string parentFolder = null)
-            {
-                foreach (var item in treeItem)
-                {
-                    if (item.TargetType != TreeEntryTargetType.Tree)
-                    {
-                        yield return this.CreateGitRaftItem(itemType, item, useCommitCache: true, folder: parentFolder);
-                    }
-                    else
-                    {
-                        foreach (var subItem in GetItems((Tree)item.Target, itemType, AH.CoalesceString(parentFolder, "") + item.Name + "/"))
-                        {
-                           yield return subItem;
-                        }
-                    }
-                }
             }
         }
         private GitRaftRepository2 CreateCopy()
@@ -729,9 +609,98 @@ namespace Inedo.Extensions.Git.RaftRepositories
                 CredentialName = this.CredentialName
             };
         }
-        private RaftItem2 CreateGitRaftItem(RaftItemType type, TreeEntry treeEntry, Commit commit = null, bool useCommitCache = false, string folder = null)
+
+        private IEnumerable<GitRaftItem2> GetTree(Commit initialCommit, RaftItemType itemType, string path = null)
         {
-            return new GitRaftItem2(type, treeEntry, this, commit, useCommitCache, folder: folder);
+            var items = new Dictionary<string, TreeEntryLookup>();
+            var foundItems = new HashSet<string>();
+
+            var initialTree = string.IsNullOrEmpty(path) ? initialCommit.Tree : (initialCommit[path].Target as Tree);
+            if (initialTree == null)
+                yield break;
+
+            if (initialTree != null)
+            {
+                foreach (var entry in initialTree)
+                {
+                    if (entry.TargetType != TreeEntryTargetType.GitLink)
+                        items.Add(entry.Name, new TreeEntryLookup(entry.Name, initialCommit, entry.Mode == Mode.Directory, entry.Target));
+                }
+            }
+
+            var commits = this.Repo.Commits.QueryBy(
+                new CommitFilter
+                {
+                    IncludeReachableFrom = initialCommit,
+                    SortBy = CommitSortStrategies.Time
+                }
+            );
+
+            var lastCommit = initialCommit;
+
+            foreach (var commit in commits.Skip(1))
+            {
+                if (foundItems.Count >= items.Count)
+                    break;
+
+                var tree = string.IsNullOrEmpty(path) ? commit.Tree : (commit[path]?.Target as Tree);
+
+                if (tree == null)
+                {
+                    lastCommit = commit;
+                    continue;
+                }
+
+                foreach (var entry in tree)
+                {
+                    if (entry.TargetType == TreeEntryTargetType.GitLink)
+                        continue;
+
+                    if (foundItems.Contains(entry.Name))
+                    {
+                        // if we've already found a commit for this entry, continue
+                        continue;
+                    }
+
+                    if (!items.TryGetValue(entry.Name, out var prevItem))
+                    {
+                        // indicates item was deleted in current commit; mark it as found and continue
+                        foundItems.Add(entry.Name);
+                        continue;
+                    }
+
+                    if (prevItem.Target.Id != entry.Target.Id)
+                    {
+                        // if the target has changed to a different blob, then the last commit we looked at changed it
+                        prevItem.Commit = lastCommit;
+                        foundItems.Add(entry.Name);
+                    }
+                }
+
+                lastCommit = commit;
+            }
+
+            foreach (var item in items.Values)
+            {
+                if (!foundItems.Contains(item.Name))
+                    item.Commit = lastCommit;
+            }
+
+            var typeName = GetStandardTypeName(itemType);
+            var itemRootPath = string.Equals(path, typeName, StringComparison.OrdinalIgnoreCase) ? string.Empty : path[(typeName.Length + 1)..];
+
+            foreach (var v in items.Values)
+            {
+                if (v.Directory)
+                {
+                    foreach (var item in this.GetTree(initialCommit, itemType, PathEx.Combine('/', path ?? string.Empty, v.Name)))
+                        yield return item;
+                }
+                else
+                {
+                    yield return new GitRaftItem2(itemType, PathEx.Combine('/', itemRootPath, v.Name), v.Target, v.Commit);
+                }
+            }
         }
 
         private static IEnumerable<TreeEntry> IterateFullTree(Tree root)
@@ -774,6 +743,22 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
             public ObjectId ItemId { get; }
             public Commit Commit { get; }
+        }
+
+        private sealed class TreeEntryLookup
+        {
+            public TreeEntryLookup(string name, Commit commit, bool directory, GitObject target)
+            {
+                this.Name = name;
+                this.Commit = commit;
+                this.Directory = directory;
+                this.Target = target;
+            }
+
+            public string Name { get; }
+            public Commit Commit { get; set; }
+            public bool Directory { get; }
+            public GitObject Target { get; }
         }
     }
 }
