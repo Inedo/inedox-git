@@ -371,7 +371,7 @@ namespace Inedo.Extensions.Git.RaftRepositories
         private Commit GetLatestCommitForItem(Repository repository, string path)
         {
             return repository.Commits.QueryBy(
-                path,
+                string.IsNullOrWhiteSpace(this.RepositoryRoot) ? path : PathEx.Combine('/', this.RepositoryRoot, path),
                 new CommitFilter
                 {
                     IncludeReachableFrom = repository.Branches[this.CurrentBranchName],
@@ -612,95 +612,117 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
         private IEnumerable<GitRaftItem2> GetTree(Commit initialCommit, RaftItemType itemType, string path = null)
         {
-            var items = new Dictionary<string, TreeEntryLookup>();
-            var foundItems = new HashSet<string>();
+            return getTree(initialCommit, itemType, string.IsNullOrEmpty(this.RepositoryRoot) ? path : PathEx.Combine('/', this.RepositoryRoot, path ?? string.Empty));
 
-            var initialTree = string.IsNullOrEmpty(path) ? initialCommit.Tree : (initialCommit[path].Target as Tree);
-            if (initialTree == null)
-                yield break;
-
-            if (initialTree != null)
+            IEnumerable<GitRaftItem2> getTree(Commit initialCommit, RaftItemType itemType, string path = null)
             {
-                foreach (var entry in initialTree)
+                var items = new Dictionary<string, TreeEntryLookup>();
+                var foundItems = new HashSet<string>();
+
+                var initialTree = string.IsNullOrEmpty(path) ? initialCommit.Tree : (initialCommit[path]?.Target as Tree);
+                if (initialTree == null)
+                    yield break;
+
+                if (initialTree != null)
                 {
-                    if (entry.TargetType != TreeEntryTargetType.GitLink)
-                        items.Add(entry.Name, new TreeEntryLookup(entry.Name, initialCommit, entry.Mode == Mode.Directory, entry.Target));
+                    foreach (var entry in initialTree)
+                    {
+                        if (entry.TargetType != TreeEntryTargetType.GitLink)
+                            items.Add(entry.Name, new TreeEntryLookup(entry.Name, initialCommit, entry.Mode == Mode.Directory, entry.Target));
+                    }
                 }
-            }
 
-            var commits = this.Repo.Commits.QueryBy(
-                new CommitFilter
+                var commits = this.Repo.Commits.QueryBy(
+                    new CommitFilter
+                    {
+                        IncludeReachableFrom = initialCommit,
+                        SortBy = CommitSortStrategies.Time
+                    }
+                );
+
+                var lastCommit = initialCommit;
+
+                foreach (var commit in commits.Skip(1))
                 {
-                    IncludeReachableFrom = initialCommit,
-                    SortBy = CommitSortStrategies.Time
-                }
-            );
+                    if (foundItems.Count >= items.Count)
+                        break;
 
-            var lastCommit = initialCommit;
+                    var tree = string.IsNullOrEmpty(path) ? commit.Tree : (commit[path]?.Target as Tree);
 
-            foreach (var commit in commits.Skip(1))
-            {
-                if (foundItems.Count >= items.Count)
-                    break;
+                    if (tree == null)
+                    {
+                        lastCommit = commit;
+                        continue;
+                    }
 
-                var tree = string.IsNullOrEmpty(path) ? commit.Tree : (commit[path]?.Target as Tree);
+                    foreach (var entry in tree)
+                    {
+                        if (entry.TargetType == TreeEntryTargetType.GitLink)
+                            continue;
 
-                if (tree == null)
-                {
+                        if (foundItems.Contains(entry.Name))
+                        {
+                            // if we've already found a commit for this entry, continue
+                            continue;
+                        }
+
+                        if (!items.TryGetValue(entry.Name, out var prevItem))
+                        {
+                            // indicates item was deleted in current commit; mark it as found and continue
+                            foundItems.Add(entry.Name);
+                            continue;
+                        }
+
+                        if (prevItem.Target.Id != entry.Target.Id)
+                        {
+                            // if the target has changed to a different blob, then the last commit we looked at changed it
+                            prevItem.Commit = lastCommit;
+                            foundItems.Add(entry.Name);
+                        }
+                    }
+
                     lastCommit = commit;
-                    continue;
                 }
 
-                foreach (var entry in tree)
+                foreach (var item in items.Values)
                 {
-                    if (entry.TargetType == TreeEntryTargetType.GitLink)
-                        continue;
-
-                    if (foundItems.Contains(entry.Name))
-                    {
-                        // if we've already found a commit for this entry, continue
-                        continue;
-                    }
-
-                    if (!items.TryGetValue(entry.Name, out var prevItem))
-                    {
-                        // indicates item was deleted in current commit; mark it as found and continue
-                        foundItems.Add(entry.Name);
-                        continue;
-                    }
-
-                    if (prevItem.Target.Id != entry.Target.Id)
-                    {
-                        // if the target has changed to a different blob, then the last commit we looked at changed it
-                        prevItem.Commit = lastCommit;
-                        foundItems.Add(entry.Name);
-                    }
+                    if (!foundItems.Contains(item.Name))
+                        item.Commit = lastCommit;
                 }
 
-                lastCommit = commit;
-            }
+                var typeName = GetStandardTypeName(itemType);
 
-            foreach (var item in items.Values)
-            {
-                if (!foundItems.Contains(item.Name))
-                    item.Commit = lastCommit;
-            }
-
-            var typeName = GetStandardTypeName(itemType);
-            var itemRootPath = string.Equals(path, typeName, StringComparison.OrdinalIgnoreCase) ? string.Empty : path[(typeName.Length + 1)..];
-
-            foreach (var v in items.Values)
-            {
-                if (v.Directory)
+                foreach (var v in items.Values)
                 {
-                    foreach (var item in this.GetTree(initialCommit, itemType, PathEx.Combine('/', path ?? string.Empty, v.Name)))
-                        yield return item;
-                }
-                else
-                {
-                    yield return new GitRaftItem2(itemType, PathEx.Combine('/', itemRootPath, v.Name), v.Target, v.Commit);
+                    if (v.Directory)
+                    {
+                        foreach (var item in getTree(initialCommit, itemType, PathEx.Combine('/', path ?? string.Empty, v.Name)))
+                            yield return item;
+                    }
+                    else
+                    {
+                        var itemRootPath = TrimFolder(this.RepositoryRoot ?? string.Empty, path);
+                        if (itemRootPath.Equals(typeName, StringComparison.OrdinalIgnoreCase))
+                            itemRootPath = default;
+                        else
+                            itemRootPath = TrimFolder(typeName, itemRootPath);
+
+                        yield return new GitRaftItem2(itemType, PathEx.Combine('/', itemRootPath, v.Name), v.Target, v.Commit);
+                    }
                 }
             }
+        }
+
+        private static ReadOnlySpan<char> TrimFolder(ReadOnlySpan<char> root, ReadOnlySpan<char> path)
+        {
+            if (root.IsEmpty)
+                return path;
+
+            int trimLength = root.Length;
+            if (root[^1] is not '/' and not '\\')
+                trimLength++;
+
+            return path[trimLength..];
         }
 
         private static IEnumerable<TreeEntry> IterateFullTree(Tree root)
