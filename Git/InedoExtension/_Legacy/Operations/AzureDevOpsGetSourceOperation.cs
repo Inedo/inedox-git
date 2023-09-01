@@ -12,9 +12,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
     [Obsolete("Use Git::Checkout-Code instead.")]
-    [DisplayName("Get Source from Azure DevOps Repository")]
     [Description("Gets the source code from an Azure DevOps Git repository.")]
-    [Tag("source-control")]
     [ScriptAlias("Get-Source")]
     [ScriptNamespace("AzureDevOps", PreferUnqualified = false)]
     public sealed class AzureDevOpsGetSourceOperation : LegacyGetSourceOperation, ILegacyAzureDevOpsOperation

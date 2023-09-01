@@ -10,10 +10,7 @@ using Inedo.Extensibility.Operations;
 
 namespace Inedo.Extensions.Git.Operations
 {
-    [DisplayName("Tag Code in Git")]
     [Description("Creates and pushes a tag to a git repository.")]
-    [Tag("git")]
-    [Tag("source-control")]
     [ScriptAlias("Ensure-Tag")]
     [ScriptNamespace("Git", PreferUnqualified = false)]
     [DefaultProperty(nameof(Tag))]

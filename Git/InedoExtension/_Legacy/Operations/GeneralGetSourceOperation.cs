@@ -14,9 +14,7 @@ using Inedo.Web;
 namespace Inedo.Extensions.Git.Operations
 {
     [Obsolete("Use Git::Checkout-Code instead.")]
-    [DisplayName("Get Source from Git Repository")]
     [Description("Gets the source code from a general Git repository.")]
-    [Tag("source-control")]
     [ScriptAlias("Get-Source")]
     [ScriptAlias("Git-GetSource", Obsolete = true)]
     [ScriptNamespace("Git", PreferUnqualified = false)]

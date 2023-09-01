@@ -13,9 +13,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.GitHub.Operations
 {
     [Obsolete("Use Git::Checkout-Code instead.")]
-    [DisplayName("Get Source from GitHub Repository")]
     [Description("Gets the source code from a GitHub repository.")]
-    [Tag("source-control")]
     [ScriptAlias("Get-Source")]
     [ScriptAlias("GitHub-GetSource", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]

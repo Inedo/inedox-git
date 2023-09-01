@@ -1,11 +1,11 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Git;
 using Inedo.Extensibility.Operations;
+using Inedo.Extensibility.SecureResources;
 using Inedo.Extensions.Credentials;
 using Inedo.Extensions.Credentials.Git;
 using Inedo.Web;
@@ -71,7 +71,7 @@ namespace Inedo.Extensions.Git.Operations
                 if (string.IsNullOrWhiteSpace(this.ResourceName))
                     throw new ExecutionFailureException("Missing required argument: Repository (From)");
 
-                if (!context.TryGetSecureResource(this.ResourceName, out var resource))
+                if (!context.TryGetSecureResource(SecureResourceType.GitRepository, this.ResourceName, out var resource))
                     throw new ExecutionFailureException($"The repository named \"{this.ResourceName}\" could not be loaded.");
 
                 if (resource is not GitRepository gitResource)

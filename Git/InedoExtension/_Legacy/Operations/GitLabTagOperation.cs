@@ -13,9 +13,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.GitLab.Operations
 {
     [Obsolete("Use Git::Ensure-Tag instead.")]
-    [DisplayName("Tag GitLab Source")]
     [Description("Tags the source code in a GitLab project.")]
-    [Tag("source-control")]
     [ScriptAlias("Tag")]
     [ScriptAlias("GitLab-Tag", Obsolete = true)]
     [ScriptNamespace("GitLab", PreferUnqualified = false)]

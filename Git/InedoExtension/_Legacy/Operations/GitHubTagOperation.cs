@@ -13,9 +13,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.GitHub.Operations
 {
     [Obsolete("Use Git::Ensure-Tag instead.")]
-    [DisplayName("Tag GitHub Source")]
     [Description("Tags the source code in a GitHub repository.")]
-    [Tag("source-control")]
     [ScriptAlias("Tag")]
     [ScriptAlias("GitHub-Tag", Obsolete = true)]
     [ScriptNamespace("GitHub", PreferUnqualified = false)]

@@ -9,10 +9,7 @@ using Inedo.Extensibility.Operations;
 
 namespace Inedo.Extensions.Git.Operations
 {
-    [DisplayName("Check Out Code from Git")]
     [Description("Gets source code from a branch or commit on a git repository.")]
-    [Tag("git")]
-    [Tag("source-control")]
     [ScriptAlias("Checkout-Code")]
     [ScriptNamespace("Git", PreferUnqualified = false)]
     public sealed class CheckoutCodeOperation : CanonicalGitOperation

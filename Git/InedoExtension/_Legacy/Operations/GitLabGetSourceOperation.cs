@@ -13,9 +13,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.GitLab.Operations
 {
     [Obsolete("Use Git::Checkout-Code instead.")]
-    [DisplayName("Get Source from GitLab Repository")]
     [Description("Gets the source code from a GitLab project.")]
-    [Tag("source-control")]
     [ScriptAlias("Get-Source")]
     [ScriptAlias("GitLab-GetSource", Obsolete = true)]
     [ScriptNamespace("GitLab", PreferUnqualified = false)]

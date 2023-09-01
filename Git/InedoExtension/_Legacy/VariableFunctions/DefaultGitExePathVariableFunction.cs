@@ -5,7 +5,6 @@ using Inedo.Extensibility.VariableFunctions;
 
 namespace Inedo.Extensions.VariableFunctions
 {
-    [Tag("git")]
     [ScriptAlias("DefaultGitExePath")]
     [Obsolete("This is only used by the legacy git operations.")]
     [Description("The path to the git executable to use for legacy git operations; if not specified, a built-in library is used")]

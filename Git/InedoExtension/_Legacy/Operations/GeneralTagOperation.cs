@@ -14,9 +14,7 @@ using Inedo.Web;
 namespace Inedo.Extensions.Git.Operations
 {
     [Obsolete("Use Git::Ensure-Tag instead.")]
-    [DisplayName("Tag Git Source")]
     [Description("Tags the source code in a general Git repository.")]
-    [Tag("source-control")]
     [ScriptAlias("Tag")]
     [ScriptAlias("Git-Tag", Obsolete = true)]
     [ScriptNamespace("Git", PreferUnqualified = false)]

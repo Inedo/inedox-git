@@ -13,9 +13,7 @@ using Inedo.Extensions.Operations;
 namespace Inedo.Extensions.AzureDevOps.Operations
 {
     [Obsolete("Use Git::Ensure-Tag instead.")]
-    [DisplayName("Tag Azure DevOps Source")]
     [Description("Tags the source code in an Azure DevOps project.")]
-    [Tag("source-control")]
     [ScriptAlias("Tag")]
     [ScriptNamespace("AzureDevOps", PreferUnqualified = false)]
     public sealed class AzureDevOpsTagOperation : LegacyTagOperation, ILegacyAzureDevOpsOperation
