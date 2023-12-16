@@ -37,6 +37,16 @@ internal sealed class RepoMan : IDisposable
             var repoPath = Path.Combine(config.RootPath, GetRepositoryDiskName(config.RepositoryUri));
             config.Log?.LogDebug($"Repository path is {repoPath}");
 
+            try
+            {
+                if (Directory.Exists(repoPath) && !Repository.IsValid(repoPath))
+                    DirectoryEx.Delete(repoPath);
+            }
+            catch
+            {
+                DirectoryEx.Delete(repoPath);
+            }
+
             if (Directory.Exists(repoPath) && Repository.IsValid(repoPath))
             {
                 repo = new Repository(repoPath);
