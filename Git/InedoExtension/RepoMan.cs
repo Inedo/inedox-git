@@ -78,19 +78,18 @@ internal sealed class RepoMan : IDisposable
             {
                 config.Log?.LogDebug($"Repository does not exist or is not valid. Cloning from {config.RepositoryUri}...");
 
+                var cloneOptions = new CloneOptions { IsBare = true };
+                cloneOptions.FetchOptions.CredentialsProvider = config.GetCredentials;
+                cloneOptions.FetchOptions.OnTransferProgress = config.TransferProgressHandler;
+                cloneOptions.FetchOptions.OnProgress = progressHandler;
+
                 Directory.CreateDirectory(repoPath);
                 var sw = Stopwatch.StartNew();
 
                 Repository.Clone(
                     config.RepositoryUri.ToString(),
                     repoPath,
-                    new CloneOptions
-                    {
-                        IsBare = true,
-                        CredentialsProvider = config.GetCredentials,
-                        OnTransferProgress = config.TransferProgressHandler,
-                        OnProgress = progressHandler
-                    }
+                    cloneOptions
                 );
 
                 sw.Stop();

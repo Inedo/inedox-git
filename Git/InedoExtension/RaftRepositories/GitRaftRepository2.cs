@@ -432,14 +432,13 @@ namespace Inedo.Extensions.Git.RaftRepositories
 
                 if (!string.IsNullOrEmpty(this.RemoteRepositoryUrl))
                 {
+                    var cloneOptions = new CloneOptions { IsBare = true };
+                    cloneOptions.FetchOptions.CredentialsProvider = this.CredentialsHandler;
+
                     Repository.Clone(
                         this.RemoteRepositoryUrl,
                         this.LocalRepositoryPath,
-                        new CloneOptions
-                        {
-                            CredentialsProvider = this.CredentialsHandler,
-                            IsBare = true
-                        }
+                        cloneOptions
                     );
                 }
                 else

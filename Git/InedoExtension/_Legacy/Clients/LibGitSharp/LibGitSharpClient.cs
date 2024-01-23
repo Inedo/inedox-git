@@ -33,15 +33,13 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                 this.log.LogDebug("Clone options: " + options);
                 try
                 {
+                    var cloneOptions = new CloneOptions { BranchName = options.Branch, RecurseSubmodules = options.RecurseSubmodules };
+                    cloneOptions.FetchOptions.CredentialsProvider = this.CredentialsHandler;
+
                     Repository.Clone(
                         this.repository.RemoteRepositoryUrl,
                         this.repository.LocalRepositoryPath,
-                        new CloneOptions
-                        {
-                            BranchName = options.Branch,
-                            CredentialsProvider = this.CredentialsHandler,
-                            RecurseSubmodules = options.RecurseSubmodules
-                        }
+                        cloneOptions
                     );
                 }
                 catch (Exception ex)
@@ -236,7 +234,9 @@ namespace Inedo.Extensions.Clients.LibGitSharp
                     {
                         foreach (var submodule in repository.Submodules)
                         {
-                            repository.Submodules.Update(submodule.Name, new SubmoduleUpdateOptions { CredentialsProvider = this.CredentialsHandler, Init = true });
+                            var o = new SubmoduleUpdateOptions { Init = true };
+                            o.FetchOptions.CredentialsProvider = this.CredentialsHandler;
+                            repository.Submodules.Update(submodule.Name, o);
                         }
                     }
 
