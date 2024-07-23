@@ -66,7 +66,8 @@ internal sealed class RepoMan : IDisposable
                         CredentialsProvider = config.GetCredentials,
                         TagFetchMode = TagFetchMode.All,
                         OnTransferProgress = config.TransferProgressHandler,
-                        OnProgress = progressHandler
+                        OnProgress = progressHandler,
+                        CertificateCheck = (_, valid, _) => config.IgnoreCertificateCheck || valid
                     },
                     null
                 );
@@ -82,6 +83,7 @@ internal sealed class RepoMan : IDisposable
                 cloneOptions.FetchOptions.CredentialsProvider = config.GetCredentials;
                 cloneOptions.FetchOptions.OnTransferProgress = config.TransferProgressHandler;
                 cloneOptions.FetchOptions.OnProgress = progressHandler;
+                cloneOptions.FetchOptions.CertificateCheck = (_, valid, _) => config.IgnoreCertificateCheck || valid;
 
                 Directory.CreateDirectory(repoPath);
                 var sw = Stopwatch.StartNew();

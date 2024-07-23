@@ -18,6 +18,7 @@ namespace Inedo.Extensions.Git.Operations
     {
         private readonly object progressLock = new();
         private RepoTransferProgress? currentProgress;
+        private bool ignoreCertificateCheck;
 
         private protected CanonicalGitOperation()
         {
@@ -96,6 +97,19 @@ namespace Inedo.Extensions.Git.Operations
                     if (credentials is GitServiceCredentials gitCredentials) {
                         this.UserName = gitCredentials.UserName;
                         this.Password = AH.Unprotect(gitCredentials.Password);
+
+                        // SHIM FOR SDK3, where IgnoreCertificateCheck is a property
+                        if (typeof(CanonicalGitOperation).Assembly.GetName().Version?.Major > 2)
+                            throw new ExecutionFailureException("Remove IgnoreCertificateCheck");
+                        if (gitCredentials.GetType().GetProperty("IgnoreCertificateCheck")?.GetValue(gitCredentials) is bool value && value)
+                        // END SHIM
+
+                        // if (gitCredentials.IgnoreCertificateCheck)
+                        {
+                            this.ignoreCertificateCheck = true;
+                            this.LogInformation("IgnoreCertificateCheck has been set on the connection, which means that SSL/Certificate errors will be ignored.");
+                        }
+
                     }
                     else if(credentials is UsernamePasswordCredentials usernamePasswordCredentials)
                     {
@@ -121,7 +135,7 @@ namespace Inedo.Extensions.Git.Operations
             this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
 
             var repo = await RepoMan.FetchOrCloneAsync(
-                new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this, this.HandleTransferProgress),
+                new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.ignoreCertificateCheck, this, this.HandleTransferProgress),
                 context.CancellationToken
             );
 

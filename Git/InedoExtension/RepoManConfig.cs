@@ -5,7 +5,7 @@ using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git;
 
-internal sealed record class RepoManConfig(string RootPath, Uri RepositoryUri, string? UserName = null, string? Password = null, ILogSink? Log = null, Action<RepoTransferProgress>? TransferProgress = null, SubmoduleInfo? Submodule = null)
+internal sealed record class RepoManConfig(string RootPath, Uri RepositoryUri, string? UserName = null, string? Password = null, bool IgnoreCertificateCheck = false, ILogSink? Log = null, Action<RepoTransferProgress>? TransferProgress = null, SubmoduleInfo? Submodule = null)
 {
     public LibGit2Sharp.Handlers.TransferProgressHandler? TransferProgressHandler => this.TransferProgress != null ? this.HandleTransferProgress : null;
 
