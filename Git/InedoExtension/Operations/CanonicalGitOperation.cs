@@ -18,7 +18,6 @@ namespace Inedo.Extensions.Git.Operations
     {
         private readonly object progressLock = new();
         private RepoTransferProgress? currentProgress;
-        private bool ignoreCertificateCheck;
 
         private protected CanonicalGitOperation()
         {
@@ -49,6 +48,12 @@ namespace Inedo.Extensions.Git.Operations
         [DisplayName("Repository URL")]
         [PlaceholderText("Repository URL from repository connection")]
         public string? RepositoryUrl { get; set; }
+
+        [Category("Connection/Identity")]
+        [ScriptAlias("IgnoreCertificateCheck")]
+        [DisplayName("Ignore Certificate Check")]
+        [PlaceholderText("Use connection settings")]
+        public bool IgnoreCertificateCheck { get; set; }
 
         public override OperationProgress? GetProgress()
         {
@@ -94,7 +99,8 @@ namespace Inedo.Extensions.Git.Operations
                 if (credentials != null)
                 {
                      
-                    if (credentials is GitServiceCredentials gitCredentials) {
+                    if (credentials is GitServiceCredentials gitCredentials) 
+                    {
                         this.UserName = gitCredentials.UserName;
                         this.Password = AH.Unprotect(gitCredentials.Password);
 
@@ -102,13 +108,11 @@ namespace Inedo.Extensions.Git.Operations
                         if (typeof(CanonicalGitOperation).Assembly.GetName().Version?.Major > 2)
                             throw new ExecutionFailureException("Remove IgnoreCertificateCheck");
                         if (gitCredentials.GetType().GetProperty("IgnoreCertificateCheck")?.GetValue(gitCredentials) is bool value && value)
+                            this.IgnoreCertificateCheck = true;
                         // END SHIM
 
                         // if (gitCredentials.IgnoreCertificateCheck)
-                        {
-                            this.ignoreCertificateCheck = true;
-                            this.LogInformation("IgnoreCertificateCheck has been set on the connection, which means that SSL/Certificate errors will be ignored.");
-                        }
+                        //     this.IgnoreCertificateCheck = true;
 
                     }
                     else if(credentials is UsernamePasswordCredentials usernamePasswordCredentials)
@@ -127,6 +131,9 @@ namespace Inedo.Extensions.Git.Operations
                     throw new ExecutionFailureException("RepositoryUrl was not specified and could not be determined using the repository connection.");
 
             }
+
+            if (this.IgnoreCertificateCheck)
+                this.LogInformation("IgnoreCertificateCheck has been set on the connection, which means that SSL/Certificate errors will be ignored.");
         }
         private protected async Task<RepoMan> FetchOrCloneAsync(IRemoteOperationExecutionContext context)
         {
@@ -135,7 +142,7 @@ namespace Inedo.Extensions.Git.Operations
             this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
 
             var repo = await RepoMan.FetchOrCloneAsync(
-                new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.ignoreCertificateCheck, this, this.HandleTransferProgress),
+                new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress),
                 context.CancellationToken
             );
 
