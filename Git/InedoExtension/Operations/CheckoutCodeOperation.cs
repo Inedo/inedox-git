@@ -54,6 +54,8 @@ namespace Inedo.Extensions.Git.Operations
                 throw new ExecutionFailureException("Missing required argument: BranchOrCommit");
 
             await this.EnsureCommonPropertiesAsync(context);
+
+            await base.BeforeRemoteExecuteAsync(context);
         }
 
         protected override async Task<object?> RemoteExecuteAsync(IRemoteOperationExecutionContext context)

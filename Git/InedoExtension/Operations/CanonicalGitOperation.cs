@@ -54,6 +54,12 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
     [PlaceholderText("Use connection settings")]
     public bool IgnoreCertificateCheck { get; set; }
 
+    [Category("Advanced")]
+    [ScriptAlias("UseNewGitBackend")]
+    [DisplayName("Use new git backend")]
+    [PlaceholderText("inherit from system default")]
+    public bool? UseNewGitBackend { get; set; }
+
     public override OperationProgress? GetProgress()
     {
         RepoTransferProgress p;
@@ -67,6 +73,14 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
         }
 
         return new OperationProgress((int)(p.ReceivedObjects / (double)p.TotalObjects * 100), $"{p.ReceivedObjects}/{p.TotalObjects} objects received");
+    }
+
+    protected override Task BeforeRemoteExecuteAsync(IOperationExecutionContext context)
+    {
+        if (!this.UseNewGitBackend.HasValue && bool.TryParse(SDK.GetConfigValue("Web.UseNewGitBackend"), out bool useLilGit))
+            this.UseNewGitBackend = useLilGit;
+
+        return base.BeforeRemoteExecuteAsync(context);
     }
 
     private protected async Task EnsureCommonPropertiesAsync(IOperationExecutionContext context)
@@ -128,7 +142,7 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
         this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
 
         var repo = await RepoMan.FetchOrCloneAsync(
-            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress),
+            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress, UseLilGit: this.UseNewGitBackend.GetValueOrDefault()),
             context.CancellationToken
         );
 

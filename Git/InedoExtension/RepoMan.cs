@@ -23,8 +23,7 @@ internal sealed partial class RepoMan : IDisposable
 
     public static Task<RepoMan> FetchOrCloneAsync(RepoManConfig config, CancellationToken cancellationToken = default)
     {
-        _ = bool.TryParse(SDK.GetConfigValue("Web.UseNewGitBackend"), out bool useLilGit);
-        if (useLilGit)
+        if (config.UseLilGit)
         {
             config.Log?.LogDebug("Git backend: lilgit");
             return FetchOrCloneInternalAsync<LilGitRepoManRepository>(config, cancellationToken);
