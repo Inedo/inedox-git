@@ -19,7 +19,7 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
         return Open(repoPath);
     }
 
-    public static bool IsValid(string path) => GitRepository.IsRepository(path);
+    public static bool IsValid(string path) => GitRepository.IsRepository(path) && !GitRepository.HasRemoteRefs(path);
 
     public static LilGitRepoManRepository Open(string path) => new(new GitRepository(path));
 
