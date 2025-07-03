@@ -8,7 +8,7 @@ using Inedo.Extensibility;
 [assembly: AssemblyDescription("Source control operations for Git.")]
 [assembly: AssemblyCompany("Inedo, LLC")]
 [assembly: AssemblyProduct("any")]
-[assembly: AssemblyCopyright("Copyright © Inedo 2024")]
+[assembly: AssemblyCopyright("Copyright © Inedo 2025")]
 [assembly: AssemblyVersion("3.1.0")]
 [assembly: AssemblyFileVersion("3.1.0")]
 [assembly: CLSCompliant(false)]
