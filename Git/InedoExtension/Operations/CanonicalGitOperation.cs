@@ -55,10 +55,11 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
     public bool IgnoreCertificateCheck { get; set; }
 
     [Category("Advanced")]
-    [ScriptAlias("UseNewGitLibrary")]
-    [DisplayName("Use new git library")]
+    [ScriptAlias("GitLibrary")]
+    [DisplayName("Git library")]
     [DefaultValue("$ApplicationGitLibrary")]
-    public bool? UseNewGitLibrary { get; set; }
+    [SuggestableValue("$ApplicationGitLibrary", "lilgit", "libgit2")]
+    public string? GitLibrary { get; set; }
 
     public override OperationProgress? GetProgress()
     {
@@ -134,7 +135,7 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
         this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
 
         var repo = await RepoMan.FetchOrCloneAsync(
-            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress, UseLilGit: this.UseNewGitLibrary.GetValueOrDefault()),
+            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress, UseLilGit: this.GitLibrary == "lilgit"),
             context.CancellationToken
         );
 
