@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.ExecutionEngine;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Git;
@@ -57,8 +58,9 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
     [Category("Advanced")]
     [ScriptAlias("GitLibrary")]
     [DisplayName("Git library")]
-    [DefaultValue("$ApplicationGitLibrary")]
+    [PlaceholderText("$ApplicationGitLibrary")]
     [SuggestableValue("$ApplicationGitLibrary", "lilgit", "libgit2")]
+    [Description("On BuildMaster 2025, indicates whether to use the new Git library (lilgit)")]
     public string? GitLibrary { get; set; }
 
     public override OperationProgress? GetProgress()
@@ -78,6 +80,10 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
 
     private protected async Task EnsureCommonPropertiesAsync(IOperationExecutionContext context)
     {
+        // Cannot use DefaultValue: $ApplicationGitLibrary is only built-in on 2025+
+        if (string.IsNullOrEmpty(this.GitLibrary))
+            this.GitLibrary = context.TryGetVariableValue(RuntimeVariableName.Parse("$ApplicationGitLibrary"))?.AsString();
+
         if (string.IsNullOrEmpty(this.RepositoryUrl))
         {
             if (string.IsNullOrWhiteSpace(this.ResourceName))
