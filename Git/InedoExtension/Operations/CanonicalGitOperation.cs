@@ -82,7 +82,7 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
     {
         // Cannot use DefaultValue: $ApplicationGitLibrary is only built-in on 2025+
         if (string.IsNullOrEmpty(this.GitLibrary))
-            this.GitLibrary = context.TryGetVariableValue(RuntimeVariableName.Parse("$ApplicationGitLibrary"))?.AsString();
+            this.GitLibrary = (await context.ExpandVariablesAsync("$GetVariableValue(ApplicationGitLibrary)")).AsString();
 
         if (string.IsNullOrEmpty(this.RepositoryUrl))
         {
