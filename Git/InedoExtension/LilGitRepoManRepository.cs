@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Inedo.Diagnostics;
 using Inedo.IO;
 using LilGit;
 
@@ -15,7 +16,8 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
 
     public static async Task<LilGitRepoManRepository> CloneAsync(string repoPath, RepoManConfig config, CancellationToken cancellationToken)
     {
-        await GitRepository.CloneAsync(new GitCloneOptions(GetConnectionInfo(config), repoPath, GetIndexProgressDelegate(config)), cancellationToken: cancellationToken);
+        var stats = await GitRepository.CloneAsync(new GitCloneOptions(GetConnectionInfo(config), repoPath, GetIndexProgressDelegate(config)), cancellationToken: cancellationToken);
+        config.Log?.LogDebug($"Objects received: {stats.ObjectsReceived}");
         return Open(repoPath);
     }
 
@@ -32,9 +34,13 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
         }
     }
 
-    public Task FetchAsync(RepoManConfig config, CancellationToken cancellationToken)
+    public async Task FetchAsync(RepoManConfig config, CancellationToken cancellationToken)
     {
-        return this.repo.FetchAsync(new GitFetchOptions(GetConnectionInfo(config), GetIndexProgressDelegate(config)), cancellationToken);
+        var stats = await this.repo.FetchAsync(new GitFetchOptions(GetConnectionInfo(config), GetIndexProgressDelegate(config)), cancellationToken);
+        if (stats.ObjectsReceived > 0)
+            config.Log?.LogDebug($"Objects received: {stats.ObjectsReceived}");
+        else
+            config.Log?.LogDebug($"No objects received; repository is already up to date.");
     }
 
     public string? GetOriginUrl() => this.repo.GetRemoteUrl();
