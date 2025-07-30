@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using Inedo.Diagnostics;
 using Inedo.Documentation;
+using Inedo.ExecutionEngine;
 using Inedo.ExecutionEngine.Executer;
 using Inedo.Extensibility;
 using Inedo.Extensibility.Git;
@@ -54,6 +55,14 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
     [PlaceholderText("Use connection settings")]
     public bool IgnoreCertificateCheck { get; set; }
 
+    [Category("Advanced")]
+    [ScriptAlias("GitLibrary")]
+    [DisplayName("Git library")]
+    [PlaceholderText("$ApplicationGitLibrary")]
+    [SuggestableValue("$ApplicationGitLibrary", "lilgit", "libgit2")]
+    [Description("On BuildMaster 2025, indicates whether to use the new Git library (lilgit)")]
+    public string? GitLibrary { get; set; }
+
     public override OperationProgress? GetProgress()
     {
         RepoTransferProgress p;
@@ -71,6 +80,10 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
 
     private protected async Task EnsureCommonPropertiesAsync(IOperationExecutionContext context)
     {
+        // Cannot use DefaultValue: $ApplicationGitLibrary is only built-in on 2025+
+        if (string.IsNullOrEmpty(this.GitLibrary))
+            this.GitLibrary = (await context.ExpandVariablesAsync("$GetVariableValue(ApplicationGitLibrary)")).AsString();
+
         if (string.IsNullOrEmpty(this.RepositoryUrl))
         {
             if (string.IsNullOrWhiteSpace(this.ResourceName))
@@ -128,7 +141,7 @@ public abstract class CanonicalGitOperation : RemoteExecuteOperation
         this.LogInformation($"Updating local repository for {this.RepositoryUrl}...");
 
         var repo = await RepoMan.FetchOrCloneAsync(
-            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress),
+            new RepoManConfig(gitRepoRoot, new Uri(this.RepositoryUrl!), this.UserName, this.Password, this.IgnoreCertificateCheck, this, this.HandleTransferProgress, UseLilGit: this.GitLibrary == "lilgit"),
             context.CancellationToken
         );
 

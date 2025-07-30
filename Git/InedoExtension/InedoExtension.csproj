@@ -11,6 +11,6 @@
   <ItemGroup>
     <PackageReference Include="Inedo.SDK" Version="3.1.0" ExcludeAssets="runtime" />
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
-    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    <PackageReference Include="LilGit" Version="1.0.0" />
   </ItemGroup>
 </Project>

@@ -1,36 +1,48 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Inedo.Diagnostics;
 using Inedo.IO;
-using Inedo.ProGet;
-using LibGit2Sharp;
 
 namespace Inedo.Extensions.Git;
 
 #nullable enable
 
-internal sealed class RepoMan : IDisposable
+internal sealed partial class RepoMan : IDisposable
 {
-    private static readonly Dictionary<string, RepoLock> repoLocks = new();
-    private readonly Repository repo;
+    private static readonly Dictionary<string, RepoLock> repoLocks = [];
+    private readonly IRepoManRepository repo;
     private readonly RepoManConfig config;
     private bool disposed;
 
-    private RepoMan(Repository repo, RepoManConfig config)
+    private RepoMan(IRepoManRepository repo, RepoManConfig config)
     {
         this.repo = repo;
         this.config = config;
     }
 
-    public static async Task<RepoMan> FetchOrCloneAsync(RepoManConfig config, CancellationToken cancellationToken = default)
+    public static Task<RepoMan> FetchOrCloneAsync(RepoManConfig config, CancellationToken cancellationToken = default)
+    {
+        if (config.UseLilGit)
+        {
+            config.Log?.LogDebug("Git backend: lilgit");
+            return FetchOrCloneInternalAsync<LilGitRepoManRepository>(config, cancellationToken);
+        }
+        else
+        {
+            config.Log?.LogDebug("Git backend: libgit2sharp");
+            return FetchOrCloneInternalAsync<LibGitSharpRepoManRepository>(config, cancellationToken);
+        }
+    }
+
+    private static async Task<RepoMan> FetchOrCloneInternalAsync<TRepo>(RepoManConfig config, CancellationToken cancellationToken = default)
+        where TRepo : class, IRepoManRepository<TRepo>
     {
         ArgumentNullException.ThrowIfNull(config);
         if (!Path.IsPathRooted(config.RootPath))
             throw new ArgumentException("Root path must be rooted.");
 
-        Repository? repo = null;
+        TRepo? repo = null;
         await AcquireLockAsync(config, cancellationToken).ConfigureAwait(false);
         try
         {
@@ -39,7 +51,7 @@ internal sealed class RepoMan : IDisposable
 
             try
             {
-                if (Directory.Exists(repoPath) && !Repository.IsValid(repoPath))
+                if (Directory.Exists(repoPath) && !TRepo.IsValid(repoPath))
                     DirectoryEx.Delete(repoPath);
             }
             catch
@@ -47,31 +59,14 @@ internal sealed class RepoMan : IDisposable
                 DirectoryEx.Delete(repoPath);
             }
 
-            if (Directory.Exists(repoPath) && Repository.IsValid(repoPath))
+            if (Directory.Exists(repoPath) && TRepo.IsValid(repoPath))
             {
-                repo = new Repository(repoPath);
-                var origin = repo.Network.Remotes["origin"];
-                if (origin == null)
-                    throw new InvalidOperationException("Repository has no origin.");
+                repo = TRepo.Open(repoPath);
+                var origin = repo.GetOriginUrl() ?? throw new InvalidOperationException("Repository has no origin.");
 
-                config.Log?.LogDebug($"Fetching from origin ({origin.Url})...");
+                config.Log?.LogDebug($"Fetching from origin ({origin})...");
                 var sw = Stopwatch.StartNew();
-
-                Commands.Fetch(
-                    repo,
-                    "origin",
-                    Enumerable.Empty<string>(),
-                    new FetchOptions
-                    {
-                        CredentialsProvider = config.GetCredentials,
-                        TagFetchMode = TagFetchMode.All,
-                        OnTransferProgress = config.TransferProgressHandler,
-                        OnProgress = progressHandler,
-                        CertificateCheck = (_, valid, _) => config.IgnoreCertificateCheck || valid
-                    },
-                    null
-                );
-
+                await repo.FetchAsync(config, cancellationToken);
                 sw.Stop();
                 config.Log?.LogDebug($"Fetch completed in {sw.Elapsed}.");
             }
@@ -79,34 +74,11 @@ internal sealed class RepoMan : IDisposable
             {
                 config.Log?.LogDebug($"Repository does not exist or is not valid. Cloning from {config.RepositoryUri}...");
 
-                var cloneOptions = new CloneOptions { IsBare = true };
-                cloneOptions.FetchOptions.CredentialsProvider = config.GetCredentials;
-                cloneOptions.FetchOptions.OnTransferProgress = config.TransferProgressHandler;
-                cloneOptions.FetchOptions.OnProgress = progressHandler;
-                cloneOptions.FetchOptions.CertificateCheck = (_, valid, _) => config.IgnoreCertificateCheck || valid;
-
                 Directory.CreateDirectory(repoPath);
                 var sw = Stopwatch.StartNew();
-
-                Repository.Clone(
-                    config.RepositoryUri.ToString(),
-                    repoPath,
-                    cloneOptions
-                );
-
+                repo = await TRepo.CloneAsync(repoPath, config, cancellationToken);
                 sw.Stop();
                 config.Log?.LogDebug($"Clone completed in {sw.Elapsed}.");
-
-                repo = new Repository(repoPath);
-            }
-
-            bool progressHandler(string serverProgressOutput)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    return false;
-
-                config.Log?.LogDebug(serverProgressOutput);
-                return true;
             }
 
             return new RepoMan(repo, config);
@@ -124,71 +96,35 @@ internal sealed class RepoMan : IDisposable
         ArgumentNullException.ThrowIfNull(options);
 
         this.config.Log?.LogDebug($"Checking out code from {options.Objectish} to {options.OutputDirectory}...");
+        var (tree, commitSha) = this.repo.GetTree(options.Objectish);
+        this.config.Log?.LogDebug($"Lookup succeeded; found commit {commitSha}.");
 
-        var commit = this.repo.Lookup<Commit>($"refs/remotes/origin/{options.Objectish}") ?? this.repo.Lookup<Commit>(options.Objectish);
-        if (commit == null)
-            throw new ArgumentException($"Could not find commit for {options.Objectish}.");
-        
-        this.config.Log?.LogDebug($"Lookup succeeded; found commit {commit.Sha}.");
-
-        var tree = commit.Tree;
+        //var tree = commit.Tree;
         IReadOnlyDictionary<string, RepoMan>? submodules = null;
         try
         {
             if (options.RecurseSubmodules)
                 submodules = await this.UpdateSubmodulesAsync(tree, cancellationToken).ConfigureAwait(false);
 
-            int warnCount = 0;
             await exportTree(tree, options.OutputDirectory, string.Empty).ConfigureAwait(false);
 
             if (options.WriteMinimalGitData)
             {
                 this.config.Log?.LogDebug("Writing minimal git repo data...");
-                this.WriteMinimalGitData(options.OutputDirectory, commit.Sha);
+                this.WriteMinimalGitData(options.OutputDirectory, commitSha);
             }
 
-            async Task exportTree(Tree tree, string outdir, string repopath)
+            async Task exportTree(IRepoManTree tree, string outdir, string repopath)
             {
                 Directory.CreateDirectory(outdir);
 
-                foreach (var entry in tree)
+                foreach (var entry in tree.Entries)
                 {
-                    if (entry.TargetType == TreeEntryTargetType.Blob)
+                    if (entry.Mode == RepoManFileMode.Directory)
                     {
-                        var blob = entry.Target.Peel<Blob>();
-
-                        if (options.CreateSymbolicLinks && entry.Mode == Mode.SymbolicLink)
-                        {
-                            var linkTarget = blob.GetContentText().Trim();
-                            File.CreateSymbolicLink(Path.Combine(outdir, entry.Path), linkTarget);
-                        }
-                        else
-                        {
-                            using var stream = blob.GetContentStream();
-                            using var output =  CreateFile(Path.Combine(outdir, entry.Path), entry.Mode);
-                            stream.CopyTo(output);
-                        }
-                        
-                        if (options.SetLastModified)
-                        {
-                            var commit = this.repo.Head.Commits.First(c =>
-                            {
-                                var cId = c.Tree[entry.Path]?.Target?.Sha;
-                                var pId = c.Parents?.FirstOrDefault()?[entry.Path]?.Target?.Sha;
-                                return cId != pId;
-                            });
-
-                            if (commit != null)
-                                FileEx.SetLastWriteTime(Path.Combine(outdir, entry.Path), commit.Author.When.UtcDateTime);
-                            else if (warnCount++ < 5)
-                                this.config.Log?.LogWarning($"Could not find LastModified for {entry.Path}.");
-                        }
+                        await exportTree(entry.GetTargetTree(), Path.Combine(outdir, entry.Name), (repopath + "/" + entry.Name).Trim('/')).ConfigureAwait(false);
                     }
-                    else if (entry.TargetType == TreeEntryTargetType.Tree)
-                    {
-                        await exportTree(entry.Target.Peel<Tree>(), Path.Combine(outdir, entry.Name), (repopath + "/" + entry.Name).Trim('/')).ConfigureAwait(false);
-                    }
-                    else if (entry.TargetType == TreeEntryTargetType.GitLink)
+                    else if (entry.Mode == RepoManFileMode.GitLink)
                     {
                         if (submodules == null)
                         {
@@ -196,13 +132,11 @@ internal sealed class RepoMan : IDisposable
                         }
                         else if (submodules.TryGetValue((repopath + "/" + entry.Name).Trim('/'), out var subrepo))
                         {
-                            var hash = entry.Target.Id.Sha;
-
                             await subrepo.ExportAsync(
                                 options with
                                 {
                                     OutputDirectory = Path.Combine(outdir, entry.Name),
-                                    Objectish = hash,
+                                    Objectish = entry.TargetId,
                                     RecurseSubmodules = true
                                 },
                                 cancellationToken
@@ -212,6 +146,23 @@ internal sealed class RepoMan : IDisposable
                         {
                             this.config.Log?.LogWarning($"Could not resolve GitLink \"{repopath + "/" + entry.Name}\" for submodule.");
                         }
+                    }
+                    else
+                    {
+                        if (options.CreateSymbolicLinks && entry.Mode == RepoManFileMode.SymbolicLink)
+                        {
+                            var linkTarget = entry.GetContentText();
+                            File.CreateSymbolicLink(Path.Combine(outdir, entry.Name), linkTarget);
+                        }
+                        else
+                        {
+                            using var stream = entry.GetContentStream();
+                            using var output =  CreateFile(Path.Combine(outdir, entry.Name), entry.Mode);
+                            stream.CopyTo(output);
+                        }
+                        
+                        if (options.SetLastModified)
+                            FileEx.SetLastWriteTime(Path.Combine(outdir, entry.Name), entry.GetModifiedTimestamp());
                     }
                 }
             }
@@ -225,45 +176,12 @@ internal sealed class RepoMan : IDisposable
             }
         }
 
-        return commit.Sha;
+        return commitSha;
     }
 
-    public void Tag(string commitSha, string tag, bool force)
+    public Task TagAsync(string commitSha, string tag, bool force, CancellationToken cancellationToken = default)
     {
-        var t = this.repo.Tags[tag];
-        if (t != null)
-        {
-            if (t.Target.Sha.Equals(commitSha, StringComparison.OrdinalIgnoreCase))
-            {
-                this.config.Log?.LogDebug($"Tag {tag} already exists for {commitSha}.");
-                return;
-            }
-            else
-            {
-                if (force)
-                {
-                    this.config.Log?.LogWarning($"Tag {tag} already exists but refers to {t.Target.Sha}. Attempt to retag to {commitSha}...");
-                }
-                else
-                {
-                    this.config.Log?.LogError($"Tag {tag} already exists but refers to {t.Target.Sha}.");
-                    return;
-                }
-            }
-        }
-
-        this.config.Log?.LogDebug("Creating tag...");
-        var createdTag = this.repo.Tags.Add(tag, commitSha, force);
-        var pushRef = $"{createdTag.CanonicalName}:{createdTag.CanonicalName}";
-        if (force)
-            pushRef = $"+{pushRef}";
-
-        this.config.Log?.LogDebug("Pushing tag...");
-        this.repo.Network.Push(
-            this.repo.Network.Remotes["origin"],
-            force ? '+' + pushRef : pushRef,
-            new PushOptions { CredentialsProvider = this.config.GetCredentials }
-        );
+        return this.repo.TagAsync(commitSha, tag, force, this.config, cancellationToken);
     }
 
     public void Dispose()
@@ -287,11 +205,11 @@ internal sealed class RepoMan : IDisposable
         writer.WriteLine($"\turl = {this.config.RepositoryUri}");
     }
 
-    private async Task<IReadOnlyDictionary<string, RepoMan>?> UpdateSubmodulesAsync(Tree tree, CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyDictionary<string, RepoMan>?> UpdateSubmodulesAsync(IRepoManTree tree, CancellationToken cancellationToken = default)
     {
         this.config.Log?.LogDebug("Looking for submodules...");
 
-        if (tree[".gitmodules"] is not TreeEntry entry || entry.TargetType != TreeEntryTargetType.Blob)
+        if (tree[".gitmodules"] is not IRepoManTreeEntry entry || entry.Mode == RepoManFileMode.Directory)
         {
             this.config.Log?.LogDebug("No submodules in repository.");
             return null;
@@ -300,8 +218,7 @@ internal sealed class RepoMan : IDisposable
         var dict = new Dictionary<string, RepoMan>();
         try
         {
-            var blob = entry.Target.Peel<Blob>();
-            using var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8);
+            using var reader = new StreamReader(entry.GetContentStream(), Encoding.UTF8);
             foreach (var s in GetSubmodules(reader))
             {
                 this.config.Log?.LogDebug($"Found {s.Name} submodule (path={s.Path}, url={s.Url})");
@@ -322,17 +239,14 @@ internal sealed class RepoMan : IDisposable
         }
     }
 
-    private static Stream CreateFile(string fileName, Mode mode)
+    private static FileStream CreateFile(string fileName, RepoManFileMode mode)
     {
-        if (OperatingSystem.IsLinux() && mode == Mode.ExecutableFile)
-        {
-            var info = new Mono.Unix.UnixFileInfo(fileName);
-            return info.Create(Mono.Unix.FileAccessPermissions.UserReadWriteExecute);
-        }
-        else
-        {
-            return File.Create(fileName, 8192, FileOptions.SequentialScan);
-        }
+        var stream = File.Create(fileName, 8192, FileOptions.SequentialScan);
+
+        if (OperatingSystem.IsLinux() && mode == RepoManFileMode.ExecutableFile)
+            File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        return stream;
     }
 
     private static string GetRepositoryDiskName(Uri uri)
@@ -342,15 +256,13 @@ internal sealed class RepoMan : IDisposable
 
     private static IEnumerable<SubmoduleInfo> GetSubmodules(TextReader reader)
     {
-        var submoduleSectionRegex = new Regex(@"^\s*\[\s*submodule\s+""(?<1>[^""]+)""\s*\]\s*$", RegexOptions.ExplicitCapture);
-        var configValueRegex = new Regex(@"^\s*(?<1>[a-z]+)\s*=\s*(?<2>.+)$", RegexOptions.ExplicitCapture);
         string? line;
         string? name = null;
         string? path = null;
         string? url = null;
         while ((line = reader.ReadLine()) != null)
         {
-            var m = submoduleSectionRegex.Match(line);
+            var m = SubmoduleSectionRegex().Match(line);
             if (m.Success)
             {
                 if (name != null && path != null && url != null)
@@ -362,7 +274,7 @@ internal sealed class RepoMan : IDisposable
 
             if (name != null)
             {
-                m = configValueRegex.Match(line);
+                m = ConfigValueRegex().Match(line);
                 if (m.Success)
                 {
                     if (m.Groups[1].ValueSpan.Equals("path", StringComparison.Ordinal))
@@ -437,4 +349,9 @@ internal sealed class RepoMan : IDisposable
         public SemaphoreSlim Semaphore { get; } = new(1, 1);
         public int Count { get; set; }
     }
+
+    [GeneratedRegex("""^\s*\[\s*submodule\s+"(?<1>[^"]+)"\s*\]\s*$""", RegexOptions.ExplicitCapture)]
+    private static partial Regex SubmoduleSectionRegex();
+    [GeneratedRegex(@"^\s*(?<1>[a-z]+)\s*=\s*(?<2>.+)$", RegexOptions.ExplicitCapture)]
+    private static partial Regex ConfigValueRegex();
 }

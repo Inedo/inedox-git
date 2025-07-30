@@ -41,14 +41,13 @@ namespace Inedo.Extensions.Git.Operations
         {
             using var repo = await this.FetchOrCloneAsync(context);
             this.LogInformation($"Tagging {this.Commit} with {this.Tag}...");
-            repo.Tag(this.Commit!, this.Tag!, this.Force);
+            await repo.TagAsync(this.Commit!, this.Tag!, this.Force, context.CancellationToken);
             return null;
         }
 
         protected override ExtendedRichDescription GetDescription(IOperationConfiguration config)
         {
             string? val(string name) => AH.NullIf(config[name], this.GetType().GetProperty(name)?.GetCustomAttribute<DefaultValueAttribute>()?.Value?.ToString());
-
 
             return new ExtendedRichDescription(
                 new RichDescription(
