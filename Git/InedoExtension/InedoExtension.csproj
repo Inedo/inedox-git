@@ -9,7 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Inedo.SDK" Version="4.0.0-ci.5" ExcludeAssets="runtime" />
+    <PackageReference Include="Inedo.SDK" Version="4.0.0-ci.7" ExcludeAssets="runtime" />
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="LilGit" Version="1.0.0" />
   </ItemGroup>
