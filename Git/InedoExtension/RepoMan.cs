@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Inedo.Diagnostics;
 using Inedo.IO;
+using LilGit;
 
 namespace Inedo.Extensions.Git;
 
@@ -99,12 +100,21 @@ internal sealed partial class RepoMan : IDisposable
         var (tree, commitSha) = this.repo.GetTree(options.Objectish);
         this.config.Log?.LogDebug($"Lookup succeeded; found commit {commitSha}.");
 
-        //var tree = commit.Tree;
         IReadOnlyDictionary<string, RepoMan>? submodules = null;
         try
         {
             if (options.RecurseSubmodules)
                 submodules = await this.UpdateSubmodulesAsync(tree, cancellationToken).ConfigureAwait(false);
+
+            bool resolveLfs = false;
+            var lfsLinks = new Dictionary<string, GitLfsObject>();
+
+            if (options.FetchLfsObjects)
+            {
+                var gitAttributes = tree[".gitattributes"];
+                if (gitAttributes is not null)
+                    resolveLfs = gitAttributes.HasLfsFilter();
+            }
 
             await exportTree(tree, options.OutputDirectory, string.Empty).ConfigureAwait(false);
 
@@ -156,14 +166,37 @@ internal sealed partial class RepoMan : IDisposable
                         }
                         else
                         {
-                            using var stream = entry.GetContentStream();
-                            using var output =  CreateFile(Path.Combine(outdir, entry.Name), entry.Mode);
+                            GitLfsObject? lfsPointer = null;
+
+                            using var stream = resolveLfs ? entry.GetContentStreamWithLfsPointer(out lfsPointer) : entry.GetContentStream();
+                            using var output = CreateFile(Path.Combine(outdir, entry.Name), entry.Mode);
                             stream.CopyTo(output);
+
+                            if (lfsPointer.HasValue)
+                                lfsLinks[entry.Path] = lfsPointer.GetValueOrDefault();
                         }
-                        
+
                         if (options.SetLastModified)
                             FileEx.SetLastWriteTime(Path.Combine(outdir, entry.Name), entry.GetModifiedTimestamp());
                     }
+                }
+            }
+
+            if (lfsLinks.Count > 0)
+            {
+                this.config.Log?.LogDebug("Resolving LFS references...");
+                using var batch = await repo.RequestLfsBlobsAsync(this.config, [.. lfsLinks.Values.Distinct()], cancellationToken);
+                foreach (var link in lfsLinks)
+                {
+                    if (!batch.Blobs.TryGetValue(link.Value.Oid, out var download))
+                    {
+                        this.config.Log?.LogError($"Server did not return data for LFS pointer at {link.Key}.");
+                        continue;
+                    }
+
+                    this.config.Log?.LogInformation($"Fetching LFS blob for {link}...");
+                    var fileInfo = await download.GetBlobFileAsync(cancellationToken);
+                    fileInfo.CopyTo(link.Key, true);
                 }
             }
         }
