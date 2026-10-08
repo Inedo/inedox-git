@@ -194,9 +194,9 @@ internal sealed partial class RepoMan : IDisposable
                         continue;
                     }
 
-                    this.config.Log?.LogInformation($"Fetching LFS blob for {link}...");
+                    this.config.Log?.LogInformation($"Fetching LFS blob for {link.Key}...");
                     var fileInfo = await download.GetBlobFileAsync(cancellationToken);
-                    fileInfo.CopyTo(link.Key, true);
+                    fileInfo.CopyTo(Path.Combine(options.OutputDirectory, link.Key), true);
                 }
             }
         }
