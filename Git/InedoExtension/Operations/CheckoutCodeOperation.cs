@@ -29,6 +29,11 @@ namespace Inedo.Extensions.Git.Operations
         [DisplayName("Recurse submodules")]
         public bool RecurseSubmodules { get; set; } = true;
 
+        [Category("Advanced")]
+        [ScriptAlias("FetchLfsObjects")]
+        [DisplayName("Fetch LFS objects")]
+        public bool FetchLfsObjects { get; set; }
+
         [Output]
         [Category("Advanced")]
         [ScriptAlias("CommitHash")]
@@ -55,6 +60,9 @@ namespace Inedo.Extensions.Git.Operations
 
             await this.EnsureCommonPropertiesAsync(context);
 
+            if (this.FetchLfsObjects && this.GitLibrary != "lilgit")
+                this.LogWarning("LFS support requires using the new git library (lilgit).");
+
             await base.BeforeRemoteExecuteAsync(context);
         }
 
@@ -63,7 +71,18 @@ namespace Inedo.Extensions.Git.Operations
             using var repo = await this.FetchOrCloneAsync(context);
             var outputDirectory = context.ResolvePath(this.OutputDirectory);
             this.LogInformation($"Exporting files to {outputDirectory}...");
-            return await repo.ExportAsync(new RepoExportOptions(outputDirectory, this.Objectish!, this.RecurseSubmodules, OperatingSystem.IsLinux(), this.PreserveLastModified, this.WriteMinimalGitData), context.CancellationToken);
+            return await repo.ExportAsync(
+                new RepoExportOptions(
+                    outputDirectory,
+                    this.Objectish!,
+                    this.RecurseSubmodules,
+                    OperatingSystem.IsLinux(),
+                    this.PreserveLastModified,
+                    this.WriteMinimalGitData,
+                    this.FetchLfsObjects
+                ),
+                context.CancellationToken
+            );
         }
 
         protected override Task AfterRemoteExecuteAsync(object? result)

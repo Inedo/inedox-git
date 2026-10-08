@@ -1,4 +1,7 @@
-﻿#nullable enable
+﻿using System.Collections.Immutable;
+using LilGit;
+
+#nullable enable
 
 namespace Inedo.Extensions.Git;
 
@@ -10,6 +13,8 @@ internal interface IRepoManRepository : IDisposable
     (IRepoManTree tree, string commitSha) GetTree(string objectish);
     Task TagAsync(string commitSha, string tag, bool force, RepoManConfig config, CancellationToken cancellationToken);
     Task FetchAsync(RepoManConfig config, CancellationToken cancellationToken);
+
+    Task<GitLfsDownloadBatch> RequestLfsBlobsAsync(RepoManConfig config, ImmutableArray<GitLfsObject> objects, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 internal interface IRepoManRepository<TSelf> : IRepoManRepository
@@ -38,6 +43,12 @@ internal interface IRepoManTreeEntry
     IRepoManTree GetTargetTree();
     Stream GetContentStream();
     string GetContentText();
+    bool HasLfsFilter() => false;
+    Stream GetContentStreamWithLfsPointer(out GitLfsObject? lfsPointer)
+    {
+        lfsPointer = default;
+        return this.GetContentStream();
+    }
 }
 
 internal enum RepoManFileMode : uint

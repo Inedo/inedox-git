@@ -2,4 +2,12 @@
 
 #nullable enable
 
-internal sealed record class RepoExportOptions(string OutputDirectory, string Objectish, bool RecurseSubmodules, bool CreateSymbolicLinks, bool SetLastModified, bool WriteMinimalGitData);
+internal sealed record class RepoExportOptions(
+    string OutputDirectory,
+    string Objectish,
+    bool RecurseSubmodules,
+    bool CreateSymbolicLinks,
+    bool SetLastModified,
+    bool WriteMinimalGitData,
+    bool FetchLfsObjects
+);

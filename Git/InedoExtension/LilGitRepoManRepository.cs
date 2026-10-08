@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Text;
 using Inedo.Diagnostics;
 using Inedo.IO;
 using LilGit;
@@ -68,6 +69,11 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
         return this.repo.EnsureRemoteTagAsync(GetConnectionInfo(config), tag, force, cancellationToken);
     }
 
+    public Task<GitLfsDownloadBatch> RequestLfsBlobsAsync(RepoManConfig config, ImmutableArray<GitLfsObject> objects, CancellationToken cancellationToken = default)
+    {
+        return this.repo.RequestLfsBlobsAsync(new GitBatchLfsBlobOptions(GetConnectionInfo(config), objects), cancellationToken);
+    }
+
     private static GitRemoteConnectionInfo GetConnectionInfo(RepoManConfig config)
     {
         return new GitRemoteConnectionInfo(
@@ -103,6 +109,8 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
         private readonly GitRepository repo = repo;
         private readonly string rootPath = rootPath;
         private readonly GitCommit commit = commit;
+
+        private static ReadOnlySpan<byte> LfsFilter => "filter=lfs"u8;
 
         public string Path => string.IsNullOrEmpty(this.rootPath) ? this.Name : $"{this.rootPath}/{this.Name}";
         public string Name => this.entry.Name;
@@ -176,6 +184,23 @@ internal sealed class LilGitRepoManRepository : IRepoManRepository<LilGitRepoMan
                 throw new InvalidOperationException($"Tree {this.entry.Target} not found.");
 
             return new RepoManTree(tree, this.repo, this.Path, this.commit);
+        }
+
+        public bool HasLfsFilter()
+        {
+            var blob = this.repo.GetObject<GitBlob>(this.entry.Target);
+            return blob.Content.Span.IndexOf(LfsFilter) >= 0;
+        }
+
+        public Stream GetContentStreamWithLfsPointer(out GitLfsObject? lfsPointer)
+        {
+            var blob = this.repo.GetObject<GitBlob>(this.entry.Target);
+            if (blob.TryGetLfsPointer(out var p))
+                lfsPointer = p;
+            else
+                lfsPointer = null;
+
+            return new ReadOnlyMemoryStream(blob.Content);
         }
     }
 }
